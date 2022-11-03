@@ -18,13 +18,17 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	logger "sigs.k8s.io/controller-runtime/pkg/log"
 
 	cloudflarev1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
+	"github.com/cloudflare/cloudflare-go"
 )
 
 // CloudflareAccessGroupReconciler reconciles a CloudflareAccessGroup object
@@ -47,9 +51,30 @@ type CloudflareAccessGroupReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	_ = logger.FromContext(ctx)
 
-	// TODO(user): your logic here
+	var err error
+	var api *cloudflare.API
+
+	if config.CLOUDFLARE_API_TOKEN != "" {
+		api, err = cloudflare.NewWithAPIToken(config.CLOUDFLARE_API_TOKEN)
+	} else {
+		api, err = cloudflare.New(config.CLOUDFLARE_API_KEY, config.CLOUDFLARE_API_EMAIL)
+	}
+
+	fmt.Println("API", config.CLOUDFLARE_API_KEY)
+
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "unable to initialize cloudflare object")
+	}
+
+	// Fetch user details on the account
+	u, err := api.UserDetails(ctx)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "unable to get user details")
+	}
+
+	fmt.Println(u)
 
 	return ctrl.Result{}, nil
 }

@@ -28,8 +28,21 @@ type CloudflareAccessGroupSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of CloudflareAccessGroup. Edit cloudflareaccessgroup_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Include  []CloudFlareAccessGroupRule `json:"include,omitempty"`
+	Required []CloudFlareAccessGroupRule `json:"required,omitempty"`
+	Exclude  []CloudFlareAccessGroupRule `json:"exclude,omitempty"`
+}
+
+type CloudFlareAccessGroupRule struct {
+	Emails         []string `json:"emails,omitempty"`
+	EmailsEndingIn []string `json:"emailsendingin,omitempty"`
+	IPRanges       []string `json:"ipranges,omitempty"`
+	//AccessGroups   []string
+	//Country        []string
+	//CommonName     []string
+	//ValidCertificate []string
+	ServiceToken          []string `json:"servicetoken,omitempty"`
+	AnyAccessServiceToken *bool    `json:"anyaccessservicetoken,omitempty"`
 }
 
 // CloudflareAccessGroupStatus defines the observed state of CloudflareAccessGroup

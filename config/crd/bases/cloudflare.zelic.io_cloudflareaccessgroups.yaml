@@ -36,10 +36,81 @@ spec:
           spec:
             description: CloudflareAccessGroupSpec defines the desired state of CloudflareAccessGroup
             properties:
-              foo:
-                description: Foo is an example field of CloudflareAccessGroup. Edit
-                  cloudflareaccessgroup_types.go to remove/update
-                type: string
+              exclude:
+                items:
+                  properties:
+                    anyaccessservicetoken:
+                      type: boolean
+                    emails:
+                      items:
+                        type: string
+                      type: array
+                    emailsendingin:
+                      items:
+                        type: string
+                      type: array
+                    ipranges:
+                      items:
+                        type: string
+                      type: array
+                    servicetoken:
+                      description: AccessGroups   []string Country        []string
+                        CommonName     []string ValidCertificate []string
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                type: array
+              include:
+                items:
+                  properties:
+                    anyaccessservicetoken:
+                      type: boolean
+                    emails:
+                      items:
+                        type: string
+                      type: array
+                    emailsendingin:
+                      items:
+                        type: string
+                      type: array
+                    ipranges:
+                      items:
+                        type: string
+                      type: array
+                    servicetoken:
+                      description: AccessGroups   []string Country        []string
+                        CommonName     []string ValidCertificate []string
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                type: array
+              required:
+                items:
+                  properties:
+                    anyaccessservicetoken:
+                      type: boolean
+                    emails:
+                      items:
+                        type: string
+                      type: array
+                    emailsendingin:
+                      items:
+                        type: string
+                      type: array
+                    ipranges:
+                      items:
+                        type: string
+                      type: array
+                    servicetoken:
+                      description: AccessGroups   []string Country        []string
+                        CommonName     []string ValidCertificate []string
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                type: array
             type: object
           status:
             description: CloudflareAccessGroupStatus defines the observed state of

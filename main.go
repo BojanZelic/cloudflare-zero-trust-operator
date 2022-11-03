@@ -33,6 +33,7 @@ import (
 
 	cloudflarev1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/controllers"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -87,6 +88,13 @@ func main() {
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
+	}
+
+	config.ReadFromEnv()
+	valid, err := config.IsValid()
+	if !valid {
+		setupLog.Error(err, "config is not valid")
+		os.Exit(2)
 	}
 
 	if err = (&controllers.CloudflareAccessGroupReconciler{

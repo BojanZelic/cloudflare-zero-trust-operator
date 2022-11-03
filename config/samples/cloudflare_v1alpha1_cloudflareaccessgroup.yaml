@@ -9,4 +9,7 @@ metadata:
     app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
   name: cloudflareaccessgroup-sample
 spec:
-  # TODO(user): Add fields here
+  include:
+    - emails:
+      - testemail1@domain.com
+      - testemail2@domain.com
