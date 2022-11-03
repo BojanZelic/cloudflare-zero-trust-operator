@@ -86,7 +86,7 @@ spec:
                       type: array
                   type: object
                 type: array
-              required:
+              require:
                 items:
                   properties:
                     anyAccessServiceToken:

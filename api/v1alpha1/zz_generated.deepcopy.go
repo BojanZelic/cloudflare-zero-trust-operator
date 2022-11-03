@@ -134,8 +134,8 @@ func (in *CloudflareAccessGroupSpec) DeepCopyInto(out *CloudflareAccessGroupSpec
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.Required != nil {
-		in, out := &in.Required, &out.Required
+	if in.Require != nil {
+		in, out := &in.Require, &out.Require
 		*out = make([]CloudFlareAccessGroupRule, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])

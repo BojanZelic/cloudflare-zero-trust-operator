@@ -31,10 +31,10 @@ type CloudflareAccessGroupSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	//ZoneID is the cloudflare zone to use
-	ZoneID   string                      `json:"zoneId,omitempty"`
-	Include  []CloudFlareAccessGroupRule `json:"include,omitempty"`
-	Required []CloudFlareAccessGroupRule `json:"required,omitempty"`
-	Exclude  []CloudFlareAccessGroupRule `json:"exclude,omitempty"`
+	ZoneID  string                      `json:"zoneId,omitempty"`
+	Include []CloudFlareAccessGroupRule `json:"include,omitempty"`
+	Require []CloudFlareAccessGroupRule `json:"require,omitempty"`
+	Exclude []CloudFlareAccessGroupRule `json:"exclude,omitempty"`
 }
 
 type CloudFlareAccessGroupRule struct {
@@ -85,9 +85,24 @@ func (c *CloudflareAccessGroup) ToCloudflare() cloudflare.AccessGroup {
 		Require:   make([]interface{}, 0),
 	}
 
-	for _, include := range c.Spec.Include {
-		for _, email := range include.Emails {
-			ag.Include = append(ag.Include, cfapi.NewAccessGroupEmail(email))
+	var managedCRFields = []*[]CloudFlareAccessGroupRule{
+		&c.Spec.Include,
+		&c.Spec.Exclude,
+		&c.Spec.Require,
+	}
+
+	var managedCFFields = []*[]interface{}{
+		&ag.Include,
+		&ag.Exclude,
+		&ag.Require,
+	}
+
+	for i, managedField := range managedCRFields {
+		for _, field := range *managedField {
+			for _, email := range field.Emails {
+				//cfapi.NewAccessGroupEmail(email)
+				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupEmail(email))
+			}
 		}
 	}
 
