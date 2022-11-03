@@ -1,0 +1,12 @@
+apiVersion: cloudflare.zelic.io/v1alpha1
+kind: CloudflareAccessGroup
+metadata:
+  labels:
+    app.kubernetes.io/name: cloudflareaccessgroup
+    app.kubernetes.io/instance: cloudflareaccessgroup-sample
+    app.kubernetes.io/part-of: bojanzelic-cloudflare-zero-trust-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
+  name: cloudflareaccessgroup-sample
+spec:
+  # TODO(user): Add fields here
