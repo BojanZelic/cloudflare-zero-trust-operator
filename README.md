@@ -1,5 +1,6 @@
-# bojanzelic-cloudflare-zero-trust-operator
-// TODO(user): Add simple overview of use/purpose
+# Cloudflare Zero-trust Operator
+
+(WIP) This is very alpha and not finalized yet & is therefore still a work in progess
 
 ## Description
 // TODO(user): An in-depth paragraph about your project and overview of use

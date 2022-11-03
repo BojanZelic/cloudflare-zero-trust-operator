@@ -18,17 +18,20 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
 
-	cloudflarev1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
-	"github.com/cloudflare/cloudflare-go"
+	cloudflare "github.com/cloudflare/cloudflare-go"
 )
 
 // CloudflareAccessGroupReconciler reconciles a CloudflareAccessGroup object
@@ -51,30 +54,84 @@ type CloudflareAccessGroupReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = logger.FromContext(ctx)
-
 	var err error
-	var api *cloudflare.API
+	var existingCfAG *cloudflare.AccessGroup
+	var api *cfapi.API
 
-	if config.CLOUDFLARE_API_TOKEN != "" {
-		api, err = cloudflare.NewWithAPIToken(config.CLOUDFLARE_API_TOKEN)
-	} else {
-		api, err = cloudflare.New(config.CLOUDFLARE_API_KEY, config.CLOUDFLARE_API_EMAIL)
+	log := logger.FromContext(ctx)
+	ag := &v1alpha1.CloudflareAccessGroup{}
+
+	err = r.Client.Get(ctx, req.NamespacedName, ag)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+
+		log.Error(err, "Failed to get CloudflareAccessGroup", "CloudflareAccessGroup.Name", ag.Name)
+		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessGroup")
 	}
 
-	fmt.Println("API", config.CLOUDFLARE_API_KEY)
+	api, err = cfapi.New(config.CLOUDFLARE_API_TOKEN, config.CLOUDFLARE_API_KEY, config.CLOUDFLARE_API_EMAIL, config.CLOUDFLARE_ACCOUNT_ID)
 
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "unable to initialize cloudflare object")
 	}
 
 	// Fetch user details on the account
-	u, err := api.UserDetails(ctx)
+	// @todo paginate
+	cfAccessGroups, err := api.AccessGroups(ctx)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "unable to get user details")
+		return ctrl.Result{}, errors.Wrap(err, "unable to get access groups")
 	}
 
-	fmt.Println(u)
+	newCfAG := ag.ToCloudflare()
+
+	if ag.Status.AccessGroupID == "" {
+		for _, g := range cfAccessGroups {
+			if g.Name == ag.CloudflareName() {
+				//found todo
+				log.Info(ag.CloudflareName() + " already exists")
+
+				//update status to associate the group ID
+				ag.Status.AccessGroupID = g.ID
+				ag.Status.CreatedAt = v1.NewTime(*g.CreatedAt)
+				ag.Status.UpdatedAt = v1.NewTime(*g.UpdatedAt)
+
+				//re-intialize to update the status
+				newCfAG = ag.ToCloudflare()
+
+				existingCfAG = &g
+				err := r.Status().Update(ctx, ag) //nolint
+				if err != nil {
+					return ctrl.Result{}, errors.Wrap(err, "unable to update access group")
+				}
+
+				break
+			}
+		}
+	} else {
+		cfAG, err := api.AccessGroup(ctx, ag.Status.AccessGroupID)
+		existingCfAG = &cfAG
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "unable to get access groups")
+		}
+	}
+
+	if existingCfAG == nil {
+		_, err = api.CreateAccessGroup(ctx, newCfAG)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
+		}
+	}
+
+	if !cfapi.AcessGroupEmailEqual(*existingCfAG, newCfAG) {
+		log.Info(newCfAG.Name + " has changed, updating...")
+
+		_, err := api.UpdateAccessGroup(ctx, newCfAG)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "unable to update access groups")
+		}
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -82,6 +139,6 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 // SetupWithManager sets up the controller with the Manager.
 func (r *CloudflareAccessGroupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&cloudflarev1alpha1.CloudflareAccessGroup{}).
+		For(&v1alpha1.CloudflareAccessGroup{}).
 		Complete(r)
 }

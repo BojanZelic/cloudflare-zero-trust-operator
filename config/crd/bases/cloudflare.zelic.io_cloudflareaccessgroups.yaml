@@ -39,21 +39,21 @@ spec:
               exclude:
                 items:
                   properties:
-                    anyaccessservicetoken:
+                    anyAccessServiceToken:
                       type: boolean
                     emails:
                       items:
                         type: string
                       type: array
-                    emailsendingin:
+                    emailsEndingIn:
                       items:
                         type: string
                       type: array
-                    ipranges:
+                    ipRanges:
                       items:
                         type: string
                       type: array
-                    servicetoken:
+                    serviceToken:
                       description: AccessGroups   []string Country        []string
                         CommonName     []string ValidCertificate []string
                       items:
@@ -64,21 +64,21 @@ spec:
               include:
                 items:
                   properties:
-                    anyaccessservicetoken:
+                    anyAccessServiceToken:
                       type: boolean
                     emails:
                       items:
                         type: string
                       type: array
-                    emailsendingin:
+                    emailsEndingIn:
                       items:
                         type: string
                       type: array
-                    ipranges:
+                    ipRanges:
                       items:
                         type: string
                       type: array
-                    servicetoken:
+                    serviceToken:
                       description: AccessGroups   []string Country        []string
                         CommonName     []string ValidCertificate []string
                       items:
@@ -89,21 +89,21 @@ spec:
               required:
                 items:
                   properties:
-                    anyaccessservicetoken:
+                    anyAccessServiceToken:
                       type: boolean
                     emails:
                       items:
                         type: string
                       type: array
-                    emailsendingin:
+                    emailsEndingIn:
                       items:
                         type: string
                       type: array
-                    ipranges:
+                    ipRanges:
                       items:
                         type: string
                       type: array
-                    servicetoken:
+                    serviceToken:
                       description: AccessGroups   []string Country        []string
                         CommonName     []string ValidCertificate []string
                       items:
@@ -111,10 +111,25 @@ spec:
                       type: array
                   type: object
                 type: array
+              zoneId:
+                description: ZoneID is the cloudflare zone to use
+                type: string
             type: object
           status:
             description: CloudflareAccessGroupStatus defines the observed state of
               CloudflareAccessGroup
+            properties:
+              accessGroupId:
+                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
+                  of cluster Important: Run "make" to regenerate code after modifying
+                  this file'
+                type: string
+              createdAt:
+                format: date-time
+                type: string
+              updatedAt:
+                format: date-time
+                type: string
             type: object
         type: object
     served: true
