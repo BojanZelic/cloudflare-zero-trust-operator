@@ -33,8 +33,8 @@ func (in *CloudFlareAccessGroupRule) DeepCopyInto(out *CloudFlareAccessGroupRule
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.EmailsEndingIn != nil {
-		in, out := &in.EmailsEndingIn, &out.EmailsEndingIn
+	if in.EmailDomains != nil {
+		in, out := &in.EmailDomains, &out.EmailDomains
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}

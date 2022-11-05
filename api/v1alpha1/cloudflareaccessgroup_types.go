@@ -38,9 +38,10 @@ type CloudflareAccessGroupSpec struct {
 }
 
 type CloudFlareAccessGroupRule struct {
-	Emails         []string `json:"emails,omitempty"`
-	EmailsEndingIn []string `json:"emailsEndingIn,omitempty"`
-	IPRanges       []string `json:"ipRanges,omitempty"`
+	Emails       []string `json:"emails,omitempty"`
+	EmailDomains []string `json:"emailDomains,omitempty"`
+	IPRanges     []string `json:"ipRanges,omitempty"`
+	// @todo: add the rest of the fields
 	//AccessGroups   []string
 	//Country        []string
 	//CommonName     []string
@@ -100,8 +101,19 @@ func (c *CloudflareAccessGroup) ToCloudflare() cloudflare.AccessGroup {
 	for i, managedField := range managedCRFields {
 		for _, field := range *managedField {
 			for _, email := range field.Emails {
-				//cfapi.NewAccessGroupEmail(email)
 				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupEmail(email))
+			}
+			for _, domain := range field.EmailDomains {
+				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupEmailDomains(domain))
+			}
+			for _, ip := range field.IPRanges {
+				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupIP(ip))
+			}
+			for _, token := range field.ServiceToken {
+				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupServiceToken(token))
+			}
+			if field.AnyAccessServiceToken != nil && *field.AnyAccessServiceToken {
+				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupAnyValidServiceToken())
 			}
 		}
 	}

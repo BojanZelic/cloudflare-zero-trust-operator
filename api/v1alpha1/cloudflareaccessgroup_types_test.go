@@ -42,30 +42,14 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 						Email: emails[i],
 					},
 				}))
-				// Expect(accessRule.ToCloudflare().Require[i]).To(Equal(cloudflare.AccessGroupEmail{
-				// 	Email: struct {
-				// 		Email string "json:\"email\""
-				// 	}{
-				// 		Email: emails[i],
-				// 	},
-				// }))
-				// Expect(accessRule.ToCloudflare().Exclude[i]).To(Equal(cloudflare.AccessGroupEmail{
-				// 	Email: struct {
-				// 		Email string "json:\"email\""
-				// 	}{
-				// 		Email: emails[i],
-				// 	},
-				// }))
-			}
-		})
-
-		It("can export Required emails to the cloudflare object", func() {
-			emails := []string{"test@email.com", "test2@email.com"}
-			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
-				Emails: emails},
-			}
-			for i := range emails {
-				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(cloudflare.AccessGroupEmail{
+				Expect(accessRule.ToCloudflare().Require[i]).To(Equal(cloudflare.AccessGroupEmail{
+					Email: struct {
+						Email string "json:\"email\""
+					}{
+						Email: emails[i],
+					},
+				}))
+				Expect(accessRule.ToCloudflare().Exclude[i]).To(Equal(cloudflare.AccessGroupEmail{
 					Email: struct {
 						Email string "json:\"email\""
 					}{
@@ -73,6 +57,63 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 					},
 				}))
 			}
+		})
+
+		It("can export emaildomains to the cloudflare object", func() {
+			domains := []string{"email.com", "email2.com"}
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+				EmailDomains: domains},
+			}
+			for i := range domains {
+				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(cloudflare.AccessGroupEmailDomain{
+					EmailDomain: struct {
+						Domain string "json:\"domain\""
+					}{
+						Domain: domains[i],
+					},
+				}))
+			}
+		})
+
+		It("can export ipRanges to the cloudflare object", func() {
+			ips := []string{"1.1.1.1/32", "8.8.8.8/32"}
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+				IPRanges: ips},
+			}
+			for i := range ips {
+				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(cloudflare.AccessGroupIP{
+					IP: struct {
+						IP string "json:\"ip\""
+					}{
+						IP: ips[i],
+					}}))
+			}
+		})
+
+		It("can export serviceTokens to the cloudflare object", func() {
+			ids := []string{"some_service_token", "some_other_service_token"}
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+				ServiceToken: ids},
+			}
+			for i, id := range ids {
+				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(cloudflare.AccessGroupServiceToken{
+					ServiceToken: struct {
+						ID string "json:\"token_id\""
+					}{
+						ID: id,
+					},
+				}))
+			}
+		})
+
+		It("can export any serviceTokens to the cloudflare object", func() {
+			validServiceToken := true
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+				AnyAccessServiceToken: &validServiceToken},
+			}
+			Expect(accessRule.ToCloudflare().Include[0]).To(Equal(cloudflare.AccessGroupAnyValidServiceToken{
+				AnyValidServiceToken: struct{}{},
+			}))
 		})
 	})
 })
