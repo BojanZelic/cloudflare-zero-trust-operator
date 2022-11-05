@@ -71,7 +71,13 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessGroup")
 	}
 
-	api, err = cfapi.New(config.CLOUDFLARE_API_TOKEN, config.CLOUDFLARE_API_KEY, config.CLOUDFLARE_API_EMAIL, config.CLOUDFLARE_ACCOUNT_ID)
+	cfConfig := config.ParseCloudflareConfig(ag)
+	validConfig, err := cfConfig.IsValid()
+	if !validConfig {
+		return ctrl.Result{}, errors.Wrap(err, "invalid config")
+	}
+
+	api, err = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
 
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "unable to initialize cloudflare object")

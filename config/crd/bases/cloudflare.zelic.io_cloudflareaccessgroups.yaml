@@ -54,8 +54,9 @@ spec:
                         type: string
                       type: array
                     serviceToken:
-                      description: AccessGroups   []string Country        []string
-                        CommonName     []string ValidCertificate []string
+                      description: '@todo: add the rest of the fields AccessGroups   []string
+                        Country        []string CommonName     []string ValidCertificate
+                        []string'
                       items:
                         type: string
                       type: array
@@ -79,8 +80,9 @@ spec:
                         type: string
                       type: array
                     serviceToken:
-                      description: AccessGroups   []string Country        []string
-                        CommonName     []string ValidCertificate []string
+                      description: '@todo: add the rest of the fields AccessGroups   []string
+                        Country        []string CommonName     []string ValidCertificate
+                        []string'
                       items:
                         type: string
                       type: array
@@ -104,8 +106,9 @@ spec:
                         type: string
                       type: array
                     serviceToken:
-                      description: AccessGroups   []string Country        []string
-                        CommonName     []string ValidCertificate []string
+                      description: '@todo: add the rest of the fields AccessGroups   []string
+                        Country        []string CommonName     []string ValidCertificate
+                        []string'
                       items:
                         type: string
                       type: array

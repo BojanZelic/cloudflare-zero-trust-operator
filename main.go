@@ -90,12 +90,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	config.ReadFromEnv()
-	valid, err := config.IsValid()
-	if !valid {
-		setupLog.Error(err, "config is not valid")
-		os.Exit(2)
-	}
+	config.SetConfigDefaults()
 
 	if err = (&controllers.CloudflareAccessGroupReconciler{
 		Client: mgr.GetClient(),
