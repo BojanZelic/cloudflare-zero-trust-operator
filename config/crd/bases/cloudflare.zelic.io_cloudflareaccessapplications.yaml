@@ -46,6 +46,9 @@ spec:
               auto_redirect_to_identity:
                 type: boolean
               domain:
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file
+                  @todo: use Name instead of CRD name'
                 type: string
               enable_binding_cookie:
                 type: boolean

@@ -28,13 +28,13 @@ import (
 type CloudflareAccessApplicationSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-
+	//@todo: use Name instead of CRD name
 	Domain                  string                           `json:"domain"`
 	Type                    cloudflare.AccessApplicationType `json:"type,omitempty"`
 	AppLauncherVisible      *bool                            `json:"app_launcher_visible,omitempty"`
 	AllowedIdps             []string                         `json:"allowed_idps,omitempty"`
 	AutoRedirectToIdentity  *bool                            `json:"auto_redirect_to_identity,omitempty"`
-	Policies                []*CloudflareAccessPolicy        `json:"policies,omitempty"`
+	Policies                CloudflareAccessPolicyList       `json:"policies,omitempty"`
 	SessionDuration         string                           `json:"session_duration,omitempty"`
 	EnableBindingCookie     *bool                            `json:"enable_binding_cookie,omitempty"`
 	HttpOnlyCookieAttribute *bool                            `json:"http_only_cookie_attribute,omitempty"`
@@ -51,6 +51,39 @@ type CloudflareAccessPolicy struct {
 	// PurposeJustificationPrompt   *string               `json:"purpose_justification_prompt,omitempty"`
 	// ApprovalRequired             *bool                 `json:"approval_required,omitempty"`
 	// ApprovalGroups               []cloudflare.AccessApprovalGroup `json:"approval_groups"`
+}
+
+type CloudflareAccessPolicyList []CloudflareAccessPolicy
+
+func (aps CloudflareAccessPolicyList) ToCloudflare() []cloudflare.AccessPolicy {
+	ret := []cloudflare.AccessPolicy{}
+
+	for i, ap := range aps {
+		transformed := cloudflare.AccessPolicy{
+			Name:       ap.Name,
+			Precedence: i + 1,
+			Decision:   ap.Decision,
+		}
+
+		var managedCRFields = CloudFlareAccessGroupRuleGroups{
+			ap.Include,
+			ap.Exclude,
+			ap.Require,
+		}
+
+		var managedCFFields = []*[]interface{}{
+			&transformed.Include,
+			&transformed.Exclude,
+			&transformed.Require,
+		}
+
+		managedCRFields.TransformCloudflareRuleFields(managedCFFields)
+
+		ret = append(ret, transformed)
+
+	}
+
+	return ret
 }
 
 // CloudflareAccessApplicationStatus defines the observed state of CloudflareAccessApplication
@@ -77,6 +110,26 @@ type CloudflareAccessApplication struct {
 
 func (c *CloudflareAccessApplication) CloudflareName() string {
 	return c.ObjectMeta.Name + " [K8s]"
+}
+
+func (c *CloudflareAccessApplication) ToCloudflare() cloudflare.AccessApplication {
+
+	app := cloudflare.AccessApplication{
+		Name:                    c.CloudflareName(),
+		ID:                      c.Status.AccessApplicationID,
+		CreatedAt:               &c.Status.CreatedAt.Time,
+		UpdatedAt:               &c.Status.UpdatedAt.Time,
+		Domain:                  c.Spec.Domain,
+		Type:                    c.Spec.Type,
+		AppLauncherVisible:      c.Spec.AppLauncherVisible,
+		AllowedIdps:             c.Spec.AllowedIdps,
+		AutoRedirectToIdentity:  c.Spec.AutoRedirectToIdentity,
+		SessionDuration:         c.Spec.SessionDuration,
+		EnableBindingCookie:     c.Spec.EnableBindingCookie,
+		HttpOnlyCookieAttribute: c.Spec.HttpOnlyCookieAttribute,
+	}
+
+	return app
 }
 
 //+kubebuilder:object:root=true

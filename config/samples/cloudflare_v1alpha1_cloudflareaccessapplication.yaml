@@ -10,3 +10,9 @@ metadata:
   name: cloudflareaccessapp-sample
 spec:
   domain: home-assistant.zelic.io
+  policies: 
+    - name: Test
+      decision: allow
+      include:
+        - emails:
+          - bnzelic@gmail.com

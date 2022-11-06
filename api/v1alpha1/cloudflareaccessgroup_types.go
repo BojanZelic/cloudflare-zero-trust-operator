@@ -87,10 +87,10 @@ func (c *CloudflareAccessGroup) ToCloudflare() cloudflare.AccessGroup {
 		Require:   make([]interface{}, 0),
 	}
 
-	var managedCRFields = []*[]CloudFlareAccessGroupRule{
-		&c.Spec.Include,
-		&c.Spec.Exclude,
-		&c.Spec.Require,
+	var managedCRFields = CloudFlareAccessGroupRuleGroups{
+		c.Spec.Include,
+		c.Spec.Exclude,
+		c.Spec.Require,
 	}
 
 	var managedCFFields = []*[]interface{}{
@@ -99,8 +99,16 @@ func (c *CloudflareAccessGroup) ToCloudflare() cloudflare.AccessGroup {
 		&ag.Require,
 	}
 
-	for i, managedField := range managedCRFields {
-		for _, field := range *managedField {
+	managedCRFields.TransformCloudflareRuleFields(managedCFFields)
+
+	return ag
+}
+
+type CloudFlareAccessGroupRuleGroups [][]CloudFlareAccessGroupRule
+
+func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCFFields []*[]interface{}) {
+	for i, managedField := range c {
+		for _, field := range managedField {
 			for _, email := range field.Emails {
 				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupEmail(email))
 			}
@@ -122,8 +130,6 @@ func (c *CloudflareAccessGroup) ToCloudflare() cloudflare.AccessGroup {
 			}
 		}
 	}
-
-	return ag
 }
 
 //+kubebuilder:object:root=true

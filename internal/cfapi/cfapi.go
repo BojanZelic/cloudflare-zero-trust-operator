@@ -83,3 +83,13 @@ func (a *API) UpdateAccessApplication(ctx context.Context, ag cloudflare.AccessA
 	cfAG, err := a.client.UpdateAccessApplication(ctx, a.CFAccountID, ag)
 	return cfAG, errors.Wrap(err, "unable to update access applications")
 }
+
+func (a *API) AccessPolicies(ctx context.Context, appID string) ([]cloudflare.AccessPolicy, error) {
+	apps, _, err := a.client.AccessPolicies(ctx, a.CFAccountID, appID, cloudflare.PaginationOptions{})
+	return apps, errors.Wrap(err, "unable to get access Policies")
+}
+
+func (a *API) CreateAccessPolicy(ctx context.Context, appID string, ag cloudflare.AccessPolicy) (cloudflare.AccessPolicy, error) {
+	cfAG, err := a.client.CreateAccessPolicy(ctx, a.CFAccountID, appID, ag)
+	return cfAG, errors.Wrap(err, "unable to create access Policys")
+}

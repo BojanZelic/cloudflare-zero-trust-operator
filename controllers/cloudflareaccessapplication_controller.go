@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,6 +31,7 @@ import (
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
+	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/pkg/errors"
 )
 
@@ -54,7 +56,7 @@ type CloudflareAccessApplicationReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
-	//var existingCfAG *cloudflare.AccessApplication
+	var existingaccessApp *cloudflare.AccessApplication
 	var api *cfapi.API
 
 	log := logger.FromContext(ctx)
@@ -82,10 +84,6 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, errors.Wrap(err, "unable to initialize cloudflare object")
 	}
 
-	// Fetch user details on the account
-
-	//newCfAG := app.ToCloudflare()
-
 	if app.Status.AccessApplicationID == "" {
 		accessApp, err := api.FindAccessApplicationByDomain(ctx, app.Spec.Domain)
 		if err != nil {
@@ -99,19 +97,45 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 			app.Status.CreatedAt = v1.NewTime(*accessApp.CreatedAt)
 			app.Status.UpdatedAt = v1.NewTime(*accessApp.UpdatedAt)
 
-			//re-intialize to update the status
-			//newCfAG = app.ToCloudflare()
-
-			//existingCfAG = &g
+			existingaccessApp = accessApp
 			err := r.Status().Update(ctx, app) //nolint
 			if err != nil {
 				return ctrl.Result{}, errors.Wrap(err, "unable to update access group")
 			}
 		}
+	} else {
+		accessApp, err := api.AccessApplication(ctx, app.Status.AccessApplicationID)
+		existingaccessApp = &accessApp
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "unable to get access application")
+		}
 	}
+
+	if existingaccessApp == nil {
+		newApp := app.ToCloudflare()
+
+		accessapp, err := api.CreateAccessApplication(ctx, newApp)
+		existingaccessApp = &accessapp
+
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
+		}
+	}
+
+	//get policies
+
+	policies, err := api.AccessPolicies(ctx, app.Status.AccessApplicationID)
+
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
+	}
+
+	fmt.Println(policies)
+	fmt.Println(app.Spec.Policies.ToCloudflare())
+
 	//  else {
 	// 	cfAG, err := api.AccessGroup(ctx, app.Status.AccessGroupID)
-	// 	existingCfAG = &cfAG
+	// 	existingaccessApp = &cfAG
 	// 	if err != nil {
 	// 		return ctrl.Result{}, errors.Wrap(err, "unable to get access groups")
 	// 	}
