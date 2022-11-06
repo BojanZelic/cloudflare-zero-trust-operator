@@ -1,0 +1,27 @@
+name: Goreleaser
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+env:
+    GO_VERSION: 1.19
+jobs:
+  docker:
+    name: Goreleaser
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+            go-version: ${{ env.GO_VERSION }}
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v3
+        with:
+            version: latest
+            args: release --rm-dist --timeout 2h
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
