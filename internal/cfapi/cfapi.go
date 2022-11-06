@@ -47,3 +47,23 @@ func (a *API) UpdateAccessGroup(ctx context.Context, ag cloudflare.AccessGroup) 
 	cfAG, err := a.client.UpdateAccessGroup(ctx, a.CFAccountID, ag)
 	return cfAG, errors.Wrap(err, "unable to update access groups")
 }
+
+func (a *API) AccessApplications(ctx context.Context) ([]cloudflare.AccessApplication, error) {
+	apps, _, err := a.client.AccessApplications(ctx, a.CFAccountID, cloudflare.PaginationOptions{})
+	return apps, errors.Wrap(err, "unable to get access applications")
+}
+
+func (a *API) AccessApplication(ctx context.Context, AccessApplicationID string) (cloudflare.AccessApplication, error) {
+	cfAG, err := a.client.AccessApplication(ctx, a.CFAccountID, AccessApplicationID)
+	return cfAG, errors.Wrap(err, "unable to get access application")
+}
+
+func (a *API) CreateAccessApplication(ctx context.Context, ag cloudflare.AccessApplication) (cloudflare.AccessApplication, error) {
+	cfAG, err := a.client.CreateAccessApplication(ctx, a.CFAccountID, ag)
+	return cfAG, errors.Wrap(err, "unable to create access applications")
+}
+
+func (a *API) UpdateAccessApplication(ctx context.Context, ag cloudflare.AccessApplication) (cloudflare.AccessApplication, error) {
+	cfAG, err := a.client.UpdateAccessApplication(ctx, a.CFAccountID, ag)
+	return cfAG, errors.Wrap(err, "unable to update access applications")
+}

@@ -1,0 +1,27 @@
+# permissions for end users to view cloudflareaccessapplications.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: cloudflareaccessapplication-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
+    app.kubernetes.io/part-of: bojanzelic-cloudflare-zero-trust-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: cloudflareaccessapplication-viewer-role
+rules:
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareaccessapplications
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareaccessapplications/status
+  verbs:
+  - get

@@ -8,6 +8,32 @@ rules:
 - apiGroups:
   - cloudflare.zelic.io
   resources:
+  - cloudflareaccessapplications
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareaccessapplications/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareaccessapplications/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
   - cloudflareaccessgroups
   verbs:
   - create

@@ -39,6 +39,11 @@ spec:
               exclude:
                 items:
                   properties:
+                    accessGroups:
+                      description: Reference to other access groups
+                      items:
+                        type: string
+                      type: array
                     anyAccessServiceToken:
                       type: boolean
                     emailDomains:
@@ -54,9 +59,8 @@ spec:
                         type: string
                       type: array
                     serviceToken:
-                      description: '@todo: add the rest of the fields AccessGroups   []string
-                        Country        []string CommonName     []string ValidCertificate
-                        []string'
+                      description: '@todo: add the rest of the fields Country        []string
+                        CommonName     []string ValidCertificate []string'
                       items:
                         type: string
                       type: array
@@ -65,6 +69,11 @@ spec:
               include:
                 items:
                   properties:
+                    accessGroups:
+                      description: Reference to other access groups
+                      items:
+                        type: string
+                      type: array
                     anyAccessServiceToken:
                       type: boolean
                     emailDomains:
@@ -80,9 +89,8 @@ spec:
                         type: string
                       type: array
                     serviceToken:
-                      description: '@todo: add the rest of the fields AccessGroups   []string
-                        Country        []string CommonName     []string ValidCertificate
-                        []string'
+                      description: '@todo: add the rest of the fields Country        []string
+                        CommonName     []string ValidCertificate []string'
                       items:
                         type: string
                       type: array
@@ -91,6 +99,11 @@ spec:
               require:
                 items:
                   properties:
+                    accessGroups:
+                      description: Reference to other access groups
+                      items:
+                        type: string
+                      type: array
                     anyAccessServiceToken:
                       type: boolean
                     emailDomains:
@@ -106,9 +119,8 @@ spec:
                         type: string
                       type: array
                     serviceToken:
-                      description: '@todo: add the rest of the fields AccessGroups   []string
-                        Country        []string CommonName     []string ValidCertificate
-                        []string'
+                      description: '@todo: add the rest of the fields Country        []string
+                        CommonName     []string ValidCertificate []string'
                       items:
                         type: string
                       type: array

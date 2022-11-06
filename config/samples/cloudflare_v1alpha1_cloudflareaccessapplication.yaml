@@ -1,0 +1,11 @@
+apiVersion: cloudflare.zelic.io/v1alpha1
+kind: CloudflareAccessApplication
+metadata:
+  labels:
+    app.kubernetes.io/name: cloudflareaccessapplication
+    app.kubernetes.io/instance: cloudflareaccessapplication-sample
+    app.kubernetes.io/part-of: bojanzelic-cloudflare-zero-trust-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
+  name: cloudflareaccessapplication-sample
+spec:

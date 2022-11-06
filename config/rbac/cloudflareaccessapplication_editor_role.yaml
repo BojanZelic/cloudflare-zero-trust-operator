@@ -1,0 +1,31 @@
+# permissions for end users to edit cloudflareaccessapplications.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: cloudflareaccessapplication-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
+    app.kubernetes.io/part-of: bojanzelic-cloudflare-zero-trust-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: cloudflareaccessapplication-editor-role
+rules:
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareaccessapplications
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareaccessapplications/status
+  verbs:
+  - get
