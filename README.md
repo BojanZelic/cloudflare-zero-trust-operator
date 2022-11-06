@@ -1,13 +1,19 @@
-# Cloudflare Zero-trust Operator
+# Cloudflare Zero-Trust Operator
 
-(WIP) This is very alpha and not finalized yet & is therefore still a work in progess
+This is very early alpha project and not finalized yet & is therefore still a work in progess. 
+Expect breaking changes
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+Cloudflare Zero-Trust operator allow you to manage your zero-trust configuration directly from kubernetes
 
-## Getting Started
-You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
-**Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
+## Features
+
+Currently in Project scope
+- [x] Manage Cloudflare Access Groups
+
+## Roadmap
+- [] Manage Cloudflare Access Applications
+- [] Deletion of managed resources upon Deletion of CR
+
 
 ### Running on the cluster
 1. Install Instances of Custom Resources:

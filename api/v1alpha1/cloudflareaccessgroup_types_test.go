@@ -115,5 +115,21 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 				AnyValidServiceToken: struct{}{},
 			}))
 		})
+
+		It("can export accessGroups to the cloudflare object", func() {
+			ids := []string{"first_access_group_id", "second_access_group_id"}
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+				AccessGroups: ids},
+			}
+			for i, id := range ids {
+				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(cloudflare.AccessGroupAccessGroup{
+					Group: struct {
+						ID string "json:\"id\""
+					}{
+						ID: id,
+					},
+				}))
+			}
+		})
 	})
 })

@@ -41,8 +41,9 @@ type CloudFlareAccessGroupRule struct {
 	Emails       []string `json:"emails,omitempty"`
 	EmailDomains []string `json:"emailDomains,omitempty"`
 	IPRanges     []string `json:"ipRanges,omitempty"`
+	// Reference to other access groups
+	AccessGroups []string `json:"accessGroups,omitempty"`
 	// @todo: add the rest of the fields
-	//AccessGroups   []string
 	//Country        []string
 	//CommonName     []string
 	//ValidCertificate []string
@@ -114,6 +115,10 @@ func (c *CloudflareAccessGroup) ToCloudflare() cloudflare.AccessGroup {
 			}
 			if field.AnyAccessServiceToken != nil && *field.AnyAccessServiceToken {
 				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupAnyValidServiceToken())
+			}
+			//@todo - make this a reference to another access group instead of an ID
+			for _, id := range field.AccessGroups {
+				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupAccessGroup(id))
 			}
 		}
 	}

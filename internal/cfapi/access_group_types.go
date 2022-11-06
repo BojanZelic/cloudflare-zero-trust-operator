@@ -43,6 +43,16 @@ func NewAccessGroupServiceToken(token string) cloudflare.AccessGroupServiceToken
 	}
 }
 
+func NewAccessGroupAccessGroup(id string) cloudflare.AccessGroupAccessGroup {
+	return cloudflare.AccessGroupAccessGroup{
+		Group: struct {
+			ID string "json:\"id\""
+		}{
+			ID: id,
+		},
+	}
+}
+
 func NewAccessGroupAnyValidServiceToken() cloudflare.AccessGroupAnyValidServiceToken {
 	return cloudflare.AccessGroupAnyValidServiceToken{
 		AnyValidServiceToken: struct{}{},
