@@ -83,35 +83,29 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	}
 
 	// Fetch user details on the account
-	// @todo paginate
-	cfAccessApps, err := api.AccessApplications(ctx)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "unable to get access applications")
-	}
 
 	//newCfAG := app.ToCloudflare()
 
 	if app.Status.AccessApplicationID == "" {
-		for _, g := range cfAccessApps {
-			if g.Name == app.CloudflareName() {
-				//found todo
-				log.Info(app.CloudflareName() + " already exists")
+		accessApp, err := api.FindAccessApplicationByDomain(ctx, app.Spec.Domain)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "error querying application app from cloudflare")
+		}
+		if accessApp != nil {
+			log.Info(app.CloudflareName() + " already exists. Updating status")
 
-				//update status to associate the group ID
-				app.Status.AccessApplicationID = g.ID
-				app.Status.CreatedAt = v1.NewTime(*g.CreatedAt)
-				app.Status.UpdatedAt = v1.NewTime(*g.UpdatedAt)
+			//update status to associate the app ID
+			app.Status.AccessApplicationID = accessApp.ID
+			app.Status.CreatedAt = v1.NewTime(*accessApp.CreatedAt)
+			app.Status.UpdatedAt = v1.NewTime(*accessApp.UpdatedAt)
 
-				//re-intialize to update the status
-				//newCfAG = app.ToCloudflare()
+			//re-intialize to update the status
+			//newCfAG = app.ToCloudflare()
 
-				//existingCfAG = &g
-				err := r.Status().Update(ctx, app) //nolint
-				if err != nil {
-					return ctrl.Result{}, errors.Wrap(err, "unable to update access group")
-				}
-
-				break
+			//existingCfAG = &g
+			err := r.Status().Update(ctx, app) //nolint
+			if err != nil {
+				return ctrl.Result{}, errors.Wrap(err, "unable to update access group")
 			}
 		}
 	}

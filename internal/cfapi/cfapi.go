@@ -53,6 +53,22 @@ func (a *API) AccessApplications(ctx context.Context) ([]cloudflare.AccessApplic
 	return apps, errors.Wrap(err, "unable to get access applications")
 }
 
+func (a *API) FindAccessApplicationByDomain(ctx context.Context, domain string) (*cloudflare.AccessApplication, error) {
+	apps, _, err := a.client.AccessApplications(ctx, a.CFAccountID, cloudflare.PaginationOptions{})
+
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get access applications")
+	}
+
+	for _, g := range apps {
+		if g.Domain == domain {
+			return &g, nil
+		}
+	}
+
+	return nil, nil
+}
+
 func (a *API) AccessApplication(ctx context.Context, AccessApplicationID string) (cloudflare.AccessApplication, error) {
 	cfAG, err := a.client.AccessApplication(ctx, a.CFAccountID, AccessApplicationID)
 	return cfAG, errors.Wrap(err, "unable to get access application")
