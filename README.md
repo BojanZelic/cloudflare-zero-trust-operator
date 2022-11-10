@@ -6,6 +6,7 @@ Expect breaking changes
 Cloudflare Zero-Trust operator allow you to manage your zero-trust configuration directly from kubernetes
 
 ![Unit Tests](https://github.com/BojanZelic/cloudflare-zero-trust-operator/actions/workflows/unit.yaml/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/bojanzelic/cloudflare-zero-trust-operator)](https://goreportcard.com/report/github.com/bojanzelic/cloudflare-zero-trust-operator)
 
 ## Features
 
