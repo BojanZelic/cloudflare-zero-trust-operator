@@ -14,7 +14,6 @@ func (c AccessPolicyCollection) Len() int { return len(c) }
 
 func (c AccessPolicyCollection) SortByPrecidence() {
 	sort.Slice(c, func(i, j int) bool {
-
 		return c[i].Precedence < c[j].Precedence
 	})
 }

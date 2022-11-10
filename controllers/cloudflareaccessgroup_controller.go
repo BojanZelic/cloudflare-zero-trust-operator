@@ -19,22 +19,20 @@ package controllers
 import (
 	"context"
 
+	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
+	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/pkg/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
-
-	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
-	cloudflare "github.com/cloudflare/cloudflare-go"
 )
 
-// CloudflareAccessGroupReconciler reconciles a CloudflareAccessGroup object
+// CloudflareAccessGroupReconciler reconciles a CloudflareAccessGroup object.
 type CloudflareAccessGroupReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -44,15 +42,6 @@ type CloudflareAccessGroupReconciler struct {
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups/finalizers,verbs=update
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the CloudflareAccessGroup object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	var existingCfAG *cloudflare.AccessGroup
@@ -68,6 +57,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		}
 
 		log.Error(err, "Failed to get CloudflareAccessGroup", "CloudflareAccessGroup.Name", ag.Name)
+
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessGroup")
 	}
 
@@ -93,26 +83,20 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	newCfAG := ag.ToCloudflare()
 
 	if ag.Status.AccessGroupID == "" {
-		for _, g := range cfAccessGroups {
-			if g.Name == ag.CloudflareName() {
-				//found todo
-				log.Info(ag.CloudflareName() + " already exists")
+		existingCfAG = cfAccessGroups.GetByName(ag.CloudflareName())
 
-				//update status to associate the group ID
-				ag.Status.AccessGroupID = g.ID
-				ag.Status.CreatedAt = v1.NewTime(*g.CreatedAt)
-				ag.Status.UpdatedAt = v1.NewTime(*g.UpdatedAt)
+		if existingCfAG != nil {
+			log.Info(ag.CloudflareName() + " already exists")
 
-				//re-intialize to update the status
-				newCfAG = ag.ToCloudflare()
+			ag.Status.AccessGroupID = existingCfAG.ID
+			ag.Status.CreatedAt = v1.NewTime(*existingCfAG.CreatedAt)
+			ag.Status.UpdatedAt = v1.NewTime(*existingCfAG.UpdatedAt)
 
-				existingCfAG = &g
-				err := r.Status().Update(ctx, ag) //nolint
-				if err != nil {
-					return ctrl.Result{}, errors.Wrap(err, "unable to update access group")
-				}
+			newCfAG = ag.ToCloudflare()
 
-				break
+			err := r.Status().Update(ctx, ag)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrap(err, "unable to update access group")
 			}
 		}
 	} else {

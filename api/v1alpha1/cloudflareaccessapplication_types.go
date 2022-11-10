@@ -24,20 +24,20 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// CloudflareAccessApplicationSpec defines the desired state of CloudflareAccessApplication
+// CloudflareAccessApplicationSpec defines the desired state of CloudflareAccessApplication.
 type CloudflareAccessApplicationSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	//@todo: use Name instead of CRD name
+	// @todo: use Name instead of CRD name
 	Domain                  string                           `json:"domain"`
 	Type                    cloudflare.AccessApplicationType `json:"type,omitempty"`
-	AppLauncherVisible      *bool                            `json:"app_launcher_visible,omitempty"`
-	AllowedIdps             []string                         `json:"allowed_idps,omitempty"`
-	AutoRedirectToIdentity  *bool                            `json:"auto_redirect_to_identity,omitempty"`
+	AppLauncherVisible      *bool                            `json:"appLauncherVisible,omitempty"`
+	AllowedIdps             []string                         `json:"allowedIdps,omitempty"`
+	AutoRedirectToIdentity  *bool                            `json:"autoRedirectToIdentity,omitempty"`
 	Policies                CloudflareAccessPolicyList       `json:"policies,omitempty"`
-	SessionDuration         string                           `json:"session_duration,omitempty"`
-	EnableBindingCookie     *bool                            `json:"enable_binding_cookie,omitempty"`
-	HttpOnlyCookieAttribute *bool                            `json:"http_only_cookie_attribute,omitempty"`
+	SessionDuration         string                           `json:"sessionDuration,omitempty"`
+	EnableBindingCookie     *bool                            `json:"enableBindingCookie,omitempty"`
+	HttpOnlyCookieAttribute *bool                            `json:"httpOnlyCookieAttribute,omitempty"`
 }
 
 type CloudflareAccessPolicy struct {
@@ -65,13 +65,13 @@ func (aps CloudflareAccessPolicyList) ToCloudflare() []cloudflare.AccessPolicy {
 			Decision:   ap.Decision,
 		}
 
-		var managedCRFields = CloudFlareAccessGroupRuleGroups{
+		managedCRFields := CloudFlareAccessGroupRuleGroups{
 			ap.Include,
 			ap.Exclude,
 			ap.Require,
 		}
 
-		var managedCFFields = []*[]interface{}{
+		managedCFFields := []*[]interface{}{
 			&transformed.Include,
 			&transformed.Exclude,
 			&transformed.Require,
@@ -80,13 +80,12 @@ func (aps CloudflareAccessPolicyList) ToCloudflare() []cloudflare.AccessPolicy {
 		managedCRFields.TransformCloudflareRuleFields(managedCFFields)
 
 		ret = append(ret, transformed)
-
 	}
 
 	return ret
 }
 
-// CloudflareAccessApplicationStatus defines the observed state of CloudflareAccessApplication
+// CloudflareAccessApplicationStatus defines the observed state of CloudflareAccessApplication.
 type CloudflareAccessApplicationStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
@@ -99,7 +98,7 @@ type CloudflareAccessApplicationStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// CloudflareAccessApplication is the Schema for the cloudflareaccessapplications API
+// CloudflareAccessApplication is the Schema for the cloudflareaccessapplications API.
 type CloudflareAccessApplication struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -113,7 +112,6 @@ func (c *CloudflareAccessApplication) CloudflareName() string {
 }
 
 func (c *CloudflareAccessApplication) ToCloudflare() cloudflare.AccessApplication {
-
 	app := cloudflare.AccessApplication{
 		Name:                    c.CloudflareName(),
 		ID:                      c.Status.AccessApplicationID,
@@ -134,7 +132,7 @@ func (c *CloudflareAccessApplication) ToCloudflare() cloudflare.AccessApplicatio
 
 //+kubebuilder:object:root=true
 
-// CloudflareAccessApplicationList contains a list of CloudflareAccessApplication
+// CloudflareAccessApplicationList contains a list of CloudflareAccessApplication.
 type CloudflareAccessApplicationList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

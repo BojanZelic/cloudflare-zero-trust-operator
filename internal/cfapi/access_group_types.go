@@ -62,16 +62,19 @@ func NewAccessGroupAnyValidServiceToken() cloudflare.AccessGroupAnyValidServiceT
 func AcessGroupEmailEqual(first cloudflare.AccessGroup, second cloudflare.AccessGroup) bool {
 	v1, _ := json.Marshal(first.Include)
 	v2, _ := json.Marshal(second.Include)
+
 	if !reflect.DeepEqual(v1, v2) {
 		return false
 	}
 	v1, _ = json.Marshal(first.Exclude)
 	v2, _ = json.Marshal(second.Exclude)
+
 	if !reflect.DeepEqual(v1, v2) {
 		return false
 	}
 	v1, _ = json.Marshal(first.Require)
 	v2, _ = json.Marshal(second.Require)
+
 	if !reflect.DeepEqual(v1, v2) {
 		return false
 	}

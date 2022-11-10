@@ -18,14 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
-
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	logger "sigs.k8s.io/controller-runtime/pkg/log"
 
 	cloudflarev1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
@@ -34,9 +26,15 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/pkg/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	logger "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// CloudflareAccessApplicationReconciler reconciles a CloudflareAccessApplication object
+// CloudflareAccessApplicationReconciler reconciles a CloudflareAccessApplication object.
 type CloudflareAccessApplicationReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -46,16 +44,7 @@ type CloudflareAccessApplicationReconciler struct {
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications/finalizers,verbs=update
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the CloudflareAccessApplication object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
-func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { //nolint:gocognit
 	var err error
 	var existingaccessApp *cloudflare.AccessApplication
 	var api *cfapi.API
@@ -70,6 +59,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		}
 
 		log.Error(err, "Failed to get CloudflareAccessApplication", "CloudflareAccessApplication.Name", app.Name)
+
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessApplication")
 	}
 
@@ -93,13 +83,12 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		if accessApp != nil {
 			log.Info(app.CloudflareName() + " already exists. Updating status")
 
-			//update status to associate the app ID
 			app.Status.AccessApplicationID = accessApp.ID
 			app.Status.CreatedAt = v1.NewTime(*accessApp.CreatedAt)
 			app.Status.UpdatedAt = v1.NewTime(*accessApp.UpdatedAt)
 
 			existingaccessApp = accessApp
-			err := r.Status().Update(ctx, app) //nolint
+			err := r.Status().Update(ctx, app)
 			if err != nil {
 				return ctrl.Result{}, errors.Wrap(err, "unable to update access group")
 			}
@@ -117,14 +106,15 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 
 		log.Info("app is missing - creating...", "domain", app.Spec.Domain)
 		accessapp, err := api.CreateAccessApplication(ctx, newApp)
+
 		existingaccessApp = &accessapp
+
+		// @todo: update status & set accessApplication ID ?
 
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
 		}
 	}
-
-	//get policies
 	policies, err := api.AccessPolicies(ctx, app.Status.AccessApplicationID)
 	policiesCollection := cfcollections.AccessPolicyCollection(policies)
 	policiesCollection.SortByPrecidence()
@@ -147,19 +137,15 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 
 		if !cfcollections.AccessPoliciesEqual(cfPolicy, k8sPolicy) {
 			if cfPolicy == nil && k8sPolicy != nil {
-				//create
 				log.Info("accesspolicy is missing - creating...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
 				api.CreateAccessPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
 			}
 			if k8sPolicy == nil && cfPolicy != nil {
-				//delete
 				log.Info("accesspolicy is removed - deleting...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
 				api.DeleteAccessPolicy(ctx, app.Status.AccessApplicationID, cfPolicy.ID)
 			}
 			if cfPolicy != nil && k8sPolicy != nil {
-				//update
 				k8sPolicy.ID = cfPolicy.ID
-				fmt.Println(k8sPolicy.Exclude)
 				log.Info("accesspolicy is changed - updating...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
 				api.UpdateAccessPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
 			}

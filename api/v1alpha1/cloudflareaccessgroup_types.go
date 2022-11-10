@@ -25,12 +25,11 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// CloudflareAccessGroupSpec defines the desired state of CloudflareAccessGroup
+// CloudflareAccessGroupSpec defines the desired state of CloudflareAccessGroup.
 type CloudflareAccessGroupSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	//ZoneID is the cloudflare zone to use
 	ZoneID  string                      `json:"zoneId,omitempty"`
 	Include []CloudFlareAccessGroupRule `json:"include,omitempty"`
 	Require []CloudFlareAccessGroupRule `json:"require,omitempty"`
@@ -44,14 +43,13 @@ type CloudFlareAccessGroupRule struct {
 	// Reference to other access groups
 	AccessGroups []string `json:"accessGroups,omitempty"`
 	// @todo: add the rest of the fields
-	//Country        []string
-	//CommonName     []string
-	//ValidCertificate []string
+
+	// ValidCertificate []string
 	ServiceToken          []string `json:"serviceToken,omitempty"`
 	AnyAccessServiceToken *bool    `json:"anyAccessServiceToken,omitempty"`
 }
 
-// CloudflareAccessGroupStatus defines the observed state of CloudflareAccessGroup
+// CloudflareAccessGroupStatus defines the observed state of CloudflareAccessGroup.
 type CloudflareAccessGroupStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
@@ -63,7 +61,7 @@ type CloudflareAccessGroupStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// CloudflareAccessGroup is the Schema for the cloudflareaccessgroups API
+// CloudflareAccessGroup is the Schema for the cloudflareaccessgroups API.
 type CloudflareAccessGroup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -87,13 +85,13 @@ func (c *CloudflareAccessGroup) ToCloudflare() cloudflare.AccessGroup {
 		Require:   make([]interface{}, 0),
 	}
 
-	var managedCRFields = CloudFlareAccessGroupRuleGroups{
+	managedCRFields := CloudFlareAccessGroupRuleGroups{
 		c.Spec.Include,
 		c.Spec.Exclude,
 		c.Spec.Require,
 	}
 
-	var managedCFFields = []*[]interface{}{
+	managedCFFields := []*[]interface{}{
 		&ag.Include,
 		&ag.Exclude,
 		&ag.Require,
@@ -124,7 +122,7 @@ func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCF
 			if field.AnyAccessServiceToken != nil && *field.AnyAccessServiceToken {
 				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupAnyValidServiceToken())
 			}
-			//@todo - make this a reference to another access group instead of an ID
+			// @todo - make this a reference to another access group instead of an ID
 			for _, id := range field.AccessGroups {
 				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupAccessGroup(id))
 			}
@@ -134,7 +132,7 @@ func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCF
 
 //+kubebuilder:object:root=true
 
-// CloudflareAccessGroupList contains a list of CloudflareAccessGroup
+// CloudflareAccessGroupList contains a list of CloudflareAccessGroup.
 type CloudflareAccessGroupList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
