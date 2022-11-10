@@ -78,36 +78,3 @@ func AcessGroupEmailEqual(first cloudflare.AccessGroup, second cloudflare.Access
 
 	return true
 }
-
-func AccessPoliciesEqual(first []cloudflare.AccessPolicy, second []cloudflare.AccessPolicy) bool {
-
-	if len(first) != len(second) {
-		return false
-	}
-
-	for i := range first {
-		if first[i].Name != second[i].Name {
-			return false
-		}
-		if first[i].Precedence != second[i].Precedence {
-			return false
-		}
-		v1, _ := json.Marshal(first[i].Include)
-		v2, _ := json.Marshal(second[i].Include)
-		if !reflect.DeepEqual(v1, v2) {
-			return false
-		}
-		v1, _ = json.Marshal(first[i].Exclude)
-		v2, _ = json.Marshal(second[i].Exclude)
-		if !reflect.DeepEqual(v1, v2) {
-			return false
-		}
-		v1, _ = json.Marshal(first[i].Require)
-		v2, _ = json.Marshal(second[i].Require)
-		if !reflect.DeepEqual(v1, v2) {
-			return false
-		}
-	}
-
-	return true
-}

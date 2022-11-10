@@ -91,5 +91,15 @@ func (a *API) AccessPolicies(ctx context.Context, appID string) ([]cloudflare.Ac
 
 func (a *API) CreateAccessPolicy(ctx context.Context, appID string, ag cloudflare.AccessPolicy) (cloudflare.AccessPolicy, error) {
 	cfAG, err := a.client.CreateAccessPolicy(ctx, a.CFAccountID, appID, ag)
-	return cfAG, errors.Wrap(err, "unable to create access Policys")
+	return cfAG, errors.Wrap(err, "unable to create access Policy")
+}
+
+func (a *API) UpdateAccessPolicy(ctx context.Context, appID string, ag cloudflare.AccessPolicy) (cloudflare.AccessPolicy, error) {
+	cfAG, err := a.client.UpdateAccessPolicy(ctx, a.CFAccountID, appID, ag)
+	return cfAG, errors.Wrap(err, "unable to update access Policy")
+}
+
+func (a *API) DeleteAccessPolicy(ctx context.Context, appID string, policyID string) error {
+	err := a.client.DeleteAccessPolicy(ctx, a.CFAccountID, appID, policyID)
+	return errors.Wrap(err, "unable to update access Policy")
 }

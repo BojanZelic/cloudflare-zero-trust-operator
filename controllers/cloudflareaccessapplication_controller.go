@@ -30,6 +30,7 @@ import (
 	cloudflarev1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/pkg/errors"
@@ -114,6 +115,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	if existingaccessApp == nil {
 		newApp := app.ToCloudflare()
 
+		log.Info("app is missing - creating...", "domain", app.Spec.Domain)
 		accessapp, err := api.CreateAccessApplication(ctx, newApp)
 		existingaccessApp = &accessapp
 
@@ -123,23 +125,46 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	}
 
 	//get policies
-
 	policies, err := api.AccessPolicies(ctx, app.Status.AccessApplicationID)
+	policiesCollection := cfcollections.AccessPolicyCollection(policies)
+	policiesCollection.SortByPrecidence()
 
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
 	}
 
-	fmt.Println(policies)
-	fmt.Println(app.Spec.Policies.ToCloudflare())
+	kubeCFpoliciesCollection := cfcollections.AccessPolicyCollection(app.Spec.Policies.ToCloudflare())
+	kubeCFpoliciesCollection.SortByPrecidence()
+	for i := 0; i < len(policiesCollection) || i < len(kubeCFpoliciesCollection); i++ {
+		var k8sPolicy *cloudflare.AccessPolicy
+		var cfPolicy *cloudflare.AccessPolicy
+		if i < len(policiesCollection) {
+			cfPolicy = &policiesCollection[i]
+		}
+		if i < len(kubeCFpoliciesCollection) {
+			k8sPolicy = &kubeCFpoliciesCollection[i]
+		}
 
-	//  else {
-	// 	cfAG, err := api.AccessGroup(ctx, app.Status.AccessGroupID)
-	// 	existingaccessApp = &cfAG
-	// 	if err != nil {
-	// 		return ctrl.Result{}, errors.Wrap(err, "unable to get access groups")
-	// 	}
-	// }
+		if !cfcollections.AccessPoliciesEqual(cfPolicy, k8sPolicy) {
+			if cfPolicy == nil && k8sPolicy != nil {
+				//create
+				log.Info("accesspolicy is missing - creating...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
+				api.CreateAccessPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
+			}
+			if k8sPolicy == nil && cfPolicy != nil {
+				//delete
+				log.Info("accesspolicy is removed - deleting...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
+				api.DeleteAccessPolicy(ctx, app.Status.AccessApplicationID, cfPolicy.ID)
+			}
+			if cfPolicy != nil && k8sPolicy != nil {
+				//update
+				k8sPolicy.ID = cfPolicy.ID
+				fmt.Println(k8sPolicy.Exclude)
+				log.Info("accesspolicy is changed - updating...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
+				api.UpdateAccessPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
+			}
+		}
+	}
 
 	return ctrl.Result{}, nil
 }
