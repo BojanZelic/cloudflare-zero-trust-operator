@@ -14,6 +14,11 @@ type ZeroTrustConfig struct {
 	AccountID string
 }
 
+var (
+	ErrMissingCFFields  = errors.New("missing one of CLOUDFLARE_API_TOKEN or (CLOUDFLARE_API_EMAIL and CLOUDFLARE_API_KEY) needs to be set")
+	ErrMissingAccountID = errors.New("missing CLOUDFLARE_ACCOUNT_ID needs to be set")
+)
+
 func SetConfigDefaults() {
 	viper.SetDefault("cloudflare_api_email", "")
 	viper.SetDefault("cloudflare_api_key", "")
@@ -55,11 +60,11 @@ func ParseCloudflareConfig(obj metav1.Object) ZeroTrustConfig {
 
 func (c ZeroTrustConfig) IsValid() (bool, error) {
 	if c.AccountID == "" {
-		return false, errors.New("CLOUDFLARE_ACCOUNT_ID needs to be set")
+		return false, ErrMissingAccountID
 	}
 
 	if c.APIToken == "" && (c.APIEmail == "" && c.APIKey == "") {
-		return false, errors.New("One of CLOUDFLARE_API_TOKEN or (CLOUDFLARE_API_EMAIL and CLOUDFLARE_API_KEY) needs to be set")
+		return false, ErrMissingCFFields
 	}
 
 	return true, nil

@@ -13,12 +13,12 @@ type API struct {
 	client      *cloudflare.API
 }
 
-func New(cfApiToken string, cfAPIKey string, cfAPIEmail string, cfAccountID string) (*API, error) {
+func New(cfAPIToken string, cfAPIKey string, cfAPIEmail string, cfAccountID string) (*API, error) {
 	var err error
 	var api *cloudflare.API
 
-	if cfApiToken != "" {
-		api, err = cloudflare.NewWithAPIToken(cfApiToken)
+	if cfAPIToken != "" {
+		api, err = cloudflare.NewWithAPIToken(cfAPIToken)
 	} else {
 		api, err = cloudflare.New(cfAPIKey, cfAPIEmail)
 	}
@@ -66,13 +66,16 @@ func (a *API) FindAccessApplicationByDomain(ctx context.Context, domain string) 
 		return nil, errors.Wrap(err, "unable to get access applications")
 	}
 
-	for _, g := range apps {
+	var app *cloudflare.AccessApplication
+	for i, g := range apps {
 		if g.Domain == domain {
-			return &g, nil
+			app = &apps[i]
+
+			break
 		}
 	}
 
-	return nil, nil
+	return app, nil
 }
 
 func (a *API) AccessApplication(ctx context.Context, accessApplicationID string) (cloudflare.AccessApplication, error) {
@@ -93,10 +96,12 @@ func (a *API) UpdateAccessApplication(ctx context.Context, ag cloudflare.AccessA
 	return cfAG, errors.Wrap(err, "unable to update access applications")
 }
 
-func (a *API) AccessPolicies(ctx context.Context, appID string) ([]cloudflare.AccessPolicy, error) {
-	apps, _, err := a.client.AccessPolicies(ctx, a.CFAccountID, appID, cloudflare.PaginationOptions{})
+func (a *API) AccessPolicies(ctx context.Context, appID string) (cfcollections.AccessPolicyCollection, error) {
+	policies, _, err := a.client.AccessPolicies(ctx, a.CFAccountID, appID, cloudflare.PaginationOptions{})
 
-	return apps, errors.Wrap(err, "unable to get access Policies")
+	policiesCollection := cfcollections.AccessPolicyCollection(policies)
+
+	return policiesCollection, errors.Wrap(err, "unable to get access Policies")
 }
 
 func (a *API) CreateAccessPolicy(ctx context.Context, appID string, ag cloudflare.AccessPolicy) (cloudflare.AccessPolicy, error) {

@@ -42,26 +42,27 @@ type CloudflareAccessGroupReconciler struct {
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups/finalizers,verbs=update
 
+//nolint:cyclop
 func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	var existingCfAG *cloudflare.AccessGroup
 	var api *cfapi.API
 
 	log := logger.FromContext(ctx)
-	ag := &v1alpha1.CloudflareAccessGroup{}
+	accessGroup := &v1alpha1.CloudflareAccessGroup{}
 
-	err = r.Client.Get(ctx, req.NamespacedName, ag)
+	err = r.Client.Get(ctx, req.NamespacedName, accessGroup)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
 
-		log.Error(err, "Failed to get CloudflareAccessGroup", "CloudflareAccessGroup.Name", ag.Name)
+		log.Error(err, "Failed to get CloudflareAccessGroup", "CloudflareAccessGroup.Name", accessGroup.Name)
 
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessGroup")
 	}
 
-	cfConfig := config.ParseCloudflareConfig(ag)
+	cfConfig := config.ParseCloudflareConfig(accessGroup)
 	validConfig, err := cfConfig.IsValid()
 	if !validConfig {
 		return ctrl.Result{}, errors.Wrap(err, "invalid config")
@@ -73,34 +74,24 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, errors.Wrap(err, "unable to initialize cloudflare object")
 	}
 
-	// Fetch user details on the account
-	// @todo paginate
 	cfAccessGroups, err := api.AccessGroups(ctx)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "unable to get access groups")
 	}
 
-	newCfAG := ag.ToCloudflare()
+	newCfAG := accessGroup.ToCloudflare()
 
-	if ag.Status.AccessGroupID == "" {
-		existingCfAG = cfAccessGroups.GetByName(ag.CloudflareName())
-
+	if accessGroup.Status.AccessGroupID == "" {
+		existingCfAG = cfAccessGroups.GetByName(accessGroup.CloudflareName())
 		if existingCfAG != nil {
-			log.Info(ag.CloudflareName() + " already exists")
-
-			ag.Status.AccessGroupID = existingCfAG.ID
-			ag.Status.CreatedAt = v1.NewTime(*existingCfAG.CreatedAt)
-			ag.Status.UpdatedAt = v1.NewTime(*existingCfAG.UpdatedAt)
-
-			newCfAG = ag.ToCloudflare()
-
-			err := r.Status().Update(ctx, ag)
-			if err != nil {
-				return ctrl.Result{}, errors.Wrap(err, "unable to update access group")
-			}
+			log.Info("access group already exists. importing...", "accessGroup", existingCfAG.Name, "accessGroupID", existingCfAG.ID)
+		}
+		err = r.ReconcileStatus(ctx, existingCfAG, accessGroup)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "unable to update access groups")
 		}
 	} else {
-		cfAG, err := api.AccessGroup(ctx, ag.Status.AccessGroupID)
+		cfAG, err := api.AccessGroup(ctx, accessGroup.Status.AccessGroupID)
 		existingCfAG = &cfAG
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to get access groups")
@@ -126,8 +117,30 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	return ctrl.Result{}, nil
 }
 
+func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, cfGroup *cloudflare.AccessGroup, k8sGroup *v1alpha1.CloudflareAccessGroup) error {
+	if k8sGroup.Status.AccessGroupID != "" {
+		return nil
+	}
+
+	if cfGroup == nil {
+		return nil
+	}
+
+	k8sGroup.Status.AccessGroupID = cfGroup.ID
+	k8sGroup.Status.CreatedAt = v1.NewTime(*cfGroup.CreatedAt)
+	k8sGroup.Status.UpdatedAt = v1.NewTime(*cfGroup.UpdatedAt)
+
+	err := r.Status().Update(ctx, k8sGroup)
+	if err != nil {
+		return errors.Wrap(err, "unable to update access group")
+	}
+
+	return nil
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *CloudflareAccessGroupReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	//nolint:wrapcheck
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.CloudflareAccessGroup{}).
 		Complete(r)

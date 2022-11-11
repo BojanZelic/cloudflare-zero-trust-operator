@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	cloudflare "github.com/cloudflare/cloudflare-go"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -37,7 +38,7 @@ type CloudflareAccessApplicationSpec struct {
 	Policies                CloudflareAccessPolicyList       `json:"policies,omitempty"`
 	SessionDuration         string                           `json:"sessionDuration,omitempty"`
 	EnableBindingCookie     *bool                            `json:"enableBindingCookie,omitempty"`
-	HttpOnlyCookieAttribute *bool                            `json:"httpOnlyCookieAttribute,omitempty"`
+	HTTPOnlyCookieAttribute *bool                            `json:"httpOnlyCookieAttribute,omitempty"`
 }
 
 type CloudflareAccessPolicy struct {
@@ -55,20 +56,20 @@ type CloudflareAccessPolicy struct {
 
 type CloudflareAccessPolicyList []CloudflareAccessPolicy
 
-func (aps CloudflareAccessPolicyList) ToCloudflare() []cloudflare.AccessPolicy {
-	ret := []cloudflare.AccessPolicy{}
+func (aps CloudflareAccessPolicyList) ToCloudflare() cfcollections.AccessPolicyCollection {
+	ret := cfcollections.AccessPolicyCollection{}
 
-	for i, ap := range aps {
+	for i, policy := range aps {
 		transformed := cloudflare.AccessPolicy{
-			Name:       ap.Name,
+			Name:       policy.Name,
 			Precedence: i + 1,
-			Decision:   ap.Decision,
+			Decision:   policy.Decision,
 		}
 
 		managedCRFields := CloudFlareAccessGroupRuleGroups{
-			ap.Include,
-			ap.Exclude,
-			ap.Require,
+			policy.Include,
+			policy.Exclude,
+			policy.Require,
 		}
 
 		managedCFFields := []*[]interface{}{
@@ -124,7 +125,7 @@ func (c *CloudflareAccessApplication) ToCloudflare() cloudflare.AccessApplicatio
 		AutoRedirectToIdentity:  c.Spec.AutoRedirectToIdentity,
 		SessionDuration:         c.Spec.SessionDuration,
 		EnableBindingCookie:     c.Spec.EnableBindingCookie,
-		HttpOnlyCookieAttribute: c.Spec.HttpOnlyCookieAttribute,
+		HttpOnlyCookieAttribute: c.Spec.HTTPOnlyCookieAttribute,
 	}
 
 	return app

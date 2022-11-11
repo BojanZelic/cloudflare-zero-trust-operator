@@ -75,7 +75,7 @@ func (c CloudflareAccessGroup) CloudflareName() string {
 }
 
 func (c *CloudflareAccessGroup) ToCloudflare() cloudflare.AccessGroup {
-	ag := cloudflare.AccessGroup{
+	accessGroup := cloudflare.AccessGroup{
 		Name:      c.CloudflareName(),
 		ID:        c.Status.AccessGroupID,
 		CreatedAt: &c.Status.CreatedAt.Time,
@@ -92,20 +92,20 @@ func (c *CloudflareAccessGroup) ToCloudflare() cloudflare.AccessGroup {
 	}
 
 	managedCFFields := []*[]interface{}{
-		&ag.Include,
-		&ag.Exclude,
-		&ag.Require,
+		&accessGroup.Include,
+		&accessGroup.Exclude,
+		&accessGroup.Require,
 	}
 
 	managedCRFields.TransformCloudflareRuleFields(managedCFFields)
 
-	return ag
+	return accessGroup
 }
 
 type CloudFlareAccessGroupRuleGroups [][]CloudFlareAccessGroupRule
 
 func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCFFields []*[]interface{}) {
-	for i, managedField := range c {
+	for i, managedField := range c { //nolint:varnamelen
 		for _, field := range managedField {
 			for _, email := range field.Emails {
 				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupEmail(email))

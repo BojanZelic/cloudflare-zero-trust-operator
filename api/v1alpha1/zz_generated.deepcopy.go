@@ -186,8 +186,8 @@ func (in *CloudflareAccessApplicationSpec) DeepCopyInto(out *CloudflareAccessApp
 		*out = new(bool)
 		**out = **in
 	}
-	if in.HttpOnlyCookieAttribute != nil {
-		in, out := &in.HttpOnlyCookieAttribute, &out.HttpOnlyCookieAttribute
+	if in.HTTPOnlyCookieAttribute != nil {
+		in, out := &in.HTTPOnlyCookieAttribute, &out.HTTPOnlyCookieAttribute
 		*out = new(bool)
 		**out = **in
 	}

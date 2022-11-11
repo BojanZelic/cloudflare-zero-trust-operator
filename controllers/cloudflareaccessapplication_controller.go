@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 
-	cloudflarev1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
@@ -44,7 +43,8 @@ type CloudflareAccessApplicationReconciler struct {
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications/finalizers,verbs=update
 
-func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { //nolint:gocognit
+//nolint:cyclop
+func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	var existingaccessApp *cloudflare.AccessApplication
 	var api *cfapi.API
@@ -80,18 +80,10 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "error querying application app from cloudflare")
 		}
-		if accessApp != nil {
-			log.Info(app.CloudflareName() + " already exists. Updating status")
 
-			app.Status.AccessApplicationID = accessApp.ID
-			app.Status.CreatedAt = v1.NewTime(*accessApp.CreatedAt)
-			app.Status.UpdatedAt = v1.NewTime(*accessApp.UpdatedAt)
-
-			existingaccessApp = accessApp
-			err := r.Status().Update(ctx, app)
-			if err != nil {
-				return ctrl.Result{}, errors.Wrap(err, "unable to update access group")
-			}
+		err = r.ReconcileStatus(ctx, accessApp, app)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "issue updating status")
 		}
 	} else {
 		accessApp, err := api.AccessApplication(ctx, app.Status.AccessApplicationID)
@@ -106,58 +98,100 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 
 		log.Info("app is missing - creating...", "domain", app.Spec.Domain)
 		accessapp, err := api.CreateAccessApplication(ctx, newApp)
-
-		existingaccessApp = &accessapp
-
-		// @todo: update status & set accessApplication ID ?
-
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
 		}
-	}
-	policies, err := api.AccessPolicies(ctx, app.Status.AccessApplicationID)
-	policiesCollection := cfcollections.AccessPolicyCollection(policies)
-	policiesCollection.SortByPrecidence()
 
+		err = r.ReconcileStatus(ctx, &accessapp, app)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "issue updating status")
+		}
+	}
+	currentPolicies, err := api.AccessPolicies(ctx, app.Status.AccessApplicationID)
+	currentPolicies.SortByPrecidence()
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
+		return ctrl.Result{}, errors.Wrap(err, "unable get access policies")
 	}
 
-	kubeCFpoliciesCollection := cfcollections.AccessPolicyCollection(app.Spec.Policies.ToCloudflare())
-	kubeCFpoliciesCollection.SortByPrecidence()
-	for i := 0; i < len(policiesCollection) || i < len(kubeCFpoliciesCollection); i++ {
-		var k8sPolicy *cloudflare.AccessPolicy
-		var cfPolicy *cloudflare.AccessPolicy
-		if i < len(policiesCollection) {
-			cfPolicy = &policiesCollection[i]
-		}
-		if i < len(kubeCFpoliciesCollection) {
-			k8sPolicy = &kubeCFpoliciesCollection[i]
-		}
+	expectedPolicies := app.Spec.Policies.ToCloudflare()
+	expectedPolicies.SortByPrecidence()
 
-		if !cfcollections.AccessPoliciesEqual(cfPolicy, k8sPolicy) {
-			if cfPolicy == nil && k8sPolicy != nil {
-				log.Info("accesspolicy is missing - creating...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
-				api.CreateAccessPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
-			}
-			if k8sPolicy == nil && cfPolicy != nil {
-				log.Info("accesspolicy is removed - deleting...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
-				api.DeleteAccessPolicy(ctx, app.Status.AccessApplicationID, cfPolicy.ID)
-			}
-			if cfPolicy != nil && k8sPolicy != nil {
-				k8sPolicy.ID = cfPolicy.ID
-				log.Info("accesspolicy is changed - updating...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
-				api.UpdateAccessPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
-			}
-		}
+	err = r.ReconcilePolicies(ctx, api, app, currentPolicies, expectedPolicies)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "unable get access policies")
 	}
 
 	return ctrl.Result{}, nil
 }
 
+func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Context, cfApp *cloudflare.AccessApplication, k8sApp *v1alpha1.CloudflareAccessApplication) error {
+	if k8sApp.Status.AccessApplicationID != "" {
+		return nil
+	}
+
+	if cfApp == nil {
+		return nil
+	}
+
+	k8sApp.Status.AccessApplicationID = cfApp.ID
+	k8sApp.Status.CreatedAt = v1.NewTime(*cfApp.CreatedAt)
+	k8sApp.Status.UpdatedAt = v1.NewTime(*cfApp.UpdatedAt)
+
+	err := r.Status().Update(ctx, k8sApp)
+	if err != nil {
+		return errors.Wrap(err, "unable to update access group")
+	}
+
+	return nil
+}
+
+//nolint:gocognit,cyclop
+func (r *CloudflareAccessApplicationReconciler) ReconcilePolicies(ctx context.Context, api *cfapi.API, app *v1alpha1.CloudflareAccessApplication, current, expected cfcollections.AccessPolicyCollection) error {
+	log := logger.FromContext(ctx)
+
+	for i := 0; i < len(current) || i < len(expected); i++ { //nolint:varnamelen
+		var k8sPolicy *cloudflare.AccessPolicy
+		var cfPolicy *cloudflare.AccessPolicy
+		var err error
+		var action string
+		if i < len(current) {
+			cfPolicy = &current[i]
+		}
+		if i < len(expected) {
+			k8sPolicy = &expected[i]
+		}
+
+		if !cfcollections.AccessPoliciesEqual(cfPolicy, k8sPolicy) {
+			if cfPolicy == nil && k8sPolicy != nil {
+				action = "create"
+				log.Info("accesspolicy is missing - creating...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
+				_, err = api.CreateAccessPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
+			}
+			if k8sPolicy == nil && cfPolicy != nil {
+				action = "delete"
+				log.Info("accesspolicy is removed - deleting...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
+				err = api.DeleteAccessPolicy(ctx, app.Status.AccessApplicationID, cfPolicy.ID)
+			}
+			if cfPolicy != nil && k8sPolicy != nil {
+				action = "update"
+				k8sPolicy.ID = cfPolicy.ID
+				log.Info("accesspolicy is changed - updating...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
+				_, err = api.UpdateAccessPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
+			}
+
+			if err != nil {
+				return errors.Wrapf(err, "Unable to %s access policy", action)
+			}
+		}
+	}
+
+	return nil
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *CloudflareAccessApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	//nolint:wrapcheck
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&cloudflarev1alpha1.CloudflareAccessApplication{}).
+		For(&v1alpha1.CloudflareAccessApplication{}).
 		Complete(r)
 }

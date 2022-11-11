@@ -63,3 +63,10 @@ linters:
     - ifshort
     - nosnakecase
     - scopelint
+    - structcheck
+    - maligned
+    - interfacer
+    - golint
+    - varcheck
+    - deadcode
+    - exhaustruct
