@@ -19,7 +19,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: CloudflareAccessGroup is the Schema for the cloudflareaccessgroups
-          API
+          API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -34,7 +34,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: CloudflareAccessGroupSpec defines the desired state of CloudflareAccessGroup
+            description: CloudflareAccessGroupSpec defines the desired state of CloudflareAccessGroup.
             properties:
               exclude:
                 items:
@@ -59,8 +59,7 @@ spec:
                         type: string
                       type: array
                     serviceToken:
-                      description: '@todo: add the rest of the fields Country        []string
-                        CommonName     []string ValidCertificate []string'
+                      description: ValidCertificate []string
                       items:
                         type: string
                       type: array
@@ -89,8 +88,7 @@ spec:
                         type: string
                       type: array
                     serviceToken:
-                      description: '@todo: add the rest of the fields Country        []string
-                        CommonName     []string ValidCertificate []string'
+                      description: ValidCertificate []string
                       items:
                         type: string
                       type: array
@@ -119,20 +117,18 @@ spec:
                         type: string
                       type: array
                     serviceToken:
-                      description: '@todo: add the rest of the fields Country        []string
-                        CommonName     []string ValidCertificate []string'
+                      description: ValidCertificate []string
                       items:
                         type: string
                       type: array
                   type: object
                 type: array
               zoneId:
-                description: ZoneID is the cloudflare zone to use
                 type: string
             type: object
           status:
             description: CloudflareAccessGroupStatus defines the observed state of
-              CloudflareAccessGroup
+              CloudflareAccessGroup.
             properties:
               accessGroupId:
                 description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
