@@ -16,12 +16,12 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-            go-version: ${{ env.GO_VERSION }}
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v3
         with:
-            version: latest
-            args: release --rm-dist --timeout 2h
+          version: latest
+          args: release --rm-dist --timeout 2h
         env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
