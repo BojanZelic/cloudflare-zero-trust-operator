@@ -16,7 +16,7 @@ cloudflare_account_id: ""
 cloudflare_api_email: ""
 
 # or provision your own secret with the creds
-secretRef: "test"
+secretRef: ""
 
 
 imagePullSecrets: []
