@@ -10,8 +10,38 @@ Cloudflare Zero-Trust operator allow you to manage your zero-trust configuration
 [![Go Report Card](https://goreportcard.com/badge/github.com/bojanzelic/cloudflare-zero-trust-operator)](https://goreportcard.com/report/github.com/bojanzelic/cloudflare-zero-trust-operator)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/bojanzelic/cloudflare-zero-trust-operator)](https://pkg.go.dev/github.com/bojanzelic/cloudflare-zero-trust-operator)
 
-## Features
+## Example Usage
 
+Cloudflare Access Group
+```yaml
+apiVersion: cloudflare.zelic.io/v1alpha1
+kind: CloudflareAccessGroup
+metadata:
+  labels:
+  name: accessgroup-example
+spec:
+  include:
+    - emails:
+      - testemail1@domain.com
+      - testemail2@domain.com
+```
+
+```yaml
+apiVersion: cloudflare.zelic.io/v1alpha1
+kind: CloudflareAccessApplication
+metadata:
+  name: domain-example
+spec:
+  domain: domain.example.com
+  policies: 
+    - name: Allow testemail1
+      decision: allow
+      include:
+        - emails:
+          - testemail1@domain.com
+```
+
+## Features
 Currently in Project scope
 - [x] Manage Cloudflare Access Groups
 - [x] Manage Cloudflare Access Applications
@@ -24,79 +54,50 @@ Currently in Project scope
 ## Install
 
 ### Install with Helm
+
+1) Create your namespace
+```
+kubectl create ns zero-trust-system
+```
+
+2) Create a secret with your cloudflare credentials
+
+```
+echo "
+apiVersion: v1
+metadata:
+  name: cloudflare-creds
+  namespace: zero-trust-system
+kind: Secret
+type: Opaque
+stringData:
+  CLOUDFLARE_ACCOUNT_ID: 
+  CLOUDFLARE_API_EMAIL: 
+  CLOUDFLARE_API_KEY:
+" | kubectl apply -f -
+```
+
+3) Install the helm repo
 ```
 helm repo add zelic-io https://zelic-io.github.io/charts
-
-helm install cloudflare-zero-trust-operator zelic-io/cloudflare-zero-trust-operator
+ 
+helm install --namespace=zero-trust-system --set secretRef=cloudflare-creds cloudflare-zero-trust-operator zelic-io/cloudflare-zero-trust-operator
 ```
-
-### Running on the cluster
-1. Install Instances of Custom Resources:
-
-```sh
-kubectl apply -f config/samples/
-```
-
-2. Build and push your image to the location specified by `IMG`:
-	
-```sh
-make docker-build docker-push IMG=<some-registry>/bojanzelic-cloudflare-zero-trust-operator:tag
-```
-	
-3. Deploy the controller to the cluster with the image specified by `IMG`:
-
-```sh
-make deploy IMG=<some-registry>/bojanzelic-cloudflare-zero-trust-operator:tag
-```
-
-### Uninstall CRDs
-To delete the CRDs from the cluster:
-
-```sh
-make uninstall
-```
-
-### Undeploy controller
-UnDeploy the controller to the cluster:
-
-```sh
-make undeploy
-```
-
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
 
 ### How it works
+
 This project aims to follow the Kubernetes [Operator pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)
 
 It uses [Controllers](https://kubernetes.io/docs/concepts/architecture/controller/) 
 which provides a reconcile function responsible for synchronizing resources untile the desired state is reached on the cluster 
 
-### Test It Out
-1. Install the CRDs into the cluster:
+## Compatability
 
-```sh
-make install
-```
+This provider's versions are able to install and manage the following versions of Kubernetes:
 
-2. Run your controller (this will run in the foreground, so switch to a new terminal if you want to leave it running):
-
-```sh
-make run
-```
-
-**NOTE:** You can also run this in one step by running: `make install run`
-
-### Modifying the API definitions
-If you are editing the API definitions, generate the manifests such as CRs or CRDs using:
-
-```sh
-make manifests
-```
-
-**NOTE:** Run `make --help` for more information on all potential `make` targets
-
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
+|                                                | v1.22 | v1.23 | v1.24 |
+| ---------------------------------------------- | ----- | ----- | ----- |
+| Cloudflare Zero Trust Operator v0.0.1-current  | ✓     | ✓     | ✓     |
 
 ## License
 

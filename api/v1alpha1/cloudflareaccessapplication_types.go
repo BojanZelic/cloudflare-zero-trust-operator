@@ -27,18 +27,52 @@ import (
 
 // CloudflareAccessApplicationSpec defines the desired state of CloudflareAccessApplication.
 type CloudflareAccessApplicationSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	// @todo: use Name instead of CRD name
-	Domain                  string                           `json:"domain"`
-	Type                    cloudflare.AccessApplicationType `json:"type,omitempty"`
-	AppLauncherVisible      *bool                            `json:"appLauncherVisible,omitempty"`
-	AllowedIdps             []string                         `json:"allowedIdps,omitempty"`
-	AutoRedirectToIdentity  *bool                            `json:"autoRedirectToIdentity,omitempty"`
-	Policies                CloudflareAccessPolicyList       `json:"policies,omitempty"`
-	SessionDuration         string                           `json:"sessionDuration,omitempty"`
-	EnableBindingCookie     *bool                            `json:"enableBindingCookie,omitempty"`
-	HTTPOnlyCookieAttribute *bool                            `json:"httpOnlyCookieAttribute,omitempty"`
+	// Name of the Cloudflare Access Application
+	Name string `json:"name"`
+
+	// The domain and path that Access will secure.
+	// ex: "test.example.com/admin"
+	Domain string `json:"domain"`
+
+	// The application type. Defaults to "self_hosted"
+	// +optional
+	// +kubebuilder:default=self_hosted
+	Type cloudflare.AccessApplicationType `json:"type,omitempty"`
+
+	// Displays the application in the App Launcher.
+	// +optional
+	// +kubebuilder:default=true
+	AppLauncherVisible *bool `json:"appLauncherVisible,omitempty"`
+
+	// The identity providers your users can select when connecting to this application. Defaults to all IdPs configured in your account.
+	// ex: ["699d98642c564d2e855e9661899b7252"]
+	// +optional
+	AllowedIdps []string `json:"allowedIdps,omitempty"`
+
+	// When set to true, users skip the identity provider selection step during login.
+	// You must specify only one identity provider in allowed_idps.
+	// +optional
+	AutoRedirectToIdentity *bool `json:"autoRedirectToIdentity,omitempty"`
+
+	// Policies is the ordered set of policies that should be applied to the application
+	// Order determines precidence
+	// +optional
+	Policies CloudflareAccessPolicyList `json:"policies,omitempty"`
+
+	// SessionDuration is the length of the session duration. Defaults to 24h
+	// +optional
+	// +kubebuilder:default=24h
+	SessionDuration string `json:"sessionDuration,omitempty"`
+
+	// Enables the binding cookie, which increases security against compromised authorization tokens and CSRF attacks.
+	// +optional
+	// +kubebuilder:default=false
+	EnableBindingCookie *bool `json:"enableBindingCookie,omitempty"`
+
+	// Enables the HttpOnly cookie attribute, which increases security against XSS attacks. Defaults to true
+	// +optional
+	// +kubebuilder:default=true
+	HTTPOnlyCookieAttribute *bool `json:"httpOnlyCookieAttribute,omitempty"`
 }
 
 type CloudflareAccessPolicy struct {
