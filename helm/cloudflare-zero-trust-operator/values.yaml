@@ -10,7 +10,14 @@ image:
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
-cloudflare_api_key: 
+# provide the cloudflare creds
+cloudflare_api_key: ""
+cloudflare_account_id: ""
+cloudflare_api_email: ""
+
+# or provision your own secret with the creds
+secretRef: "test"
+
 
 imagePullSecrets: []
 nameOverride: ""

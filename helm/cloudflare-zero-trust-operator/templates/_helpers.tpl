@@ -60,3 +60,14 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Create the secret to use
+*/}}
+{{- define "cloudflare-zero-trust-operator.secretRef" -}}
+{{- if not .Values.secretRef }}
+{{- default (include "cloudflare-zero-trust-operator.fullname" .) }}-creds
+{{- else }}
+{{- default "default" .Values.secretRef }}
+{{- end }}
+{{- end }}
