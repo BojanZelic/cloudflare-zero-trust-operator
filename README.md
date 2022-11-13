@@ -5,6 +5,7 @@ Expect breaking changes
 
 Cloudflare Zero-Trust operator allow you to manage your zero-trust configuration directly from kubernetes
 
+[![CRD - reference](https://img.shields.io/badge/CRD-reference-2ea44f)](https://doc.crds.dev/github.com/BojanZelic/cloudflare-zero-trust-operator)
 ![Unit Tests](https://github.com/BojanZelic/cloudflare-zero-trust-operator/actions/workflows/unit.yaml/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/bojanzelic/cloudflare-zero-trust-operator)](https://goreportcard.com/report/github.com/bojanzelic/cloudflare-zero-trust-operator)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/bojanzelic/cloudflare-zero-trust-operator)](https://pkg.go.dev/github.com/bojanzelic/cloudflare-zero-trust-operator)
@@ -13,9 +14,10 @@ Cloudflare Zero-Trust operator allow you to manage your zero-trust configuration
 
 Currently in Project scope
 - [x] Manage Cloudflare Access Groups
+- [x] Manage Cloudflare Access Applications
 
 ## Roadmap
-- [] Manage Cloudflare Access Applications
+- [] Manage Cloudflare Access Tokens
 - [] Deletion of managed resources upon Deletion of CR
 
 
