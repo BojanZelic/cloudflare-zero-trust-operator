@@ -145,7 +145,7 @@ roleRef:
   name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-leader-election-role
 subjects:
   - kind: ServiceAccount
-    name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-controller-manager
+    name: {{ include "cloudflare-zero-trust-operator.serviceAccountName" . }}
     namespace: {{.Release.Namespace}}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -162,7 +162,7 @@ roleRef:
   name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-manager-role
 subjects:
   - kind: ServiceAccount
-    name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-controller-manager
+    name: {{ include "cloudflare-zero-trust-operator.serviceAccountName" . }}
     namespace: {{.Release.Namespace}}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -179,5 +179,5 @@ roleRef:
   name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-proxy-role
 subjects:
   - kind: ServiceAccount
-    name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-controller-manager
+    name: {{ include "cloudflare-zero-trust-operator.serviceAccountName" . }}
     namespace: {{.Release.Namespace}}
