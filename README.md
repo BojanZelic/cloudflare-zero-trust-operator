@@ -21,6 +21,15 @@ Currently in Project scope
 - [] Deletion of managed resources upon Deletion of CR
 
 
+## Install
+
+### Install with Helm
+```
+helm repo add zelic-io https://zelic-io.github.io/charts
+
+helm install cloudflare-zero-trust-operator zelic-io/cloudflare-zero-trust-operator
+```
+
 ### Running on the cluster
 1. Install Instances of Custom Resources:
 
