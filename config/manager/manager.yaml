@@ -82,7 +82,7 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: cloudflare-creds
-                key: secretkey
+                key: CLOUDFLARE_API_EMAIL
           - name: CLOUDFLARE_ACCOUNT_ID
             valueFrom:
               secretKeyRef:
