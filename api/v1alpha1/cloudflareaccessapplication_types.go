@@ -34,9 +34,8 @@ type CloudflareAccessApplicationSpec struct {
 	// ex: "test.example.com/admin"
 	Domain string `json:"domain"`
 
-	// The application type. Defaults to "self_hosted"
+	// The application type. ex: "self_hosted"
 	// +optional
-	// +kubebuilder:default=self_hosted
 	Type cloudflare.AccessApplicationType `json:"type,omitempty"`
 
 	// Displays the application in the App Launcher.
@@ -59,19 +58,16 @@ type CloudflareAccessApplicationSpec struct {
 	// +optional
 	Policies CloudflareAccessPolicyList `json:"policies,omitempty"`
 
-	// SessionDuration is the length of the session duration. Defaults to 24h
+	// SessionDuration is the length of the session duration.
 	// +optional
-	// +kubebuilder:default=24h
 	SessionDuration string `json:"sessionDuration,omitempty"`
 
 	// Enables the binding cookie, which increases security against compromised authorization tokens and CSRF attacks.
 	// +optional
-	// +kubebuilder:default=false
 	EnableBindingCookie *bool `json:"enableBindingCookie,omitempty"`
 
-	// Enables the HttpOnly cookie attribute, which increases security against XSS attacks. Defaults to true
+	// Enables the HttpOnly cookie attribute, which increases security against XSS attacks.
 	// +optional
-	// +kubebuilder:default=true
 	HTTPOnlyCookieAttribute *bool `json:"httpOnlyCookieAttribute,omitempty"`
 }
 
