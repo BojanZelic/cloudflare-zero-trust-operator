@@ -72,6 +72,22 @@ spec:
         - --leader-elect
         image: controller:latest
         name: manager
+        env:
+          - name: CLOUDFLARE_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: cloudflare-creds
+                key: CLOUDFLARE_API_KEY
+          - name: CLOUDFLARE_API_EMAIL
+            valueFrom:
+              secretKeyRef:
+                name: cloudflare-creds
+                key: secretkey
+          - name: CLOUDFLARE_ACCOUNT_ID
+            valueFrom:
+              secretKeyRef:
+                name: cloudflare-creds
+                key: CLOUDFLARE_ACCOUNT_ID
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

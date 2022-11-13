@@ -1,2 +1,7 @@
 resources:
 - manager.yaml
+
+secretGenerator:
+- name: cloudflare-creds
+  envs:
+  - .env.secret

@@ -68,6 +68,22 @@ spec:
             - --leader-elect
           command:
             - /manager
+          env:
+            - name: CLOUDFLARE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-creds
+                  key: CLOUDFLARE_API_KEY
+            - name: CLOUDFLARE_API_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-creds
+                  key: secretkey
+            - name: CLOUDFLARE_ACCOUNT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-creds
+                  key: CLOUDFLARE_ACCOUNT_ID
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           livenessProbe:
             httpGet:
