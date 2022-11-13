@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cloudflare-zero-trust-operator.fullname" . }}
+  labels:
+    control-plane: controller-manager
+    {{- include "cloudflare-zero-trust-operator.labels" . | nindent 4 }}
+spec:
+  replicas:  {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "cloudflare-zero-trust-operator.selectorLabels" . | nindent 6 }}
+      control-plane: controller-manager
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        control-plane: controller-manager
+        {{- include "cloudflare-zero-trust-operator.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+                      - arm64
+                      - ppc64le
+                      - s390x
+                  - key: kubernetes.io/os
+                    operator: In
+                    values:
+                      - linux
+      containers:
+        - args:
+            - --secure-listen-address=0.0.0.0:8443
+            - --upstream=http://127.0.0.1:8080/
+            - --logtostderr=true
+            - --v=0
+          image: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.0
+          name: kube-rbac-proxy
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8443
+              name: https
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.proxy.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+        - args:
+            - --health-probe-bind-address=:8081
+            - --metrics-bind-address=127.0.0.1:8080
+            - --leader-elect
+          command:
+            - /manager
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          name: {{ .Chart.Name }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.manager.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: {{ include "cloudflare-zero-trust-operator.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 10
