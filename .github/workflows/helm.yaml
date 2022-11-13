@@ -23,6 +23,9 @@ jobs:
         uses: azure/setup-helm@v3
         with:
           version: v3.10.0
+      
+      - name: Generate CRDs
+        run: make build-helm
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.4.1

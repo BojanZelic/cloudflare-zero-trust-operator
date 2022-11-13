@@ -26,3 +26,6 @@ Dockerfile.cross
 *~
 
 .env
+
+# Generated helm config
+helm/*/templates/crds
