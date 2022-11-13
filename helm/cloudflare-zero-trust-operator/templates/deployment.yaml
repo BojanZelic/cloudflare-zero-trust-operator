@@ -78,7 +78,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ include "cloudflare-zero-trust-operator.secretRef" . }}
-                  key: secretkey
+                  key: CLOUDFLARE_API_EMAIL
             - name: CLOUDFLARE_ACCOUNT_ID
               valueFrom:
                 secretKeyRef:
