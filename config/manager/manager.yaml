@@ -88,6 +88,11 @@ spec:
               secretKeyRef:
                 name: cloudflare-creds
                 key: CLOUDFLARE_ACCOUNT_ID
+          - name: CLOUDFLARE_API_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: cloudflare-creds
+                key: CLOUDFLARE_API_TOKEN
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

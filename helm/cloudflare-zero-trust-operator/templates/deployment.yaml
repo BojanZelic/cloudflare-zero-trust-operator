@@ -84,6 +84,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "cloudflare-zero-trust-operator.secretRef" . }}
                   key: CLOUDFLARE_ACCOUNT_ID
+            - name: CLOUDFLARE_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cloudflare-zero-trust-operator.secretRef" . }}
+                  key: CLOUDFLARE_API_TOKEN
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           livenessProbe:
             httpGet:
