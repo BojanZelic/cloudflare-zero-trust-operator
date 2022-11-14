@@ -49,6 +49,7 @@ type CloudFlareAccessGroupRule struct {
 
 	// Matches an IP CIDR block
 	IPRanges []string `json:"ipRanges,omitempty"`
+
 	// Reference to other access groups
 	AccessGroups []string `json:"accessGroups,omitempty"`
 	// @todo: add the rest of the fields

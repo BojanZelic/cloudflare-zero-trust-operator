@@ -21,6 +21,7 @@ import (
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/pkg/errors"
@@ -105,7 +106,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		}
 	}
 
-	if !cfapi.AcessGroupEmailEqual(*existingCfAG, newCfAG) {
+	if !cfcollections.AccessGroupEqual(*existingCfAG, newCfAG) {
 		log.Info(newCfAG.Name + " has changed, updating...")
 
 		_, err := api.UpdateAccessGroup(ctx, newCfAG)
