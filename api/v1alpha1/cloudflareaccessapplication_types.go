@@ -34,8 +34,9 @@ type CloudflareAccessApplicationSpec struct {
 	// ex: "test.example.com/admin"
 	Domain string `json:"domain"`
 
-	// The application type. ex: "self_hosted"
+	// The application type. defaults to "self_hosted"
 	// +optional
+	// +kubebuilder:default=self_hosted
 	Type cloudflare.AccessApplicationType `json:"type,omitempty"`
 
 	// Displays the application in the App Launcher.
@@ -46,11 +47,13 @@ type CloudflareAccessApplicationSpec struct {
 	// The identity providers your users can select when connecting to this application. Defaults to all IdPs configured in your account.
 	// ex: ["699d98642c564d2e855e9661899b7252"]
 	// +optional
+	// +kubebuilder:default={}
 	AllowedIdps []string `json:"allowedIdps,omitempty"`
 
 	// When set to true, users skip the identity provider selection step during login.
 	// You must specify only one identity provider in allowed_idps.
 	// +optional
+	// +kubebuilder:default=true
 	AutoRedirectToIdentity *bool `json:"autoRedirectToIdentity,omitempty"`
 
 	// Policies is the ordered set of policies that should be applied to the application
@@ -60,14 +63,17 @@ type CloudflareAccessApplicationSpec struct {
 
 	// SessionDuration is the length of the session duration.
 	// +optional
+	// +kubebuilder:default="24h"
 	SessionDuration string `json:"sessionDuration,omitempty"`
 
 	// Enables the binding cookie, which increases security against compromised authorization tokens and CSRF attacks.
 	// +optional
+	// +kubebuilder:default=false
 	EnableBindingCookie *bool `json:"enableBindingCookie,omitempty"`
 
 	// Enables the HttpOnly cookie attribute, which increases security against XSS attacks.
 	// +optional
+	// +kubebuilder:default=true
 	HTTPOnlyCookieAttribute *bool `json:"httpOnlyCookieAttribute,omitempty"`
 }
 
@@ -148,6 +154,11 @@ type CloudflareAccessApplication struct {
 }
 
 func (c *CloudflareAccessApplication) ToCloudflare() cloudflare.AccessApplication {
+	allowedIdps := []string{}
+	if c.Spec.AllowedIdps != nil {
+		allowedIdps = c.Spec.AllowedIdps
+	}
+
 	app := cloudflare.AccessApplication{
 		Name:                    c.Spec.Name,
 		ID:                      c.Status.AccessApplicationID,
@@ -156,7 +167,7 @@ func (c *CloudflareAccessApplication) ToCloudflare() cloudflare.AccessApplicatio
 		Domain:                  c.Spec.Domain,
 		Type:                    c.Spec.Type,
 		AppLauncherVisible:      c.Spec.AppLauncherVisible,
-		AllowedIdps:             c.Spec.AllowedIdps,
+		AllowedIdps:             allowedIdps,
 		AutoRedirectToIdentity:  c.Spec.AutoRedirectToIdentity,
 		SessionDuration:         c.Spec.SessionDuration,
 		EnableBindingCookie:     c.Spec.EnableBindingCookie,
