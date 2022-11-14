@@ -2,7 +2,6 @@ package cfapi
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	cloudflare "github.com/cloudflare/cloudflare-go"
@@ -18,7 +17,6 @@ func New(cfAPIToken string, cfAPIKey string, cfAPIEmail string, cfAccountID stri
 	var err error
 	var api *cloudflare.API
 
-	fmt.Println(cfAPIToken)
 	if cfAPIToken != "" {
 		api, err = cloudflare.NewWithAPIToken(cfAPIToken)
 	} else {
