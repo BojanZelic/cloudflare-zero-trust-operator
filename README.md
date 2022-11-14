@@ -63,8 +63,7 @@ kubectl create ns zero-trust-system
 
 2) Create a secret with your cloudflare credentials
 
-```
-echo "
+```yaml
 apiVersion: v1
 metadata:
   name: cloudflare-creds
@@ -72,14 +71,16 @@ metadata:
 kind: Secret
 type: Opaque
 stringData:
-  CLOUDFLARE_ACCOUNT_ID: 
-  CLOUDFLARE_API_EMAIL: 
-  CLOUDFLARE_API_KEY:
-" | kubectl apply -f -
+  CLOUDFLARE_ACCOUNT_ID: <id>
+  # Either EMAIL+KEY or TOKEN must be supplied
+  # note: keys must still be defined even if they are empty
+  CLOUDFLARE_API_EMAIL: <email>
+  CLOUDFLARE_API_KEY: <api_key>
+  CLOUDFLARE_API_TOKEN: <api_token>
 ```
 
 3) Install the helm repo
-```
+```bash
 helm repo add zelic-io https://zelic-io.github.io/charts
  
 helm install --namespace=zero-trust-system --set secretRef=cloudflare-creds cloudflare-zero-trust-operator zelic-io/cloudflare-zero-trust-operator
