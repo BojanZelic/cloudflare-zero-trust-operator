@@ -17,9 +17,9 @@ Cloudflare Access Group
 apiVersion: cloudflare.zelic.io/v1alpha1
 kind: CloudflareAccessGroup
 metadata:
-  labels:
   name: accessgroup-example
 spec:
+  name: my access group
   include:
     - emails:
       - testemail1@domain.com
@@ -32,6 +32,7 @@ kind: CloudflareAccessApplication
 metadata:
   name: domain-example
 spec:
+  name: my application
   domain: domain.example.com
   policies: 
     - name: Allow testemail1
