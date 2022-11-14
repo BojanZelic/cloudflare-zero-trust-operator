@@ -27,35 +27,51 @@ import (
 
 // CloudflareAccessGroupSpec defines the desired state of CloudflareAccessGroup.
 type CloudflareAccessGroupSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Name of the Cloudflare Access Group
+	Name string `json:"name"`
 
-	ZoneID  string                      `json:"zoneId,omitempty"`
+	// Rules evaluated with an OR logical operator. A user needs to meet only one of the Include rules.
 	Include []CloudFlareAccessGroupRule `json:"include,omitempty"`
+
+	// Rules evaluated with an AND logical operator. To match the policy, a user must meet all of the Require rules.
 	Require []CloudFlareAccessGroupRule `json:"require,omitempty"`
+
+	// Rules evaluated with a NOT logical operator. To match the policy, a user cannot meet any of the Exclude rules.
 	Exclude []CloudFlareAccessGroupRule `json:"exclude,omitempty"`
 }
 
 type CloudFlareAccessGroupRule struct {
-	Emails       []string `json:"emails,omitempty"`
+	// Matches a Specific email
+	Emails []string `json:"emails,omitempty"`
+
+	// Matches a specific email Domain
 	EmailDomains []string `json:"emailDomains,omitempty"`
-	IPRanges     []string `json:"ipRanges,omitempty"`
+
+	// Matches an IP CIDR block
+	IPRanges []string `json:"ipRanges,omitempty"`
 	// Reference to other access groups
 	AccessGroups []string `json:"accessGroups,omitempty"`
 	// @todo: add the rest of the fields
 
 	// ValidCertificate []string
-	ServiceToken          []string `json:"serviceToken,omitempty"`
-	AnyAccessServiceToken *bool    `json:"anyAccessServiceToken,omitempty"`
+
+	// Matches a service token
+	ServiceToken []string `json:"serviceToken,omitempty"`
+
+	// Matches any valid service token
+	AnyAccessServiceToken *bool `json:"anyAccessServiceToken,omitempty"`
 }
 
 // CloudflareAccessGroupStatus defines the observed state of CloudflareAccessGroup.
 type CloudflareAccessGroupStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	AccessGroupID string      `json:"accessGroupId,omitempty"`
-	CreatedAt     metav1.Time `json:"createdAt,omitempty"`
-	UpdatedAt     metav1.Time `json:"updatedAt,omitempty"`
+	// AccessGroupID is the ID of the reference in Cloudflare
+	AccessGroupID string `json:"accessGroupId,omitempty"`
+
+	// Creation timestamp of the resource in Cloudflare
+	CreatedAt metav1.Time `json:"createdAt,omitempty"`
+
+	// Updated timestamp of the resource in Cloudflare
+	UpdatedAt metav1.Time `json:"updatedAt,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -70,13 +86,9 @@ type CloudflareAccessGroup struct {
 	Status CloudflareAccessGroupStatus `json:"status,omitempty"`
 }
 
-func (c CloudflareAccessGroup) CloudflareName() string {
-	return c.ObjectMeta.Name + " [K8s]"
-}
-
 func (c *CloudflareAccessGroup) ToCloudflare() cloudflare.AccessGroup {
 	accessGroup := cloudflare.AccessGroup{
-		Name:      c.CloudflareName(),
+		Name:      c.Spec.Name,
 		ID:        c.Status.AccessGroupID,
 		CreatedAt: &c.Status.CreatedAt.Time,
 		UpdatedAt: &c.Status.UpdatedAt.Time,

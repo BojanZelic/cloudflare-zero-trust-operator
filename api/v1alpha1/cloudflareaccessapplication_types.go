@@ -72,11 +72,20 @@ type CloudflareAccessApplicationSpec struct {
 }
 
 type CloudflareAccessPolicy struct {
-	Name     string                      `json:"name"`
-	Decision string                      `json:"decision"`
-	Include  []CloudFlareAccessGroupRule `json:"include,omitempty"`
-	Require  []CloudFlareAccessGroupRule `json:"require,omitempty"`
-	Exclude  []CloudFlareAccessGroupRule `json:"exclude,omitempty"`
+	// Name of the Cloudflare Access Policy
+	Name string `json:"name"`
+
+	// Decision ex: allow, deny, non_identity, bypass
+	Decision string `json:"decision"`
+
+	// Rules evaluated with an OR logical operator. A user needs to meet only one of the Include rules.
+	Include []CloudFlareAccessGroupRule `json:"include,omitempty"`
+
+	// Rules evaluated with an AND logical operator. To match the policy, a user must meet all of the Require rules.
+	Require []CloudFlareAccessGroupRule `json:"require,omitempty"`
+
+	// Rules evaluated with a NOT logical operator. To match the policy, a user cannot meet any of the Exclude rules.
+	Exclude []CloudFlareAccessGroupRule `json:"exclude,omitempty"`
 
 	// PurposeJustificationRequired *bool                 `json:"purpose_justification_required,omitempty"`
 	// PurposeJustificationPrompt   *string               `json:"purpose_justification_prompt,omitempty"`
@@ -138,13 +147,9 @@ type CloudflareAccessApplication struct {
 	Status CloudflareAccessApplicationStatus `json:"status,omitempty"`
 }
 
-func (c *CloudflareAccessApplication) CloudflareName() string {
-	return c.ObjectMeta.Name + " [K8s]"
-}
-
 func (c *CloudflareAccessApplication) ToCloudflare() cloudflare.AccessApplication {
 	app := cloudflare.AccessApplication{
-		Name:                    c.CloudflareName(),
+		Name:                    c.Spec.Name,
 		ID:                      c.Status.AccessApplicationID,
 		CreatedAt:               &c.Status.CreatedAt.Time,
 		UpdatedAt:               &c.Status.UpdatedAt.Time,

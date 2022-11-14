@@ -9,7 +9,6 @@ metadata:
     app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
   name: cloudflareaccessgroup-sample
 spec:
-  zoneId: 938bee7160d58b123066b44566c451f7
   include:
     - emails:
       - testemail1@domain.com

@@ -37,6 +37,8 @@ spec:
             description: CloudflareAccessGroupSpec defines the desired state of CloudflareAccessGroup.
             properties:
               exclude:
+                description: Rules evaluated with a NOT logical operator. To match
+                  the policy, a user cannot meet any of the Exclude rules.
                 items:
                   properties:
                     accessGroups:
@@ -45,27 +47,33 @@ spec:
                         type: string
                       type: array
                     anyAccessServiceToken:
+                      description: Matches any valid service token
                       type: boolean
                     emailDomains:
+                      description: Matches a specific email Domain
                       items:
                         type: string
                       type: array
                     emails:
+                      description: Matches a Specific email
                       items:
                         type: string
                       type: array
                     ipRanges:
+                      description: Matches an IP CIDR block
                       items:
                         type: string
                       type: array
                     serviceToken:
-                      description: ValidCertificate []string
+                      description: Matches a service token
                       items:
                         type: string
                       type: array
                   type: object
                 type: array
               include:
+                description: Rules evaluated with an OR logical operator. A user needs
+                  to meet only one of the Include rules.
                 items:
                   properties:
                     accessGroups:
@@ -74,71 +82,84 @@ spec:
                         type: string
                       type: array
                     anyAccessServiceToken:
+                      description: Matches any valid service token
                       type: boolean
                     emailDomains:
+                      description: Matches a specific email Domain
                       items:
                         type: string
                       type: array
                     emails:
+                      description: Matches a Specific email
                       items:
                         type: string
                       type: array
                     ipRanges:
+                      description: Matches an IP CIDR block
                       items:
                         type: string
                       type: array
                     serviceToken:
-                      description: ValidCertificate []string
+                      description: Matches a service token
                       items:
                         type: string
                       type: array
                   type: object
                 type: array
-              require:
-                items:
-                  properties:
-                    accessGroups:
-                      description: Reference to other access groups
-                      items:
-                        type: string
-                      type: array
-                    anyAccessServiceToken:
-                      type: boolean
-                    emailDomains:
-                      items:
-                        type: string
-                      type: array
-                    emails:
-                      items:
-                        type: string
-                      type: array
-                    ipRanges:
-                      items:
-                        type: string
-                      type: array
-                    serviceToken:
-                      description: ValidCertificate []string
-                      items:
-                        type: string
-                      type: array
-                  type: object
-                type: array
-              zoneId:
+              name:
+                description: Name of the Cloudflare Access Group
                 type: string
+              require:
+                description: Rules evaluated with an AND logical operator. To match
+                  the policy, a user must meet all of the Require rules.
+                items:
+                  properties:
+                    accessGroups:
+                      description: Reference to other access groups
+                      items:
+                        type: string
+                      type: array
+                    anyAccessServiceToken:
+                      description: Matches any valid service token
+                      type: boolean
+                    emailDomains:
+                      description: Matches a specific email Domain
+                      items:
+                        type: string
+                      type: array
+                    emails:
+                      description: Matches a Specific email
+                      items:
+                        type: string
+                      type: array
+                    ipRanges:
+                      description: Matches an IP CIDR block
+                      items:
+                        type: string
+                      type: array
+                    serviceToken:
+                      description: Matches a service token
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                type: array
+            required:
+            - name
             type: object
           status:
             description: CloudflareAccessGroupStatus defines the observed state of
               CloudflareAccessGroup.
             properties:
               accessGroupId:
-                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
-                  of cluster Important: Run "make" to regenerate code after modifying
-                  this file'
+                description: AccessGroupID is the ID of the reference in Cloudflare
                 type: string
               createdAt:
+                description: Creation timestamp of the resource in Cloudflare
                 format: date-time
                 type: string
               updatedAt:
+                description: Updated timestamp of the resource in Cloudflare
                 format: date-time
                 type: string
             type: object

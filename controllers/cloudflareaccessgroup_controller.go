@@ -82,7 +82,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	newCfAG := accessGroup.ToCloudflare()
 
 	if accessGroup.Status.AccessGroupID == "" {
-		existingCfAG = cfAccessGroups.GetByName(accessGroup.CloudflareName())
+		existingCfAG = cfAccessGroups.GetByName(accessGroup.Spec.Name)
 		if existingCfAG != nil {
 			log.Info("access group already exists. importing...", "accessGroup", existingCfAG.Name, "accessGroupID", existingCfAG.ID)
 		}
