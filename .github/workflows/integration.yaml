@@ -7,10 +7,9 @@ on:
     tags:
       - '*'
 jobs:
-  unit-tests:
+  integration-tests:
     runs-on: ubuntu-latest
-    name: Integration
-    environment: integration
+    name: Integration Tests
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-go@v3
