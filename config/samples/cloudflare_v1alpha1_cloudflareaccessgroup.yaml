@@ -9,6 +9,7 @@ metadata:
     app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
   name: cloudflareaccessgroup-sample
 spec:
+  name: my access group
   include:
     - emails:
       - testemail1@domain.com
