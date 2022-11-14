@@ -101,10 +101,14 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 
 	if existingCfAG == nil {
 		ag, err := api.CreateAccessGroup(ctx, newCfAG)
-		existingCfAG = &ag
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
 		}
+		err = r.ReconcileStatus(ctx, &ag, accessGroup)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "unable to set access group status")
+		}
+		existingCfAG = &ag
 	}
 
 	if !cfcollections.AccessGroupEqual(*existingCfAG, newCfAG) {

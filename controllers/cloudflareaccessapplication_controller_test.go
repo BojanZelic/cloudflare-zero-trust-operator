@@ -16,22 +16,22 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
+var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 	BeforeAll(func() {
 		ctx := context.Background()
 
-		By("Removing all existing access groups")
-		groups, err := api.AccessGroups(ctx)
+		By("Removing all existing access apps")
+		apps, err := api.AccessApplications(ctx)
 		Expect(err).To(Not(HaveOccurred()))
-		for _, group := range groups {
-			err = api.DeleteAccessGroup(ctx, group.ID)
+		for _, app := range apps {
+			err = api.DeleteAccessApplication(ctx, app.ID)
 			Expect(err).To(Not(HaveOccurred()))
 		}
 	})
 
-	Context("CloudflareAccessGroup controller test", func() {
+	Context("CloudflareAccessApplication controller test", func() {
 
-		const cloudflareName = "test-cloudflare"
+		const cloudflareName = "cloudflare-app"
 
 		ctx := context.Background()
 
@@ -55,25 +55,21 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			_ = k8sClient.Delete(ctx, namespace)
 		})
 
-		It("should successfully reconcile a custom resource for CloudflareAccessGroup", func() {
-			By("Creating the custom resource for the Kind CloudflareAccessGroup")
-			group := &v1alpha1.CloudflareAccessGroup{}
+		It("should successfully reconcile a custom resource for CloudflareAccessApplication", func() {
+			By("Creating the custom resource for the Kind CloudflareAccessApplication")
+			group := &v1alpha1.CloudflareAccessApplication{}
 			err := k8sClient.Get(ctx, typeNamespaceName, group)
 			if err != nil && errors.IsNotFound(err) {
 				// Let's mock our custom resource at the same way that we would
 				// apply on the cluster the manifest under config/samples
-				group := &v1alpha1.CloudflareAccessGroup{
+				group := &v1alpha1.CloudflareAccessApplication{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      cloudflareName,
 						Namespace: namespace.Name,
 					},
-					Spec: v1alpha1.CloudflareAccessGroupSpec{
-						Name: "integration test",
-						Include: []v1alpha1.CloudFlareAccessGroupRule{
-							{
-								Emails: []string{"test@cf-operator-tests.uk"},
-							},
-						},
+					Spec: v1alpha1.CloudflareAccessApplicationSpec{
+						Name:   "integration test",
+						Domain: "integration.cf-operator-tests.uk",
 					},
 				}
 
@@ -83,12 +79,12 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 
 			By("Checking if the custom resource was successfully created")
 			Eventually(func() error {
-				found := &v1alpha1.CloudflareAccessGroup{}
+				found := &v1alpha1.CloudflareAccessApplication{}
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}, time.Minute, time.Second).Should(Succeed())
 
 			By("Reconciling the custom resource created")
-			accessGroupReconciler := &CloudflareAccessGroupReconciler{
+			accessGroupReconciler := &CloudflareAccessApplicationReconciler{
 				Client: k8sClient,
 				Scheme: k8sClient.Scheme(),
 			}
@@ -98,16 +94,16 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			})
 			Expect(err).To(Not(HaveOccurred()))
 
-			found := &v1alpha1.CloudflareAccessGroup{}
+			found := &v1alpha1.CloudflareAccessApplication{}
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func() string {
-				found = &v1alpha1.CloudflareAccessGroup{}
+				found = &v1alpha1.CloudflareAccessApplication{}
 				k8sClient.Get(ctx, typeNamespaceName, found)
-				return found.Status.AccessGroupID
+				return found.Status.AccessApplicationID
 			}, time.Minute, time.Second).Should(Not(BeEmpty()))
 
 			By("Cloudflare resource should equal the spec")
-			cfResource, err := api.AccessGroup(ctx, found.Status.AccessGroupID)
+			cfResource, err := api.AccessApplication(ctx, found.Status.AccessApplicationID)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(cfResource.Name).To(Equal(cfResource.Name))
 		})

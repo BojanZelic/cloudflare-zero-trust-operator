@@ -102,6 +102,12 @@ func (a *API) UpdateAccessApplication(ctx context.Context, ag cloudflare.AccessA
 	return cfAG, errors.Wrap(err, "unable to update access applications")
 }
 
+func (a *API) DeleteAccessApplication(ctx context.Context, appID string) error {
+	err := a.client.DeleteAccessApplication(ctx, a.CFAccountID, appID)
+
+	return errors.Wrap(err, "unable to create access applications")
+}
+
 func (a *API) AccessPolicies(ctx context.Context, appID string) (cfcollections.AccessPolicyCollection, error) {
 	policies, _, err := a.client.AccessPolicies(ctx, a.CFAccountID, appID, cloudflare.PaginationOptions{})
 
