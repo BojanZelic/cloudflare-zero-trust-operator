@@ -1,4 +1,4 @@
-name: Unit Tests
+name: Integration Tests
 on:
   pull_request:
   push:
@@ -9,10 +9,11 @@ on:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
-    name: Unit tests
+    name: Integration
+    environment: integration
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-go@v3
       with:
         go-version: '1.19.0'
-    - run: make test
+    - run: make integration-test

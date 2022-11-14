@@ -27,4 +27,5 @@ Dockerfile.cross
 
 .env
 .env.secret
+.env.integration
 *.secret.yaml
