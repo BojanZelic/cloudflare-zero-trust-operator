@@ -2,6 +2,7 @@ package cfapi
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	cloudflare "github.com/cloudflare/cloudflare-go"
@@ -17,6 +18,7 @@ func New(cfAPIToken string, cfAPIKey string, cfAPIEmail string, cfAccountID stri
 	var err error
 	var api *cloudflare.API
 
+	fmt.Println(cfAPIToken)
 	if cfAPIToken != "" {
 		api, err = cloudflare.NewWithAPIToken(cfAPIToken)
 	} else {
@@ -52,6 +54,12 @@ func (a *API) UpdateAccessGroup(ctx context.Context, ag cloudflare.AccessGroup) 
 	cfAG, err := a.client.UpdateAccessGroup(ctx, a.CFAccountID, ag)
 
 	return cfAG, errors.Wrap(err, "unable to update access groups")
+}
+
+func (a *API) DeleteAccessGroup(ctx context.Context, groupID string) error {
+	err := a.client.DeleteAccessGroup(ctx, a.CFAccountID, groupID)
+
+	return errors.Wrap(err, "unable to update access groups")
 }
 
 func (a *API) AccessApplications(ctx context.Context) ([]cloudflare.AccessApplication, error) {

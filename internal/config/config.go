@@ -46,18 +46,6 @@ func ParseCloudflareConfig(obj metav1.Object) ZeroTrustConfig {
 	return cloudflareConfig
 }
 
-// var CLOUDFLARE_API_EMAIL string
-// var CLOUDFLARE_API_KEY string
-// var CLOUDFLARE_API_TOKEN string
-// var CLOUDFLARE_ACCOUNT_ID string
-
-// func ReadFromEnv() {
-// 	CLOUDFLARE_API_EMAIL = os.Getenv("CLOUDFLARE_API_EMAIL")
-// 	CLOUDFLARE_API_KEY = os.Getenv("CLOUDFLARE_API_KEY")
-// 	CLOUDFLARE_API_TOKEN = os.Getenv("CLOUDFLARE_API_TOKEN")
-// 	CLOUDFLARE_ACCOUNT_ID = os.Getenv("CLOUDFLARE_ACCOUNT_ID")
-// }
-
 func (c ZeroTrustConfig) IsValid() (bool, error) {
 	if c.AccountID == "" {
 		return false, ErrMissingAccountID
