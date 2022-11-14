@@ -96,8 +96,9 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	if existingaccessApp == nil {
 		newApp := app.ToCloudflare()
 
-		log.Info("app is missing - creating...", "domain", app.Spec.Domain)
+		log.Info("app is missing - creating...", "name", app.Spec.Name, "domain", app.Spec.Domain)
 		accessapp, err := api.CreateAccessApplication(ctx, newApp)
+		existingaccessApp = &accessapp
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
 		}
@@ -107,6 +108,20 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 			return ctrl.Result{}, errors.Wrap(err, "issue updating status")
 		}
 	}
+
+	if !cfcollections.AccessAppEqual(*existingaccessApp, app.ToCloudflare()) {
+		log.Info("app has changed - updating...", "name", app.Spec.Name, "domain", app.Spec.Domain)
+		accessapp, err := api.UpdateAccessApplication(ctx, app.ToCloudflare())
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "unable to update access group")
+		}
+
+		err = r.ReconcileStatus(ctx, &accessapp, app)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "issue updating status")
+		}
+	}
+
 	currentPolicies, err := api.AccessPolicies(ctx, app.Status.AccessApplicationID)
 	currentPolicies.SortByPrecidence()
 	if err != nil {

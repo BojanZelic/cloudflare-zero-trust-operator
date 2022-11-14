@@ -49,6 +49,7 @@ spec:
                 description: Displays the application in the App Launcher.
                 type: boolean
               autoRedirectToIdentity:
+                default: true
                 description: When set to true, users skip the identity provider selection
                   step during login. You must specify only one identity provider in
                   allowed_idps.
@@ -57,10 +58,12 @@ spec:
                 description: 'The domain and path that Access will secure. ex: "test.example.com/admin"'
                 type: string
               enableBindingCookie:
+                default: false
                 description: Enables the binding cookie, which increases security
                   against compromised authorization tokens and CSRF attacks.
                 type: boolean
               httpOnlyCookieAttribute:
+                default: true
                 description: Enables the HttpOnly cookie attribute, which increases
                   security against XSS attacks.
                 type: boolean
@@ -189,10 +192,12 @@ spec:
                   type: object
                 type: array
               sessionDuration:
+                default: 24h
                 description: SessionDuration is the length of the session duration.
                 type: string
               type:
-                description: 'The application type. ex: "self_hosted"'
+                default: self_hosted
+                description: The application type. defaults to "self_hosted"
                 type: string
             required:
             - domain

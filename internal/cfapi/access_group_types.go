@@ -1,9 +1,6 @@
 package cfapi
 
 import (
-	"encoding/json"
-	"reflect"
-
 	cloudflare "github.com/cloudflare/cloudflare-go"
 )
 
@@ -57,25 +54,4 @@ func NewAccessGroupAnyValidServiceToken() cloudflare.AccessGroupAnyValidServiceT
 	return cloudflare.AccessGroupAnyValidServiceToken{
 		AnyValidServiceToken: struct{}{},
 	}
-}
-
-func AcessGroupEmailEqual(first cloudflare.AccessGroup, second cloudflare.AccessGroup) bool {
-	v1, _ := json.Marshal(first.Include)  //nolint:errchkjson,varnamelen
-	v2, _ := json.Marshal(second.Include) //nolint:errchkjson,varnamelen
-
-	if !reflect.DeepEqual(v1, v2) {
-		return false
-	}
-
-	v1, _ = json.Marshal(first.Exclude)  //nolint:errchkjson
-	v2, _ = json.Marshal(second.Exclude) //nolint:errchkjson
-
-	if !reflect.DeepEqual(v1, v2) {
-		return false
-	}
-
-	v1, _ = json.Marshal(first.Require)  //nolint:errchkjson
-	v2, _ = json.Marshal(second.Require) //nolint:errchkjson
-
-	return reflect.DeepEqual(v1, v2)
 }
