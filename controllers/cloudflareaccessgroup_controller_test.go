@@ -109,7 +109,23 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			By("Cloudflare resource should equal the spec")
 			cfResource, err := api.AccessGroup(ctx, found.Status.AccessGroupID)
 			Expect(err).To(Not(HaveOccurred()))
-			Expect(cfResource.Name).To(Equal(cfResource.Name))
+			Expect(cfResource.Name).To(Equal(found.Spec.Name))
+
+			By("Updating the name of the resource")
+			found.Spec.Name = "updated name"
+			k8sClient.Update(ctx, found)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Reconciling the updated resource")
+			_, err = accessGroupReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespaceName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Cloudflare resource should equal the updated spec")
+			cfResource, err = api.AccessGroup(ctx, found.Status.AccessGroupID)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(cfResource.Name).To(Equal(found.Spec.Name))
 		})
 	})
 })

@@ -76,7 +76,8 @@ spec:
                 items:
                   properties:
                     decision:
-                      description: 'Decision ex: allow, deny, non_identity, bypass'
+                      description: 'Decision ex: allow, deny, non_identity, bypass
+                        - defaults to allow'
                       type: string
                     exclude:
                       description: Rules evaluated with a NOT logical operator. To

@@ -22,6 +22,10 @@ func (c AccessGroupCollection) GetByName(name string) *cloudflare.AccessGroup {
 }
 
 func AccessGroupEqual(first cloudflare.AccessGroup, second cloudflare.AccessGroup) bool {
+	if first.Name != second.Name {
+		return false
+	}
+
 	v1, _ := json.Marshal(first.Include)  //nolint:errchkjson,varnamelen
 	v2, _ := json.Marshal(second.Include) //nolint:errchkjson,varnamelen
 

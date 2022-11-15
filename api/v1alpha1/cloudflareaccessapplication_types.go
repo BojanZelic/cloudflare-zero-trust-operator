@@ -81,16 +81,18 @@ type CloudflareAccessPolicy struct {
 	// Name of the Cloudflare Access Policy
 	Name string `json:"name"`
 
-	// Decision ex: allow, deny, non_identity, bypass
+	// Decision ex: allow, deny, non_identity, bypass - defaults to allow
 	Decision string `json:"decision"`
 
 	// Rules evaluated with an OR logical operator. A user needs to meet only one of the Include rules.
 	Include []CloudFlareAccessGroupRule `json:"include,omitempty"`
 
 	// Rules evaluated with an AND logical operator. To match the policy, a user must meet all of the Require rules.
+	// +optional
 	Require []CloudFlareAccessGroupRule `json:"require,omitempty"`
 
 	// Rules evaluated with a NOT logical operator. To match the policy, a user cannot meet any of the Exclude rules.
+	// +optional
 	Exclude []CloudFlareAccessGroupRule `json:"exclude,omitempty"`
 
 	// PurposeJustificationRequired *bool                 `json:"purpose_justification_required,omitempty"`

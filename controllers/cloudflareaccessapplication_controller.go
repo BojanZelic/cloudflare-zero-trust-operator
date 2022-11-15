@@ -179,7 +179,7 @@ func (r *CloudflareAccessApplicationReconciler) ReconcilePolicies(ctx context.Co
 		if !cfcollections.AccessPoliciesEqual(cfPolicy, k8sPolicy) {
 			if cfPolicy == nil && k8sPolicy != nil {
 				action = "create"
-				log.Info("accesspolicy is missing - creating...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
+				log.Info("accesspolicy is missing - creating...", "policyName", k8sPolicy.Name, "domain", app.Spec.Domain)
 				_, err = api.CreateAccessPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
 			}
 			if k8sPolicy == nil && cfPolicy != nil {
