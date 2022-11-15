@@ -12,7 +12,7 @@ import (
 
 func TestBooks(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "CloudflareAccessGroup Suite")
+	RunSpecs(t, "Config Suite")
 }
 
 var _ = Describe("Config", Label("Config"), func() {

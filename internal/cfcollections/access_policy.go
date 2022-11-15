@@ -18,16 +18,6 @@ func (c AccessPolicyCollection) SortByPrecidence() {
 	})
 }
 
-func (c AccessPolicyCollection) GetByPrecidence(i int) *cloudflare.AccessPolicy {
-	for _, policy := range c {
-		if policy.Precedence == i {
-			return &policy
-		}
-	}
-
-	return nil
-}
-
 //nolint:cyclop
 func AccessPoliciesEqual(first *cloudflare.AccessPolicy, second *cloudflare.AccessPolicy) bool {
 	if first == nil && second == nil {
