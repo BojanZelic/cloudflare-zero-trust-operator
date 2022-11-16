@@ -58,7 +58,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 			return ctrl.Result{}, nil
 		}
 
-		log.Error(err, "Failed to get CloudflareAccessGroup", "CloudflareAccessGroup.Name", accessGroup.Name)
+		log.Error(err, "Failed to get CloudflareAccessGroup", "CloudflareAccessGroup.Name", req.Name)
 
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessGroup")
 	}

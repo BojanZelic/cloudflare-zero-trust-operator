@@ -2,4 +2,5 @@
 resources:
 - cloudflare_v1alpha1_cloudflareaccessgroup.yaml
 - cloudflare_v1alpha1_cloudflareaccessapplication.yaml
+- cloudflare_v1alpha1_cloudflareservicetoken.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples
