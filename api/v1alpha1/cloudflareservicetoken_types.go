@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	cloudflare "github.com/cloudflare/cloudflare-go"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -34,12 +35,12 @@ type CloudflareServiceTokenSpec struct {
 	// Automatically renewing a service token will change the service token value upon renewal.
 	// Tokens will get automatically renewed if the token is expired
 	// +optional
-	// +kubebuilder:default=0
+	// +kubebuilder:default="0"
 	MinTimeBeforeRenewal string `json:"minTimeBeforeRenewal"`
 
-	// Renew the token if the secret with the service token value is missing or doesn't exist
+	// Recreate the token if the secret with the service token value is missing or doesn't exist
 	// +kubebuilder:default=true
-	RenewMissing bool `json:"renewMissing"`
+	RecreateMissing bool `json:"recreateMissing"`
 
 	// Template to apply for the generated secret
 	// +optional
@@ -55,9 +56,16 @@ type SecretTemplateSpec struct {
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Key that should store the secret data. Defaults to cloudflareServiceToken
+	// Warning: changing this value will recreate the secret
 	// +optional
-	// +kubebuilder:default=cloudflareServiceToken
-	Key string `json:"data,omitempty"`
+	// +kubebuilder:default=cloudflareSecretKey
+	ClientSecretKey string `json:"clientSecretKey,omitempty"`
+
+	// Key that should store the secret data. Defaults to cloudflareServiceToken.
+	// Warning: changing this value will recreate the secret
+	// +optional
+	// +kubebuilder:default=cloudflareClientId
+	ClientIDKey string `json:"clientIdKey,omitempty"`
 }
 
 // CloudflareServiceTokenStatus defines the observed state of CloudflareServiceToken.
@@ -73,6 +81,21 @@ type CloudflareServiceTokenStatus struct {
 
 	// Updated timestamp of the resource in Cloudflare
 	ExpiresAt metav1.Time `json:"expiresAt,omitempty"`
+
+	// SecretRef is the reference to the secret
+	// +optional
+	// +nullable
+	SecretRef *SecretRef `json:"secretRef,omitempty"`
+}
+
+type SecretRef struct {
+	// reference to the secret
+	corev1.LocalObjectReference `json:"reference,omitempty"`
+	// Key that stores the secret data.
+	ClientSecretKey string `json:"clientSecretKey,omitempty"`
+
+	// Key that stores the secret data.
+	ClientIDKey string `json:"clientIdKey,omitempty"`
 }
 
 //+kubebuilder:object:root=true

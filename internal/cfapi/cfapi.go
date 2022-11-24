@@ -136,6 +136,25 @@ func (a *API) DeleteAccessPolicy(ctx context.Context, appID string, policyID str
 	return errors.Wrap(err, "unable to update access Policy")
 }
 
+func (a *API) ServiceTokens(ctx context.Context) ([]cftypes.ExtendedServiceToken, error) {
+	extendedTokens := []cftypes.ExtendedServiceToken{}
+	tokens, _, err := a.client.AccessServiceTokens(ctx, a.CFAccountID)
+	for _, token := range tokens {
+		extendedTokens = append(extendedTokens, cftypes.ExtendedServiceToken{
+			AccessServiceToken: cloudflare.AccessServiceToken{
+				CreatedAt: token.CreatedAt,
+				UpdatedAt: token.UpdatedAt,
+				ExpiresAt: token.ExpiresAt,
+				ID:        token.ID,
+				Name:      token.Name,
+				ClientID:  token.ClientID,
+			},
+		})
+	}
+
+	return extendedTokens, errors.Wrap(err, "unable to get service tokens")
+}
+
 func (a *API) CreateAccessServiceToken(ctx context.Context, token cftypes.ExtendedServiceToken) (cftypes.ExtendedServiceToken, error) {
 	res, err := a.client.CreateAccessServiceToken(ctx, a.CFAccountID, token.Name)
 	t := cftypes.ExtendedServiceToken{
