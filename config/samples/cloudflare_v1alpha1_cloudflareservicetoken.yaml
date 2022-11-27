@@ -1,0 +1,12 @@
+apiVersion: cloudflare.zelic.io/v1alpha1
+kind: CloudflareServiceToken
+metadata:
+  labels:
+    app.kubernetes.io/name: cloudflareservicetoken
+    app.kubernetes.io/instance: cloudflareservicetoken-sample
+    app.kubernetes.io/part-of: bojanzelic-cloudflare-zero-trust-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
+  name: cloudflareservicetoken-sample
+spec:
+  # TODO(user): Add fields here

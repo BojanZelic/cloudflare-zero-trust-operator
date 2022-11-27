@@ -57,3 +57,29 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareservicetokens
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareservicetokens/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareservicetokens/status
+  verbs:
+  - get
+  - patch
+  - update

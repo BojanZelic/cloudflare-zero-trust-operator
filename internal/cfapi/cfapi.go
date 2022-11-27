@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/pkg/errors"
 )
@@ -130,6 +131,73 @@ func (a *API) UpdateAccessPolicy(ctx context.Context, appID string, ag cloudflar
 
 func (a *API) DeleteAccessPolicy(ctx context.Context, appID string, policyID string) error {
 	err := a.client.DeleteAccessPolicy(ctx, a.CFAccountID, appID, policyID)
+
+	return errors.Wrap(err, "unable to update access Policy")
+}
+
+func (a *API) ServiceTokens(ctx context.Context) ([]cftypes.ExtendedServiceToken, error) {
+	extendedTokens := []cftypes.ExtendedServiceToken{}
+	tokens, _, err := a.client.AccessServiceTokens(ctx, a.CFAccountID)
+	for _, token := range tokens {
+		extendedTokens = append(extendedTokens, cftypes.ExtendedServiceToken{
+			AccessServiceToken: cloudflare.AccessServiceToken{
+				CreatedAt: token.CreatedAt,
+				UpdatedAt: token.UpdatedAt,
+				ExpiresAt: token.ExpiresAt,
+				ID:        token.ID,
+				Name:      token.Name,
+				ClientID:  token.ClientID,
+			},
+		})
+	}
+
+	return extendedTokens, errors.Wrap(err, "unable to get service tokens")
+}
+
+func (a *API) CreateAccessServiceToken(ctx context.Context, token cftypes.ExtendedServiceToken) (cftypes.ExtendedServiceToken, error) {
+	res, err := a.client.CreateAccessServiceToken(ctx, a.CFAccountID, token.Name)
+	extendedToken := cftypes.ExtendedServiceToken{
+		ClientSecret: res.ClientSecret,
+		AccessServiceToken: cloudflare.AccessServiceToken{
+			CreatedAt: res.CreatedAt,
+			UpdatedAt: res.UpdatedAt,
+			ExpiresAt: res.ExpiresAt,
+			ID:        res.ID,
+			Name:      res.Name,
+			ClientID:  res.ClientID,
+		},
+	}
+
+	return extendedToken, errors.Wrap(err, "unable to create access service token")
+}
+
+func (a *API) UpdateAccessServiceToken(ctx context.Context, token cftypes.ExtendedServiceToken) (cftypes.ExtendedServiceToken, error) {
+	_, err := a.client.UpdateAccessServiceToken(ctx, a.CFAccountID, token.ID, token.Name)
+
+	return token, errors.Wrap(err, "unable to update access Policy")
+}
+
+func (a *API) RotateAccessServiceToken(ctx context.Context, token cftypes.ExtendedServiceToken) (cftypes.ExtendedServiceToken, error) {
+	account := cloudflare.AccountIdentifier(a.CFAccountID)
+	res, err := a.client.RotateAccessServiceToken(ctx, account, token.ID)
+
+	extendedToken := cftypes.ExtendedServiceToken{
+		ClientSecret: res.ClientSecret,
+		AccessServiceToken: cloudflare.AccessServiceToken{
+			CreatedAt: res.CreatedAt,
+			UpdatedAt: res.UpdatedAt,
+			ExpiresAt: res.ExpiresAt,
+			ID:        res.ID,
+			Name:      res.Name,
+			ClientID:  res.ClientID,
+		},
+	}
+
+	return extendedToken, errors.Wrap(err, "unable to update access Policy")
+}
+
+func (a *API) DeleteAccessServiceToken(ctx context.Context, tokenID string) error {
+	_, err := a.client.DeleteAccessServiceToken(ctx, a.CFAccountID, tokenID)
 
 	return errors.Wrap(err, "unable to update access Policy")
 }

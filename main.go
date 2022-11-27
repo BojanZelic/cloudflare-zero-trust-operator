@@ -104,6 +104,13 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudflareAccessApplication")
 		os.Exit(1)
 	}
+	if err = (&controllers.CloudflareServiceTokenReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CloudflareServiceToken")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

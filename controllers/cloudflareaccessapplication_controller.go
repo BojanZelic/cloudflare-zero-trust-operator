@@ -58,7 +58,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 			return ctrl.Result{}, nil
 		}
 
-		log.Error(err, "Failed to get CloudflareAccessApplication", "CloudflareAccessApplication.Name", app.Name)
+		log.Error(err, "Failed to get CloudflareAccessApplication", "CloudflareAccessApplication.Name", req.Name)
 
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessApplication")
 	}
