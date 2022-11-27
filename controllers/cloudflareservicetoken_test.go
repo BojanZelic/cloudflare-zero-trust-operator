@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var _ = FDescribe("CloudflareServiceToken controller", Ordered, func() {
+var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 	BeforeAll(func() {
 		ctx := context.Background()
 
