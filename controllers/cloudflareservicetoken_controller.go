@@ -41,10 +41,11 @@ type CloudflareServiceTokenReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/finalizers,verbs=update
-//nolint: gocognit
+// +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/finalizers,verbs=update
+
+// nolint: gocognit,cyclop
 func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	var existingServiceToken *cftypes.ExtendedServiceToken
@@ -84,7 +85,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		}
 		for i, token := range allTokens {
 			if token.ID == serviceToken.Status.ServiceTokenID {
-				existingServiceToken = allTokens[i] //nolint
+				existingServiceToken = &allTokens[i]
 
 				break
 			}
