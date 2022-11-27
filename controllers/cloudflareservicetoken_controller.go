@@ -20,6 +20,11 @@ import (
 	"context"
 	"reflect"
 
+	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,12 +33,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
-
-	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
-	"github.com/pkg/errors"
 )
 
 // CloudflareServiceTokenReconciler reconciles a CloudflareServiceToken object.
@@ -45,7 +44,7 @@ type CloudflareServiceTokenReconciler struct {
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/finalizers,verbs=update
-
+//nolint: gocognit
 func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	var existingServiceToken *cftypes.ExtendedServiceToken
@@ -77,25 +76,39 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, errors.Wrap(err, "unable to initialize cloudflare object")
 	}
 
-	if serviceToken.Status.ServiceTokenID == "" {
-		// create
+	// @todo: change me
+	if serviceToken.Status.ServiceTokenID != "" {
+		allTokens, err := api.ServiceTokens(ctx)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "unable to create access service token")
+		}
+		for i, token := range allTokens {
+			if token.ID == serviceToken.Status.ServiceTokenID {
+				existingServiceToken = allTokens[i] //nolint
+
+				break
+			}
+		}
+	}
+
+	if existingServiceToken == nil {
 		token, err := api.CreateAccessServiceToken(ctx, serviceToken.ToExtendedToken())
 		existingServiceToken = &token
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access service token")
-		}
-
-		err = r.ReconcileStatus(ctx, existingServiceToken, serviceToken)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "unable to set status")
 		}
 	}
 
 	// reconcile  secret
 	secret := &corev1.Secret{}
 
+	// @todo: changeme
+
+	// this is used just for populating existingServiceToken
 	if serviceToken.Status.SecretRef != nil {
 		// we already have a secret created
+
+		// what if it's thre wrong one?
 		existingSecretRef := types.NamespacedName{
 			Namespace: req.Namespace,
 			Name:      serviceToken.Status.SecretRef.Name,
@@ -109,7 +122,9 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		}
 
 		// update object with secret ref
-		existingServiceToken.SetSecretValues(serviceToken.Status.SecretRef.ClientIDKey, serviceToken.Status.SecretRef.ClientSecretKey, *secret)
+		if err := existingServiceToken.SetSecretValues(serviceToken.Status.SecretRef.ClientIDKey, serviceToken.Status.SecretRef.ClientSecretKey, *secret); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to set secret")
+		}
 	}
 
 	secretNamespacedName := types.NamespacedName{
@@ -124,6 +139,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	err = r.Client.Get(ctx, secretNamespacedName, secret)
 	if err != nil && k8serrors.IsNotFound(err) {
 		// create
+		secret = &corev1.Secret{}
 		secret.Name = secretNamespacedName.Name
 		secret.Namespace = secretNamespacedName.Namespace
 
@@ -132,12 +148,17 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		secret.Data[serviceToken.Spec.Template.ClientIDKey] = []byte(existingServiceToken.ClientID)
 
 		err = r.Client.Create(ctx, secret)
+
 		if err != nil {
 			log.Error(nil, "failed to create secret", "secret.namespace", secretNamespacedName.Namespace, "secret.name", secretNamespacedName.Name)
 
 			return ctrl.Result{}, errors.Wrap(err, "Failed to create Secret")
 		}
-	} else {
+
+		if err := existingServiceToken.SetSecretValues(serviceToken.Spec.Template.ClientIDKey, serviceToken.Spec.Template.ClientSecretKey, *secret); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to set secret")
+		}
+	} else if err != nil {
 		log.Error(err, "failed to retrieve secret", "Secret.Name", secretNamespacedName.Name)
 
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get Secret")
@@ -155,8 +176,15 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		}
 	}
 
+	existingServiceToken.SetSecretReference(serviceToken.Spec.Template.ClientIDKey, serviceToken.Spec.Template.ClientSecretKey, *secret)
+
 	if err := ctrl.SetControllerReference(serviceToken, secret, r.Scheme); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrap(err, "unable to set secret owner reference")
+	}
+
+	err = r.ReconcileStatus(ctx, existingServiceToken, serviceToken)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "unable to set status")
 	}
 
 	return ctrl.Result{}, nil
@@ -173,11 +201,18 @@ func (r *CloudflareServiceTokenReconciler) ReconcileStatus(ctx context.Context, 
 	newToken.Status.CreatedAt = v1.NewTime(*cfToken.CreatedAt)
 	newToken.Status.UpdatedAt = v1.NewTime(*cfToken.UpdatedAt)
 	newToken.Status.ExpiresAt = v1.NewTime(*cfToken.ExpiresAt)
+	newToken.Status.SecretRef = &v1alpha1.SecretRef{
+		LocalObjectReference: corev1.LocalObjectReference{
+			Name: cfToken.K8sSecretRef.SecretName,
+		},
+		ClientSecretKey: cfToken.K8sSecretRef.ClientSecretKey,
+		ClientIDKey:     cfToken.K8sSecretRef.ClientIDKey,
+	}
 
 	if !reflect.DeepEqual(newToken.Status, k8sToken.Status) {
-		err := r.Status().Update(ctx, k8sToken)
+		err := r.Status().Update(ctx, newToken)
 		if err != nil {
-			return errors.Wrap(err, "unable to update access group")
+			return errors.Wrap(err, "unable to update token")
 		}
 	}
 
@@ -186,6 +221,7 @@ func (r *CloudflareServiceTokenReconciler) ReconcileStatus(ctx context.Context, 
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CloudflareServiceTokenReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	//nolint:wrapcheck
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.CloudflareServiceToken{}).
 		Owns(&corev1.Secret{}).

@@ -1,8 +1,6 @@
 package cfcollections_test
 
 import (
-	"fmt"
-
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	"github.com/cloudflare/cloudflare-go"
 	. "github.com/onsi/ginkgo/v2"
@@ -68,7 +66,6 @@ var _ = Describe("AccessPolicy", Label("AccessPolicy"), func() {
 
 			prevAP := cloudflare.AccessPolicy{Precedence: 0}
 			for _, ap := range aps {
-				fmt.Println(ap.Precedence)
 				Expect(ap.Precedence > prevAP.Precedence).To(BeTrue())
 				prevAP = ap
 			}

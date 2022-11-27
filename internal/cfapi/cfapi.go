@@ -5,7 +5,6 @@ import (
 
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
-
 	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/pkg/errors"
 )
@@ -157,7 +156,7 @@ func (a *API) ServiceTokens(ctx context.Context) ([]cftypes.ExtendedServiceToken
 
 func (a *API) CreateAccessServiceToken(ctx context.Context, token cftypes.ExtendedServiceToken) (cftypes.ExtendedServiceToken, error) {
 	res, err := a.client.CreateAccessServiceToken(ctx, a.CFAccountID, token.Name)
-	t := cftypes.ExtendedServiceToken{
+	extendedToken := cftypes.ExtendedServiceToken{
 		ClientSecret: res.ClientSecret,
 		AccessServiceToken: cloudflare.AccessServiceToken{
 			CreatedAt: res.CreatedAt,
@@ -169,7 +168,7 @@ func (a *API) CreateAccessServiceToken(ctx context.Context, token cftypes.Extend
 		},
 	}
 
-	return t, errors.Wrap(err, "unable to create access service token")
+	return extendedToken, errors.Wrap(err, "unable to create access service token")
 }
 
 func (a *API) UpdateAccessServiceToken(ctx context.Context, token cftypes.ExtendedServiceToken) (cftypes.ExtendedServiceToken, error) {
@@ -182,7 +181,7 @@ func (a *API) RotateAccessServiceToken(ctx context.Context, token cftypes.Extend
 	account := cloudflare.AccountIdentifier(a.CFAccountID)
 	res, err := a.client.RotateAccessServiceToken(ctx, account, token.ID)
 
-	t := cftypes.ExtendedServiceToken{
+	extendedToken := cftypes.ExtendedServiceToken{
 		ClientSecret: res.ClientSecret,
 		AccessServiceToken: cloudflare.AccessServiceToken{
 			CreatedAt: res.CreatedAt,
@@ -194,11 +193,11 @@ func (a *API) RotateAccessServiceToken(ctx context.Context, token cftypes.Extend
 		},
 	}
 
-	return t, errors.Wrap(err, "unable to update access Policy")
+	return extendedToken, errors.Wrap(err, "unable to update access Policy")
 }
 
-func (a *API) DeleteAccessServiceToken(ctx context.Context, tokenId string) error {
-	_, err := a.client.DeleteAccessServiceToken(ctx, a.CFAccountID, tokenId)
+func (a *API) DeleteAccessServiceToken(ctx context.Context, tokenID string) error {
+	_, err := a.client.DeleteAccessServiceToken(ctx, a.CFAccountID, tokenID)
 
 	return errors.Wrap(err, "unable to update access Policy")
 }
