@@ -45,7 +45,7 @@ type CloudflareServiceTokenReconciler struct {
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/finalizers,verbs=update
 
-// nolint: gocognit,cyclop
+//nolint: gocognit,cyclop
 func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	var existingServiceToken *cftypes.ExtendedServiceToken
@@ -77,14 +77,29 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, errors.Wrap(err, "unable to initialize cloudflare object")
 	}
 
-	// @todo: change me
-	if serviceToken.Status.ServiceTokenID != "" {
+	// this is used just for populating existingServiceToken
+	secretList := &corev1.SecretList{}
+	if err := r.Client.List(ctx, secretList,
+		client.MatchingLabels{"cloudflare.zelic.io/owned-by": serviceToken.Name},
+		client.InNamespace(serviceToken.Namespace),
+	); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "unable to list created secrets")
+	}
+
+	secret := &corev1.Secret{}
+
+	if len(secretList.Items) > 0 {
+		// we already have a secret created
+		secret = &secretList.Items[0]
+	}
+
+	if !secret.CreationTimestamp.IsZero() {
 		allTokens, err := api.ServiceTokens(ctx)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access service token")
 		}
 		for i, token := range allTokens {
-			if token.ID == serviceToken.Status.ServiceTokenID {
+			if token.ID == string(secret.Data[secret.Annotations["cloudflare.zelic.io/token-id-key"]]) {
 				existingServiceToken = &allTokens[i]
 
 				break
@@ -100,34 +115,14 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		}
 	}
 
-	// reconcile  secret
-	secret := &corev1.Secret{}
-
-	// @todo: changeme
-
-	// this is used just for populating existingServiceToken
-	if serviceToken.Status.SecretRef != nil {
-		// we already have a secret created
-
-		// what if it's thre wrong one?
-		existingSecretRef := types.NamespacedName{
-			Namespace: req.Namespace,
-			Name:      serviceToken.Status.SecretRef.Name,
-		}
-
-		err = r.Client.Get(ctx, existingSecretRef, secret)
-		if err != nil {
-			log.Error(err, "Failed to get secret that should exist", "Secret.Name", existingSecretRef.Name)
-
-			return ctrl.Result{}, errors.Wrap(err, "Failed to get Secret")
-		}
-
-		// update object with secret ref
-		if err := existingServiceToken.SetSecretValues(serviceToken.Status.SecretRef.ClientIDKey, serviceToken.Status.SecretRef.ClientSecretKey, *secret); err != nil {
+	// update object with secret ref
+	if !secret.CreationTimestamp.IsZero() {
+		if err := existingServiceToken.SetSecretValues(*secret); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to set secret")
 		}
 	}
 
+	// reconcile  secret
 	secretNamespacedName := types.NamespacedName{
 		Namespace: req.Namespace,
 		Name:      req.Name,
@@ -143,10 +138,19 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		secret = &corev1.Secret{}
 		secret.Name = secretNamespacedName.Name
 		secret.Namespace = secretNamespacedName.Namespace
+		secret.SetLabels(map[string]string{
+			"cloudflare.zelic.io/owned-by": serviceToken.Name,
+		})
+		secret.SetAnnotations(map[string]string{
+			"cloudflare.zelic.io/client-id-key":     serviceToken.Spec.Template.ClientIDKey,
+			"cloudflare.zelic.io/client-secret-key": serviceToken.Spec.Template.ClientSecretKey,
+			"cloudflare.zelic.io/token-id-key":      "serviceTokenID",
+		})
 
 		secret.Data = map[string][]byte{}
 		secret.Data[serviceToken.Spec.Template.ClientSecretKey] = []byte(existingServiceToken.ClientSecret)
 		secret.Data[serviceToken.Spec.Template.ClientIDKey] = []byte(existingServiceToken.ClientID)
+		secret.Data["serviceTokenID"] = []byte(existingServiceToken.ID)
 
 		err = r.Client.Create(ctx, secret)
 
@@ -156,7 +160,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 			return ctrl.Result{}, errors.Wrap(err, "Failed to create Secret")
 		}
 
-		if err := existingServiceToken.SetSecretValues(serviceToken.Spec.Template.ClientIDKey, serviceToken.Spec.Template.ClientSecretKey, *secret); err != nil {
+		if err := existingServiceToken.SetSecretValues(*secret); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to set secret")
 		}
 	} else if err != nil {
@@ -166,9 +170,14 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	}
 
 	updatedSecret := secret.DeepCopy()
+	updatedSecret.SetAnnotations(map[string]string{
+		"cloudflare.zelic.io/client-id-key":     serviceToken.Spec.Template.ClientIDKey,
+		"cloudflare.zelic.io/client-secret-key": serviceToken.Spec.Template.ClientSecretKey,
+		"cloudflare.zelic.io/token-id-key":      "serviceTokenID",
+	})
 	updatedSecret.Data[serviceToken.Spec.Template.ClientSecretKey] = []byte(existingServiceToken.ClientSecret)
 	updatedSecret.Data[serviceToken.Spec.Template.ClientIDKey] = []byte(existingServiceToken.ClientID)
-
+	updatedSecret.Data["serviceTokenID"] = []byte(existingServiceToken.ID)
 	if !reflect.DeepEqual(secret, updatedSecret) {
 		secret = updatedSecret
 		err = r.Client.Update(ctx, secret)
