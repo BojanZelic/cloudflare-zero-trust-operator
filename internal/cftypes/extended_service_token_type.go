@@ -8,8 +8,12 @@ import (
 )
 
 var (
-	ErrMissingClientIDKey     = errors.New("missing clientIDKey field in secret data")
-	ErrMissingClientSecretKey = errors.New("missing clientSecretKey field in secret data")
+	ErrMissingClientIDKey               = errors.New("missing clientIDKey field in secret data")
+	ErrMissingClientSecretKey           = errors.New("missing clientSecretKey field in secret data")
+	ErrMissingTokenIDKey                = errors.New("missing TokenID field in secret data")
+	ErrMissingAnnotationClientIDKey     = errors.New("missing clientIDKey annotation in secret")
+	ErrMissingAnnotationClientSecretKey = errors.New("missing clientSecretKey annotation in secret")
+	ErrMissingAnnotationTokenIDKey      = errors.New("missing TokenID annotation in secret")
 )
 
 type ExtendedServiceToken struct {
@@ -22,7 +26,22 @@ type ExtendedServiceToken struct {
 	}
 }
 
-func (s *ExtendedServiceToken) SetSecretValues(clientIDKey, clientSecretKey string, secret corev1.Secret) error {
+func (s *ExtendedServiceToken) SetSecretValues(secret corev1.Secret) error {
+	if _, ok := secret.Annotations["cloudflare.zelic.io/client-id-key"]; !ok {
+		return ErrMissingAnnotationClientIDKey
+	}
+
+	if _, ok := secret.Annotations["cloudflare.zelic.io/client-secret-key"]; !ok {
+		return ErrMissingAnnotationClientSecretKey
+	}
+
+	if _, ok := secret.Annotations["cloudflare.zelic.io/token-id-key"]; !ok {
+		return ErrMissingAnnotationTokenIDKey
+	}
+
+	clientIDKey := secret.Annotations["cloudflare.zelic.io/client-id-key"]
+	clientSecretKey := secret.Annotations["cloudflare.zelic.io/client-secret-key"]
+
 	if _, ok := secret.Data[clientIDKey]; !ok {
 		return ErrMissingClientIDKey
 	}
@@ -33,7 +52,6 @@ func (s *ExtendedServiceToken) SetSecretValues(clientIDKey, clientSecretKey stri
 
 	s.ClientID = string(secret.Data[clientIDKey])
 	s.ClientSecret = string(secret.Data[clientSecretKey])
-
 	s.SetSecretReference(clientIDKey, clientSecretKey, secret)
 
 	return nil

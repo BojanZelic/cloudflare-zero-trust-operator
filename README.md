@@ -47,10 +47,10 @@ spec:
 Currently in Project scope
 - [x] Manage Cloudflare Access Groups
 - [x] Manage Cloudflare Access Applications
+- [x] Manage Cloudflare Access Tokens
 
 ## Roadmap
-- [] Manage Cloudflare Access Tokens
-- [] Deletion of managed resources upon Deletion of CR
+- [] Deletion of Managed resources
 
 
 ## Install
@@ -87,12 +87,7 @@ helm repo add zelic-io https://zelic-io.github.io/charts
 helm install --namespace=zero-trust-system --set secretRef=cloudflare-creds cloudflare-zero-trust-operator zelic-io/cloudflare-zero-trust-operator
 ```
 
-### How it works
-
-This project aims to follow the Kubernetes [Operator pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)
-
-It uses [Controllers](https://kubernetes.io/docs/concepts/architecture/controller/) 
-which provides a reconcile function responsible for synchronizing resources untile the desired state is reached on the cluster 
+## Install with Kustomize
 
 ## Compatability
 
