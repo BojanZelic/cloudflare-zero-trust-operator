@@ -7,6 +7,7 @@ import (
 	"time"
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -93,9 +94,8 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			})
 			Expect(err).To(Not(HaveOccurred()))
 
-			By("Checking if the secret was successfully created")
+			By("Checking to get the updated CR")
 			Eventually(func() error {
-				found := &corev1.Secret{}
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}, time.Second*10, time.Second).Should(Succeed())
 
@@ -106,6 +106,19 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			Expect(found.Status.SecretRef.ClientIDKey).ToNot(BeEmpty())
 			Expect(found.Status.SecretRef.ClientSecretKey).ToNot(BeEmpty())
 			Expect(found.Status.SecretRef.Name).ToNot(BeEmpty())
+
+			sec := &corev1.Secret{}
+			By("Making sure that the secret exists")
+			Eventually(func() error {
+				return k8sClient.Get(ctx, typeNamespaceName, sec)
+			}, time.Second*10, time.Second).Should(Succeed())
+
+			By("Checking if the resource exists in cloudflare")
+			tokens, err := api.ServiceTokens(ctx)
+			Expect(err).To(Not(HaveOccurred()))
+			//we should only have 1 Token created
+			Expect(tokens[0].ID).To(Equal(string(sec.Data[sec.Annotations[cftypes.AnnotationTokenIDKey]])))
+			Expect(tokens[0].ClientID).To(Equal(string(sec.Data[sec.Annotations[cftypes.AnnotationClientIDKey]])))
 
 			By("Updating the service token to move the secret")
 			k8sClient.Get(ctx, typeNamespaceName, found)
@@ -157,13 +170,17 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			Expect(group.Status.SecretRef.ClientIDKey).To(Equal(group.Spec.Template.ClientIDKey))
 
 			By("Checking if the new secret was successfully created")
-			var sec *corev1.Secret
 			Eventually(func() error {
 				sec = &corev1.Secret{}
 				return k8sClient.Get(ctx, types.NamespacedName{Name: group.Spec.Template.Name, Namespace: typeNamespaceName.Namespace}, sec)
 			}, time.Second*10, time.Second).Should(Succeed())
-
 			Expect(sec.Data).To(HaveKey(group.Spec.Template.ClientIDKey))
+
+			By("Checking if the old secret was removed")
+			Eventually(func() error {
+				sec := &corev1.Secret{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: typeNamespaceName.Name, Namespace: typeNamespaceName.Namespace}, sec)
+			}, time.Second*10, time.Second).ShouldNot(Succeed())
 		})
 	})
 })
