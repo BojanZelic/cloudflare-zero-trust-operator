@@ -202,11 +202,19 @@ envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
-build-helm: generate manifests
-	mkdir -p helm/cloudflare-zero-trust-operator/templates/crds
-	kustomize build config/crd > helm/cloudflare-zero-trust-operator/templates/crds/crds.yaml
-	cd helm && 
-	
+HELMIFY = $(LOCALBIN)/helmify
+helmify:
+	test -s $(LOCALBIN)/helmify || GOBIN=$(LOCALBIN) go install github.com/arttor/helmify/cmd/helmify@v0.3.7
+
+helm: manifests kustomize helmify
+	$(KUSTOMIZE) build config/default | $(HELMIFY) cloudflare-zero-trust-operator
+	rm -rf helm/cloudflare-zero-trust-operator/templates/*-crd.yaml
+	cp cloudflare-zero-trust-operator/templates/*-crd.yaml helm/cloudflare-zero-trust-operator/templates
+	rm -rf helm/cloudflare-zero-trust-operator/templates/*-rbac.yaml
+	cp cloudflare-zero-trust-operator/templates/*-rbac.yaml helm/cloudflare-zero-trust-operator/templates
+	sed -i '' 's|{{ include "cloudflare-zero-trust-operator.fullname" . }}-controller-manager|{{ include "cloudflare-zero-trust-operator.serviceAccountName" . }}|g' helm/cloudflare-zero-trust-operator/templates/*-rbac.yaml
+	rm -rf cloudflare-zero-trust-operator
+
 .PHONY: bundle
 bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
 	operator-sdk generate kustomize manifests -q

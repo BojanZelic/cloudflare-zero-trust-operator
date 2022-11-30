@@ -1,0 +1,175 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: cloudflareaccessgroups.cloudflare.zelic.io
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  labels:
+  {{- include "cloudflare-zero-trust-operator.labels" . | nindent 4 }}
+spec:
+  group: cloudflare.zelic.io
+  names:
+    kind: CloudflareAccessGroup
+    listKind: CloudflareAccessGroupList
+    plural: cloudflareaccessgroups
+    singular: cloudflareaccessgroup
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: CloudflareAccessGroup is the Schema for the cloudflareaccessgroups
+          API.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CloudflareAccessGroupSpec defines the desired state of CloudflareAccessGroup.
+            properties:
+              exclude:
+                description: Rules evaluated with a NOT logical operator. To match the
+                  policy, a user cannot meet any of the Exclude rules.
+                items:
+                  properties:
+                    accessGroups:
+                      description: Reference to other access groups
+                      items:
+                        type: string
+                      type: array
+                    anyAccessServiceToken:
+                      description: Matches any valid service token
+                      type: boolean
+                    emailDomains:
+                      description: Matches a specific email Domain
+                      items:
+                        type: string
+                      type: array
+                    emails:
+                      description: Matches a Specific email
+                      items:
+                        type: string
+                      type: array
+                    ipRanges:
+                      description: Matches an IP CIDR block
+                      items:
+                        type: string
+                      type: array
+                    serviceToken:
+                      description: Matches a service token
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                type: array
+              include:
+                description: Rules evaluated with an OR logical operator. A user needs
+                  to meet only one of the Include rules.
+                items:
+                  properties:
+                    accessGroups:
+                      description: Reference to other access groups
+                      items:
+                        type: string
+                      type: array
+                    anyAccessServiceToken:
+                      description: Matches any valid service token
+                      type: boolean
+                    emailDomains:
+                      description: Matches a specific email Domain
+                      items:
+                        type: string
+                      type: array
+                    emails:
+                      description: Matches a Specific email
+                      items:
+                        type: string
+                      type: array
+                    ipRanges:
+                      description: Matches an IP CIDR block
+                      items:
+                        type: string
+                      type: array
+                    serviceToken:
+                      description: Matches a service token
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                type: array
+              name:
+                description: Name of the Cloudflare Access Group
+                type: string
+              require:
+                description: Rules evaluated with an AND logical operator. To match
+                  the policy, a user must meet all of the Require rules.
+                items:
+                  properties:
+                    accessGroups:
+                      description: Reference to other access groups
+                      items:
+                        type: string
+                      type: array
+                    anyAccessServiceToken:
+                      description: Matches any valid service token
+                      type: boolean
+                    emailDomains:
+                      description: Matches a specific email Domain
+                      items:
+                        type: string
+                      type: array
+                    emails:
+                      description: Matches a Specific email
+                      items:
+                        type: string
+                      type: array
+                    ipRanges:
+                      description: Matches an IP CIDR block
+                      items:
+                        type: string
+                      type: array
+                    serviceToken:
+                      description: Matches a service token
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                type: array
+            required:
+            - name
+            type: object
+          status:
+            description: CloudflareAccessGroupStatus defines the observed state of CloudflareAccessGroup.
+            properties:
+              accessGroupId:
+                description: AccessGroupID is the ID of the reference in Cloudflare
+                type: string
+              createdAt:
+                description: Creation timestamp of the resource in Cloudflare
+                format: date-time
+                type: string
+              updatedAt:
+                description: Updated timestamp of the resource in Cloudflare
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

@@ -1,0 +1,129 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: cloudflareservicetokens.cloudflare.zelic.io
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  labels:
+  {{- include "cloudflare-zero-trust-operator.labels" . | nindent 4 }}
+spec:
+  group: cloudflare.zelic.io
+  names:
+    kind: CloudflareServiceToken
+    listKind: CloudflareServiceTokenList
+    plural: cloudflareservicetokens
+    singular: cloudflareservicetoken
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: CloudflareServiceToken is the Schema for the cloudflareservicetokens
+          API.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CloudflareServiceTokenSpec defines the desired state of CloudflareServiceToken.
+            properties:
+              minTimeBeforeRenewal:
+                default: "0"
+                description: Time before the token should be automatically renewed.
+                  Defaults to "0" Automatically renewing a service token will change
+                  the service token value upon renewal. Tokens will get automatically
+                  renewed if the token is expired
+                type: string
+              name:
+                description: Name of the Cloudflare Access Group
+                type: string
+              recreateMissing:
+                default: true
+                description: Recreate the token if the secret with the service token
+                  value is missing or doesn't exist
+                type: boolean
+              template:
+                description: Template to apply for the generated secret
+                properties:
+                  clientIdKey:
+                    default: cloudflareClientId
+                    description: 'Key that should store the secret data. Defaults to
+                      cloudflareServiceToken. Warning: changing this value will recreate
+                      the secret'
+                    type: string
+                  clientSecretKey:
+                    default: cloudflareSecretKey
+                    description: 'Key that should store the secret data. Defaults to
+                      cloudflareServiceToken Warning: changing this value will recreate
+                      the secret'
+                    type: string
+                  metadata:
+                    description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata'
+                    nullable: true
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                type: object
+            required:
+            - name
+            - recreateMissing
+            type: object
+          status:
+            description: CloudflareServiceTokenStatus defines the observed state of
+              CloudflareServiceToken.
+            properties:
+              createdAt:
+                description: Creation timestamp of the resource in Cloudflare
+                format: date-time
+                type: string
+              expiresAt:
+                description: Updated timestamp of the resource in Cloudflare
+                format: date-time
+                type: string
+              secretRef:
+                description: SecretRef is the reference to the secret
+                nullable: true
+                properties:
+                  clientIdKey:
+                    description: Key that stores the secret data.
+                    type: string
+                  clientSecretKey:
+                    description: Key that stores the secret data.
+                    type: string
+                  reference:
+                    description: reference to the secret
+                    properties:
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                    type: object
+                    x-kubernetes-map-type: atomic
+                type: object
+              serviceTokenId:
+                description: ID of the servicetoken in Cloudflare
+                type: string
+              updatedAt:
+                description: Updated timestamp of the resource in Cloudflare
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

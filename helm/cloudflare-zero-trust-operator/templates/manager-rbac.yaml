@@ -1,0 +1,106 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-manager-role
+  labels:
+  {{- include "cloudflare-zero-trust-operator.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareaccessapplications
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareaccessapplications/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareaccessapplications/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareaccessgroups
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareaccessgroups/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareaccessgroups/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareservicetokens
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareservicetokens/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareservicetokens/status
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-manager-rolebinding
+  labels:
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
+    app.kubernetes.io/instance: manager-rolebinding
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: clusterrolebinding
+    app.kubernetes.io/part-of: bojanzelic-cloudflare-zero-trust-operator
+  {{- include "cloudflare-zero-trust-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: '{{ include "cloudflare-zero-trust-operator.fullname" . }}-manager-role'
+subjects:
+- kind: ServiceAccount
+  name: '{{ include "cloudflare-zero-trust-operator.serviceAccountName" . }}'
+  namespace: '{{ .Release.Namespace }}'
