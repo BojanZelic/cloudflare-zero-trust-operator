@@ -52,6 +52,8 @@ spec:
                   value is missing or doesn't exist
                 type: boolean
               template:
+                default:
+                  metadata: null
                 description: Template to apply for the generated secret
                 properties:
                   clientIdKey:
@@ -74,7 +76,6 @@ spec:
                 type: object
             required:
             - name
-            - recreateMissing
             type: object
           status:
             description: CloudflareServiceTokenStatus defines the observed state of
