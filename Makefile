@@ -205,6 +205,7 @@ $(ENVTEST): $(LOCALBIN)
 build-helm: generate manifests
 	mkdir -p helm/cloudflare-zero-trust-operator/templates/crds
 	kustomize build config/crd > helm/cloudflare-zero-trust-operator/templates/crds/crds.yaml
+	cd helm && 
 	
 .PHONY: bundle
 bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.

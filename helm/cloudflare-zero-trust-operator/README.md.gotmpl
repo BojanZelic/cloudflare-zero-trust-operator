@@ -1,9 +1,22 @@
-# Cloudflare Zero Trust Operator
+{{ template "chart.header" . }}
+{{ template "chart.deprecationWarning" . }}
+
+{{ template "chart.badgesSection" . }}
+
+{{ template "chart.description" . }}
 
 Cloudflare Zero-Trust operator allow you to manage your zero-trust configuration directly from kubernetes. 
-Currently it can manage:
-* Cloudflare Access Groups
-* Cloudflare Access Applications
+
+{{ template "chart.homepageLine" . }}
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.sourcesSection" . }}
+
+{{ template "chart.requirementsSection" . }}
+
+{{ template "chart.valuesSection" . }}
+
 
 ## Installing
 
@@ -39,3 +52,5 @@ helm repo add zelic-io https://zelic-io.github.io/charts
  
 helm install --namespace=zero-trust-system --set secretRef=cloudflare-creds cloudflare-zero-trust-operator zelic-io/cloudflare-zero-trust-operator
 ```
+
+---

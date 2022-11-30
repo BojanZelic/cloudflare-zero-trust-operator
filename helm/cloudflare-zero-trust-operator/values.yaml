@@ -1,45 +1,57 @@
 # Default values for cloudflare-zero-trust-operator.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
 
+# replicaCount -- number of replicas to run
 replicaCount: 1
 
 image:
+  # image.repository -- manager image repo
   repository: ghcr.io/bojanzelic/cloudflare-zero-trust-operator
+  # image.pullPolicy -- manager pullPolicy
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
+  # image.tag -- Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
 # provide the cloudflare creds
+# cloudflare_api_key -- API Key from cloudflare - required (or set secretRef)
 cloudflare_api_key: ""
+# cloudflare_account_id -- Cloudflare Account ID - required (or set secretRef)
 cloudflare_account_id: ""
+# cloudflare_api_email -- Cloudflare API Email - required (or set secretRef)
 cloudflare_api_email: ""
+# cloudflare_api_token -- Cloudflare API Token - required (or set secretRef)
 cloudflare_api_token: ""
 
-# or provision your own secret with the creds
+# secretRef -- name of the secret that contains the following keys:
+# CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_KEY, CLOUDFLARE_API_EMAIL, CLOUDFLARE_API_TOKEN
 secretRef: ""
 
-
+# imagePullSecrets -- config reference for pulling containers
 imagePullSecrets: []
+# nameOverride -- override name for helm chart
 nameOverride: ""
+# fullnameOverride -- override name for helm chart
 fullnameOverride: ""
 
 serviceAccount:
-  # Specifies whether a service account should be created
+  # serviceAccount.create -- Specifies whether a service account should be created
   create: true
-  # Annotations to add to the service account
+  # serviceAccount.annotations -- Annotations to add to the service account
   annotations: {}
-  # The name of the service account to use.
+  # serviceAccount.name -- The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
+# podAnnotations -- annotations to add to the pod
 podAnnotations: {}
 
 service:
+  # service.type -- type of service
   type: ClusterIP
+  # service.port -- port of service
   port: 8443
 
 manager:
+  # manager.resources -- limits & requests(cpu & memory) to apply to the manager container
   resources: {}
     # limits:
     #   cpu: 500m
@@ -49,6 +61,7 @@ manager:
     #   memory: 64Mi
 
 proxy:
+  # proxy.resources -- limits & requests(cpu & memory) to apply to the manager container
   resources: {}
     # limits:
     #   cpu: 500m
