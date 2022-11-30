@@ -36,15 +36,16 @@ type CloudflareServiceTokenSpec struct {
 	// Tokens will get automatically renewed if the token is expired
 	// +optional
 	// +kubebuilder:default="0"
-	MinTimeBeforeRenewal string `json:"minTimeBeforeRenewal"`
+	MinTimeBeforeRenewal string `json:"minTimeBeforeRenewal,omitempty"`
 
 	// Recreate the token if the secret with the service token value is missing or doesn't exist
 	// +kubebuilder:default=true
-	RecreateMissing bool `json:"recreateMissing"`
+	RecreateMissing bool `json:"recreateMissing,omitempty"`
 
 	// Template to apply for the generated secret
 	// +optional
-	Template SecretTemplateSpec `json:"template"`
+	// +kubebuilder:default={"metadata": {}}
+	Template SecretTemplateSpec `json:"template,omitempty"`
 }
 
 type SecretTemplateSpec struct {
