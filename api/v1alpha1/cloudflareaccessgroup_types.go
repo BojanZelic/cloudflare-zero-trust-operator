@@ -117,8 +117,9 @@ func (c *CloudflareAccessGroup) ToCloudflare() cloudflare.AccessGroup {
 
 type CloudFlareAccessGroupRuleGroups [][]CloudFlareAccessGroupRule
 
+//nolint: gocognit,cyclop
 func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCFFields []*[]interface{}) {
-	for i, managedField := range c { //nolint:varnamelen
+	for i, managedField := range c {
 		for _, field := range managedField {
 			for _, email := range field.Emails {
 				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupEmail(email))

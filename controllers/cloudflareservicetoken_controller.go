@@ -26,7 +26,6 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -47,7 +46,7 @@ type CloudflareServiceTokenReconciler struct {
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/finalizers,verbs=update
 
-// nolint: gocognit,cyclop
+//nolint: gocognit,cyclop
 func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	var existingServiceToken *cftypes.ExtendedServiceToken

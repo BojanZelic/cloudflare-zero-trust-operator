@@ -29,7 +29,6 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -176,13 +175,9 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Cont
 		return nil
 	}
 
-	//newK8sApp := k8sApp.DeepCopy()
-
 	k8sApp.Status.AccessApplicationID = cfApp.ID
-	k8sApp.Status.CreatedAt = v1.NewTime(*cfApp.CreatedAt)
-	k8sApp.Status.UpdatedAt = v1.NewTime(*cfApp.UpdatedAt)
-
-	//if !reflect.DeepEqual(newK8sApp.Status, k8sApp.Status) {
+	k8sApp.Status.CreatedAt = metav1.NewTime(*cfApp.CreatedAt)
+	k8sApp.Status.UpdatedAt = metav1.NewTime(*cfApp.UpdatedAt)
 	err := r.Status().Update(ctx, k8sApp)
 	if err != nil {
 		return errors.Wrap(err, "unable to update access application")

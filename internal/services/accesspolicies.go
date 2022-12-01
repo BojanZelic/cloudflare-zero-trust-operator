@@ -14,6 +14,7 @@ type AccessPolicyService struct {
 	Log    logr.Logger
 }
 
+// nolint: gocognit
 func (s *AccessPolicyService) PopulateAccessPolicyReferences(ctx context.Context, policyList *v1alpha1.CloudflareAccessPolicyList) error {
 	for _, policy := range *policyList {
 		managedCRFields := []*[]v1alpha1.CloudFlareAccessGroupRule{
@@ -30,7 +31,7 @@ func (s *AccessPolicyService) PopulateAccessPolicyReferences(ctx context.Context
 						if err := s.Client.Get(ctx, token.ValueFrom.ToNamespacedName(), accessGroup); err != nil {
 							return errors.Wrapf(err, "unable to reference CloudflareAccessGroup %s - %s", token.ValueFrom.Name, token.ValueFrom.Namespace)
 						}
-						//todo should we use the value field here? or something else?
+
 						(*fields)[j].AccessGroups[k].Value = accessGroup.Status.AccessGroupID
 					}
 				}
