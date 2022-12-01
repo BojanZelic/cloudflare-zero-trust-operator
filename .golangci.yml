@@ -71,3 +71,4 @@ linters:
     - deadcode
     - exhaustruct
     - varnamelen
+    - nolintlint
