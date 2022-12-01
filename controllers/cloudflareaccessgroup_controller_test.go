@@ -24,8 +24,8 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 		groups, err := api.AccessGroups(ctx)
 		Expect(err).To(Not(HaveOccurred()))
 		for _, group := range groups {
-			err = api.DeleteAccessGroup(ctx, group.ID)
-			Expect(err).To(Not(HaveOccurred()))
+			_ = api.DeleteAccessGroup(ctx, group.ID)
+			//Expect(err).To(Not(HaveOccurred()))
 		}
 	})
 

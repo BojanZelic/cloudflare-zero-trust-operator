@@ -91,7 +91,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 		})
 
 		It("can export serviceTokens to the cloudflare object", func() {
-			ids := []string{"some_service_token", "some_other_service_token"}
+			ids := []v1alpha1.ServiceToken{{Value: "some_service_token"}, {Value: "some_other_service_token"}}
 			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
 				ServiceToken: ids},
 			}
@@ -100,7 +100,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 					ServiceToken: struct {
 						ID string "json:\"token_id\""
 					}{
-						ID: id,
+						ID: id.Value,
 					},
 				}))
 			}
@@ -117,7 +117,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 		})
 
 		It("can export accessGroups to the cloudflare object", func() {
-			ids := []string{"first_access_group_id", "second_access_group_id"}
+			ids := []v1alpha1.AccessGroup{{Value: "first_access_group_id"}, {Value: "second_access_group_id"}}
 			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
 				AccessGroups: ids},
 			}
@@ -126,7 +126,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 					Group: struct {
 						ID string "json:\"id\""
 					}{
-						ID: id,
+						ID: id.Value,
 					},
 				}))
 			}

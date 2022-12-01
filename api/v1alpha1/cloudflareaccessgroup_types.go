@@ -51,13 +51,13 @@ type CloudFlareAccessGroupRule struct {
 	IPRanges []string `json:"ipRanges,omitempty"`
 
 	// Reference to other access groups
-	AccessGroups []string `json:"accessGroups,omitempty"`
+	AccessGroups []AccessGroup `json:"accessGroups,omitempty"`
 	// @todo: add the rest of the fields
 
 	// ValidCertificate []string
 
 	// Matches a service token
-	ServiceToken []string `json:"serviceToken,omitempty"`
+	ServiceToken []ServiceToken `json:"serviceToken,omitempty"`
 
 	// Matches any valid service token
 	AnyAccessServiceToken *bool `json:"anyAccessServiceToken,omitempty"`
@@ -130,14 +130,18 @@ func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCF
 				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupIP(ip))
 			}
 			for _, token := range field.ServiceToken {
-				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupServiceToken(token))
+				if token.Value != "" {
+					*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupServiceToken(token.Value))
+				}
 			}
 			if field.AnyAccessServiceToken != nil && *field.AnyAccessServiceToken {
 				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupAnyValidServiceToken())
 			}
-			// @todo - make this a reference to another access group instead of an ID
-			for _, id := range field.AccessGroups {
-				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupAccessGroup(id))
+
+			for _, group := range field.AccessGroups {
+				if group.Value != "" {
+					*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupAccessGroup(group.Value))
+				}
 			}
 		}
 	}
