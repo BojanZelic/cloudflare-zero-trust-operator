@@ -23,10 +23,12 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/services"
 	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,6 +40,13 @@ type CloudflareAccessApplicationReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
+
+const (
+	// typeAvailableApp represents the status of the Cloudflare App.
+	typeAvailableApp = "Available"
+	// typeDegradedApp represents the status used when the custom resource is deleted and the finalizer operations are must to occur.
+	typeDegradedApp = "Degraded"
+)
 
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications/status,verbs=get;update;patch
@@ -73,6 +82,11 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "unable to initialize cloudflare object")
+	}
+
+	apService := &services.AccessPolicyService{
+		Client: r.Client,
+		Log:    log,
 	}
 
 	if app.Status.AccessApplicationID == "" {
@@ -128,12 +142,25 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, errors.Wrap(err, "unable get access policies")
 	}
 
+	if err := apService.PopulateAccessPolicyReferences(ctx, &app.Spec.Policies); err != nil {
+		meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: typeDegradedApp, Status: metav1.ConditionFalse, Reason: "InvalidReference", Message: err.Error()})
+		if err := r.Status().Update(ctx, app); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Failed to update App status")
+		}
+
+		return ctrl.Result{}, errors.Wrap(err, "unable to populate access policies")
+	}
 	expectedPolicies := app.Spec.Policies.ToCloudflare()
 	expectedPolicies.SortByPrecidence()
 
 	err = r.ReconcilePolicies(ctx, api, app, currentPolicies, expectedPolicies)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "unable get access policies")
+	}
+
+	meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: typeAvailableApp, Status: metav1.ConditionTrue, Reason: "Reconciling", Message: "App Reconciled Successfully"})
+	if err = r.Status().Update(ctx, app); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Failed to update App status")
 	}
 
 	return ctrl.Result{}, nil
@@ -149,13 +176,13 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Cont
 	}
 
 	k8sApp.Status.AccessApplicationID = cfApp.ID
-	k8sApp.Status.CreatedAt = v1.NewTime(*cfApp.CreatedAt)
-	k8sApp.Status.UpdatedAt = v1.NewTime(*cfApp.UpdatedAt)
-
+	k8sApp.Status.CreatedAt = metav1.NewTime(*cfApp.CreatedAt)
+	k8sApp.Status.UpdatedAt = metav1.NewTime(*cfApp.UpdatedAt)
 	err := r.Status().Update(ctx, k8sApp)
 	if err != nil {
-		return errors.Wrap(err, "unable to update access group")
+		return errors.Wrap(err, "unable to update access application")
 	}
+	//}
 
 	return nil
 }

@@ -70,3 +70,5 @@ linters:
     - varcheck
     - deadcode
     - exhaustruct
+    - varnamelen
+    - nolintlint

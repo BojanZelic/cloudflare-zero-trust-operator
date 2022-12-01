@@ -44,7 +44,28 @@ spec:
                     accessGroups:
                       description: Reference to other access groups
                       items:
-                        type: string
+                        properties:
+                          value:
+                            description: 'Optional: no more than one of the following
+                              may be specified. ID of the CloudflareAccessGroup'
+                            type: string
+                          valueFrom:
+                            description: Source for the CloudflareAccessGroup's variable.
+                              Cannot be used if value is not empty.
+                            properties:
+                              name:
+                                description: '`name` is the name of the AccessGroup
+                                  . Required'
+                                type: string
+                              namespace:
+                                description: '`namespace` is the namespace of the
+                                  AccessGroup. Required'
+                                type: string
+                            required:
+                            - name
+                            - namespace
+                            type: object
+                        type: object
                       type: array
                     anyAccessServiceToken:
                       description: Matches any valid service token
@@ -67,7 +88,28 @@ spec:
                     serviceToken:
                       description: Matches a service token
                       items:
-                        type: string
+                        properties:
+                          value:
+                            description: 'Optional: no more than one of the following
+                              may be specified. ID of the CloudflareServiceToken'
+                            type: string
+                          valueFrom:
+                            description: Source for the CloudflareServiceToken's variable.
+                              Cannot be used if value is not empty.
+                            properties:
+                              name:
+                                description: '`name` is the name of the AccessGroup
+                                  . Required'
+                                type: string
+                              namespace:
+                                description: '`namespace` is the namespace of the
+                                  AccessGroup. Required'
+                                type: string
+                            required:
+                            - name
+                            - namespace
+                            type: object
+                        type: object
                       type: array
                   type: object
                 type: array
@@ -79,7 +121,28 @@ spec:
                     accessGroups:
                       description: Reference to other access groups
                       items:
-                        type: string
+                        properties:
+                          value:
+                            description: 'Optional: no more than one of the following
+                              may be specified. ID of the CloudflareAccessGroup'
+                            type: string
+                          valueFrom:
+                            description: Source for the CloudflareAccessGroup's variable.
+                              Cannot be used if value is not empty.
+                            properties:
+                              name:
+                                description: '`name` is the name of the AccessGroup
+                                  . Required'
+                                type: string
+                              namespace:
+                                description: '`namespace` is the namespace of the
+                                  AccessGroup. Required'
+                                type: string
+                            required:
+                            - name
+                            - namespace
+                            type: object
+                        type: object
                       type: array
                     anyAccessServiceToken:
                       description: Matches any valid service token
@@ -102,7 +165,28 @@ spec:
                     serviceToken:
                       description: Matches a service token
                       items:
-                        type: string
+                        properties:
+                          value:
+                            description: 'Optional: no more than one of the following
+                              may be specified. ID of the CloudflareServiceToken'
+                            type: string
+                          valueFrom:
+                            description: Source for the CloudflareServiceToken's variable.
+                              Cannot be used if value is not empty.
+                            properties:
+                              name:
+                                description: '`name` is the name of the AccessGroup
+                                  . Required'
+                                type: string
+                              namespace:
+                                description: '`namespace` is the namespace of the
+                                  AccessGroup. Required'
+                                type: string
+                            required:
+                            - name
+                            - namespace
+                            type: object
+                        type: object
                       type: array
                   type: object
                 type: array
@@ -117,7 +201,28 @@ spec:
                     accessGroups:
                       description: Reference to other access groups
                       items:
-                        type: string
+                        properties:
+                          value:
+                            description: 'Optional: no more than one of the following
+                              may be specified. ID of the CloudflareAccessGroup'
+                            type: string
+                          valueFrom:
+                            description: Source for the CloudflareAccessGroup's variable.
+                              Cannot be used if value is not empty.
+                            properties:
+                              name:
+                                description: '`name` is the name of the AccessGroup
+                                  . Required'
+                                type: string
+                              namespace:
+                                description: '`namespace` is the namespace of the
+                                  AccessGroup. Required'
+                                type: string
+                            required:
+                            - name
+                            - namespace
+                            type: object
+                        type: object
                       type: array
                     anyAccessServiceToken:
                       description: Matches any valid service token
@@ -140,7 +245,28 @@ spec:
                     serviceToken:
                       description: Matches a service token
                       items:
-                        type: string
+                        properties:
+                          value:
+                            description: 'Optional: no more than one of the following
+                              may be specified. ID of the CloudflareServiceToken'
+                            type: string
+                          valueFrom:
+                            description: Source for the CloudflareServiceToken's variable.
+                              Cannot be used if value is not empty.
+                            properties:
+                              name:
+                                description: '`name` is the name of the AccessGroup
+                                  . Required'
+                                type: string
+                              namespace:
+                                description: '`namespace` is the namespace of the
+                                  AccessGroup. Required'
+                                type: string
+                            required:
+                            - name
+                            - namespace
+                            type: object
+                        type: object
                       type: array
                   type: object
                 type: array

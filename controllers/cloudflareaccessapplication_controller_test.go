@@ -86,12 +86,12 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Expect(err).To(Not(HaveOccurred()))
 
 			By("Reconciling the custom resource created")
-			accessGroupReconciler := &CloudflareAccessApplicationReconciler{
+			accessAppReconciler := &CloudflareAccessApplicationReconciler{
 				Client: k8sClient,
 				Scheme: k8sClient.Scheme(),
 			}
 
-			_, err = accessGroupReconciler.Reconcile(ctx, reconcile.Request{
+			_, err = accessAppReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespaceName,
 			})
 			Expect(err).To(Not(HaveOccurred()))
@@ -119,7 +119,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Expect(err).To(Not(HaveOccurred()))
 
 			By("Reconciling the updated custom resource")
-			_, err = accessGroupReconciler.Reconcile(ctx, reconcile.Request{
+			_, err = accessAppReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespaceName,
 			})
 			Expect(err).To(Not(HaveOccurred()))
@@ -132,6 +132,177 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Expect(cfResource[0].Include[1].(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[1]))
 			Expect(cfResource[0].Include[2].(map[string]interface{})["email_domain"].(map[string]interface{})["domain"]).To(Equal(found.Spec.Policies[0].Include[1].EmailDomains[0]))
 
+		})
+
+		It("should fail to reconcile CloudflareAccessApplication policies with bad references", func() {
+			typeNamespaceName := types.NamespacedName{Name: "cloudflare-app-four", Namespace: cloudflareName}
+
+			By("Creating the custom resource for the Kind CloudflareAccessApplication")
+			apps := &v1alpha1.CloudflareAccessApplication{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      typeNamespaceName.Name,
+					Namespace: namespace.Name,
+				},
+				Spec: v1alpha1.CloudflareAccessApplicationSpec{
+					Name:   "bad-reference policies ",
+					Domain: "bad-reference-policies.cf-operator-tests.uk",
+					Policies: v1alpha1.CloudflareAccessPolicyList{
+						{
+							Name:     "reference_test",
+							Decision: "allow",
+							Include: []v1alpha1.CloudFlareAccessGroupRule{{
+								AccessGroups: []v1alpha1.AccessGroup{
+									{
+										ValueFrom: &v1alpha1.AccessGroupReference{
+											Name:      "idontexist",
+											Namespace: "inanynamespace",
+										},
+									},
+								},
+							}},
+						},
+					},
+				},
+			}
+			err := k8sClient.Create(ctx, apps)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Reconciling the custom resource created")
+			accessAppReconciler := &CloudflareAccessApplicationReconciler{
+				Client: k8sClient,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err = accessAppReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespaceName,
+			})
+			Expect(err).To(HaveOccurred())
+
+			By("Checking the Status")
+			err = k8sClient.Get(ctx, typeNamespaceName, apps)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(apps.Status.Conditions[0].Status).To(Equal(metav1.ConditionFalse))
+		})
+
+		It("should successfully reconcile CloudflareAccessApplication policies with references", func() {
+
+			By("pre-create an access group")
+			group := &v1alpha1.CloudflareAccessGroup{}
+			typeNamespaceName := types.NamespacedName{Name: "cloudflare-app-three", Namespace: cloudflareName}
+
+			group = &v1alpha1.CloudflareAccessGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      typeNamespaceName.Name,
+					Namespace: typeNamespaceName.Namespace,
+				},
+				Spec: v1alpha1.CloudflareAccessGroupSpec{
+					Name: "reference test",
+					Include: []v1alpha1.CloudFlareAccessGroupRule{
+						{
+							Emails: []string{"test2@cf-operator-tests.uk"},
+						},
+					},
+				},
+			}
+
+			err := k8sClient.Create(ctx, group)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Reconciling the custom resource created")
+			accessGroupReconciler := &CloudflareAccessGroupReconciler{
+				Client: k8sClient,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err = accessGroupReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespaceName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			err = k8sClient.Get(ctx, typeNamespaceName, group)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("pre-create a service token")
+			token := &v1alpha1.CloudflareServiceToken{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      typeNamespaceName.Name,
+					Namespace: typeNamespaceName.Namespace,
+				},
+				Spec: v1alpha1.CloudflareServiceTokenSpec{
+					Name: "reference test",
+				},
+			}
+
+			err = k8sClient.Create(ctx, token)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Reconciling the custom resource created")
+			serviceTokenReconciler := &CloudflareServiceTokenReconciler{
+				Client: k8sClient,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err = serviceTokenReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespaceName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			err = k8sClient.Get(ctx, typeNamespaceName, token)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Creating the custom resource for the Kind CloudflareAccessApplication")
+			apps := &v1alpha1.CloudflareAccessApplication{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      typeNamespaceName.Name,
+					Namespace: namespace.Name,
+				},
+				Spec: v1alpha1.CloudflareAccessApplicationSpec{
+					Name:   "reference policies ",
+					Domain: "reference-policies.cf-operator-tests.uk",
+					Policies: v1alpha1.CloudflareAccessPolicyList{
+						{
+							Name:     "reference_test",
+							Decision: "allow",
+							Include: []v1alpha1.CloudFlareAccessGroupRule{{
+								AccessGroups: []v1alpha1.AccessGroup{
+									{
+										ValueFrom: &v1alpha1.AccessGroupReference{
+											Name:      group.Name,
+											Namespace: group.Namespace,
+										},
+									},
+								},
+								ServiceToken: []v1alpha1.ServiceToken{
+									{
+										ValueFrom: &v1alpha1.ServiceTokenReference{
+											Name:      token.Name,
+											Namespace: token.Namespace,
+										},
+									},
+								},
+							}},
+						},
+					},
+				},
+			}
+			err = k8sClient.Create(ctx, apps)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Reconciling the custom resource created")
+			accessAppReconciler := &CloudflareAccessApplicationReconciler{
+				Client: k8sClient,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err = accessAppReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespaceName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking the Status")
+			err = k8sClient.Get(ctx, typeNamespaceName, apps)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(apps.Status.Conditions[0].Status).To(Equal(metav1.ConditionTrue))
 		})
 
 		It("should successfully reconcile a custom resource for CloudflareAccessApplication", func() {

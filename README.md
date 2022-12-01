@@ -51,7 +51,12 @@ Currently in Project scope
 
 ## Roadmap
 - [] Deletion of Managed resources
+- [] Better/more complete 'status' messages for CRs
 
+
+## Advanced Usage
+
+See some more examples of how to use the [cloudflare zero-trust operator here](./docs/Advanced_Usage.md) 
 
 ## Install
 

@@ -10,6 +10,7 @@ jobs:
   integration-tests:
     runs-on: ubuntu-latest
     name: Integration Tests
+    concurrency: integration_tests
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-go@v3
