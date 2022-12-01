@@ -117,7 +117,7 @@ func (c *CloudflareAccessGroup) ToCloudflare() cloudflare.AccessGroup {
 
 type CloudFlareAccessGroupRuleGroups [][]CloudFlareAccessGroupRule
 
-//nolint: gocognit,cyclop
+// nolint: gocognit,cyclop
 func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCFFields []*[]interface{}) {
 	for i, managedField := range c {
 		for _, field := range managedField {

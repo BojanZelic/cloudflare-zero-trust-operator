@@ -46,7 +46,7 @@ type CloudflareServiceTokenReconciler struct {
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/finalizers,verbs=update
 
-//nolint: gocognit,cyclop
+// nolint: gocognit,cyclop
 func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	var existingServiceToken *cftypes.ExtendedServiceToken
