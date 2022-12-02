@@ -43,3 +43,4 @@ jobs:
         with:
           push: true
           tag: ${{ github.event.inputs.tag }}
+          message: Build Release ${{ github.event.inputs.tag }}
