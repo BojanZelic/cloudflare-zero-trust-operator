@@ -3,5 +3,7 @@ resources:
 
 secretGenerator:
 - name: cloudflare-creds
-  envs:
-  - .env.secret
+  literals:
+    - CLOUDFLARE_API_KEY=""
+    - CLOUDFLARE_API_EMAIL=""
+    - CLOUDFLARE_ACCOUNT_ID=""
