@@ -27,17 +27,17 @@ jobs:
           go-version: '1.19.0'
       - name: Update version
         run: |
-          # Build Manifests
-          make manifests
-          # Build Helm chart
-          make helm
-
           # Helm version
           yq e -i '.version = "${{ github.event.inputs.tag }}"' helm/cloudflare-zero-trust-operator/Chart.yaml
           yq e -i '.appVersion = "${{ github.event.inputs.tag }}"' helm/cloudflare-zero-trust-operator/Chart.yaml
           
           # Version in README.md
           sed -i.bak -e '/<!-- Version_Placeholder -->/ {' -e 'n; s|.*|![Version: ${{ github.event.inputs.tag }}](https://img.shields.io/badge/Version-${{ github.event.inputs.tag }}-informational?style=flat-square)|' -e '}' README.md && rm README.md.bak
+          
+          # Build Manifests
+          make manifests
+          # Build Helm chart
+          make helm
       - name: Commit
         uses: EndBug/add-and-commit@v9
         with:
