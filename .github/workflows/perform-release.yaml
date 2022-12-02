@@ -39,8 +39,8 @@ jobs:
           sed -i.bak -e '/<!-- Version_Placeholder -->/ {' -e 'n; s|.*|![Version: ${{ github.event.inputs.tag }}](https://img.shields.io/badge/Version-${{ github.event.inputs.tag }}-informational?style=flat-square)|' -e '}' README.md && rm README.md.bak
       - name: Commit
         uses: EndBug/add-and-commit@v9
-          with:
-            push: true
+        with:
+          push: true
 
       # - name: Commit & Tag
       #   env:
