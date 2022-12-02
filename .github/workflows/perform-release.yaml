@@ -19,8 +19,9 @@ jobs:
           app_id: ${{ secrets.AUTOMERGE_APP_ID }}
           private_key: ${{ secrets.AUTOMERGE_PRIVATE_KEY }}
       - uses: actions/checkout@v3
-        env:
-          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
       - uses: actions/setup-go@v3
         with:
           go-version: '1.19.0'
