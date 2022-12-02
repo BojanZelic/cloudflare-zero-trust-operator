@@ -1,0 +1,34 @@
+name: Perform Release
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'New tag name'
+        required: true
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Update version
+        run: |
+        # Build Manifests
+        make manifests
+        # Build Helm chart
+        make helm
+
+        # Helm version
+        yq e -i '.version = "${{ github.event.inputs.tag }}"' manifest.yaml
+        yq e -i '.appVersion = "${{ github.event.inputs.tag }}"' manifest.yaml
+        
+        # Version in README.md
+        sed -i '' -e '/<!-- Version_Placeholder -->/ {' -e 'n; s|.*|![Version: ${{ github.event.inputs.tag }}](https://img.shields.io/badge/Version-${{ github.event.inputs.tag }}-informational?style=flat-square)|' -e '}' README.md
+      - name: Commit & Tag
+        run: |
+          git add helm README.md
+          git commit -m "bump version to ${{ github.event.inputs.tag }}"
+          git push origin HEAD
+      - run: git tag ${{ github.event.inputs.tag }}
