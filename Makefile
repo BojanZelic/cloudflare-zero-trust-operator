@@ -216,7 +216,7 @@ helm: manifests kustomize helmify helm-docs
 	cp cloudflare-zero-trust-operator/templates/*-crd.yaml helm/cloudflare-zero-trust-operator/templates
 	rm -rf helm/cloudflare-zero-trust-operator/templates/*-rbac.yaml
 	cp cloudflare-zero-trust-operator/templates/*-rbac.yaml helm/cloudflare-zero-trust-operator/templates
-	sed -i '' 's|{{ include "cloudflare-zero-trust-operator.fullname" . }}-controller-manager|{{ include "cloudflare-zero-trust-operator.serviceAccountName" . }}|g' helm/cloudflare-zero-trust-operator/templates/*-rbac.yaml
+	sed -i.bak 's|{{ include "cloudflare-zero-trust-operator.fullname" . }}-controller-manager|{{ include "cloudflare-zero-trust-operator.serviceAccountName" . }}|g' helm/cloudflare-zero-trust-operator/templates/*-rbac.yaml && rm helm/cloudflare-zero-trust-operator/templates/*-rbac.yaml.bak
 	rm -rf cloudflare-zero-trust-operator
 	$(HELM_DOCS)
 

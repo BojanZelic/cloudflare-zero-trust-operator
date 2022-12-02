@@ -36,7 +36,7 @@ jobs:
           yq e -i '.appVersion = "${{ github.event.inputs.tag }}"' manifest.yaml
           
           # Version in README.md
-          sed -i '' -e '/<!-- Version_Placeholder -->/ {' -e 'n; s|.*|![Version: ${{ github.event.inputs.tag }}](https://img.shields.io/badge/Version-${{ github.event.inputs.tag }}-informational?style=flat-square)|' -e '}' README.md
+          sed -i.bak -e '/<!-- Version_Placeholder -->/ {' -e 'n; s|.*|![Version: ${{ github.event.inputs.tag }}](https://img.shields.io/badge/Version-${{ github.event.inputs.tag }}-informational?style=flat-square)|' -e '}' README.md && rm README.md.bak
       - name: Commit & Tag
         env:
           GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
