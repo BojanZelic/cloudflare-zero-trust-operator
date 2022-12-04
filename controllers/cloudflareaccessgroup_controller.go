@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"reflect"
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
@@ -26,8 +27,10 @@ import (
 	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
@@ -61,6 +64,16 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		log.Error(err, "Failed to get CloudflareAccessGroup", "CloudflareAccessGroup.Name", req.Name)
 
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessGroup")
+	}
+
+	meta.SetStatusCondition(&accessGroup.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "AccessGroup is reconciling"})
+	if err = r.Status().Update(ctx, accessGroup); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Failed to update AccessGroup status")
+	}
+
+	// refetch the group
+	if err = r.Client.Get(ctx, req.NamespacedName, accessGroup); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareAccessGroup")
 	}
 
 	cfConfig := config.ParseCloudflareConfig(accessGroup)
@@ -121,9 +134,15 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		}
 	}
 
+	meta.SetStatusCondition(&accessGroup.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionTrue, Reason: "Reconciling", Message: "AccessGroup Reconciled Successfully"})
+	if err = r.Status().Update(ctx, accessGroup); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Failed to update AccessGroup status")
+	}
+
 	return ctrl.Result{}, nil
 }
 
+// nolint:dupl
 func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, cfGroup *cloudflare.AccessGroup, k8sGroup *v1alpha1.CloudflareAccessGroup) error {
 	if k8sGroup.Status.AccessGroupID != "" {
 		return nil
@@ -133,13 +152,23 @@ func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, c
 		return nil
 	}
 
-	k8sGroup.Status.AccessGroupID = cfGroup.ID
-	k8sGroup.Status.CreatedAt = v1.NewTime(*cfGroup.CreatedAt)
-	k8sGroup.Status.UpdatedAt = v1.NewTime(*cfGroup.UpdatedAt)
+	newGroup := k8sGroup.DeepCopy()
 
-	err := r.Status().Update(ctx, k8sGroup)
-	if err != nil {
-		return errors.Wrap(err, "unable to update access group")
+	newGroup.Status.AccessGroupID = cfGroup.ID
+	newGroup.Status.CreatedAt = metav1.NewTime(*cfGroup.CreatedAt)
+	newGroup.Status.UpdatedAt = metav1.NewTime(*cfGroup.UpdatedAt)
+
+	if !reflect.DeepEqual(k8sGroup.Status, newGroup.Status) {
+		err := r.Status().Update(ctx, newGroup)
+		if err != nil {
+			return errors.Wrap(err, "unable to update access group")
+		}
+
+		namespacedName := types.NamespacedName{Name: k8sGroup.Name, Namespace: k8sGroup.Namespace}
+		// refetch the group
+		if err = r.Client.Get(ctx, namespacedName, k8sGroup); err != nil {
+			return errors.Wrap(err, "Failed to re-fetch CloudflareAccessGroup")
+		}
 	}
 
 	return nil

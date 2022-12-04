@@ -181,7 +181,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			By("Checking the Status")
 			err = k8sClient.Get(ctx, typeNamespaceName, apps)
 			Expect(err).To(Not(HaveOccurred()))
-			Expect(apps.Status.Conditions[0].Status).To(Equal(metav1.ConditionFalse))
+			Expect(apps.Status.Conditions[len(apps.Status.Conditions)-1].Status).To(Equal(metav1.ConditionFalse))
 		})
 
 		It("should successfully reconcile CloudflareAccessApplication policies with references", func() {

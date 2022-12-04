@@ -87,6 +87,10 @@ type CloudflareServiceTokenStatus struct {
 	// +optional
 	// +nullable
 	SecretRef *SecretRef `json:"secretRef,omitempty"`
+
+	// Conditions store the status conditions of the CloudflareAccessApplication
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
 type SecretRef struct {
