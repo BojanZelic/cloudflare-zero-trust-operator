@@ -45,6 +45,8 @@ spec:
           - testemail1@domain.com
 ```
 
+![Example App](./docs/images/app_example.png)
+
 ## Features
 Currently in Project scope
 - [x] Manage Cloudflare Access Groups
@@ -52,9 +54,7 @@ Currently in Project scope
 - [x] Manage Cloudflare Access Tokens
 
 ## Roadmap
-- [] Deletion of Managed resources
-- [] Better/more complete 'status' messages for CRs
-
+- [ ] Deletion of Managed resources
 
 ## Advanced Usage
 
@@ -95,6 +95,23 @@ helm install --namespace=zero-trust-system --set secretRef=cloudflare-creds clou
 ```
 
 ## Install with Kustomize
+
+`kustomize.yaml`
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - https://github.com/BojanZelic/cloudflare-zero-trust-operator//config/default?ref=main
+
+secretGenerator:
+- name: cloudflare-creds
+  behavior: replace
+  literals:
+    - CLOUDFLARE_API_KEY=""
+    - CLOUDFLARE_API_EMAIL=""
+    - CLOUDFLARE_ACCOUNT_ID=""
+```
 
 ## Compatability
 
