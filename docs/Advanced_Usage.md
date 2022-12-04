@@ -38,7 +38,7 @@ spec:
         - emails:
           - testemail3@domain.com
         - accessGroups:
-            valueFrom:
-              name: accessgroup-example
-              namespace: default
+            - valueFrom:
+                name: accessgroup-example
+                namespace: default
 ```
