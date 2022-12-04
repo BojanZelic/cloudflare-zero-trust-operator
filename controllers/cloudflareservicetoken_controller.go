@@ -27,6 +27,8 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -64,6 +66,16 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		log.Error(err, "Failed to get CloudflareServiceToken", "CloudflareServiceToken.Name", req.Name)
 
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareServiceToken")
+	}
+
+	meta.SetStatusCondition(&serviceToken.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "ServiceToken is reconciling"})
+	if err = r.Status().Update(ctx, serviceToken); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareServiceToken status")
+	}
+
+	// refetch the serviceToken
+	if err = r.Client.Get(ctx, req.NamespacedName, serviceToken); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareServiceToken")
 	}
 
 	cfConfig := config.ParseCloudflareConfig(serviceToken)
@@ -214,6 +226,11 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, errors.Wrap(err, "unable to set status")
 	}
 
+	meta.SetStatusCondition(&serviceToken.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionTrue, Reason: "Reconciling", Message: "CloudflareServiceToken Reconciled Successfully"})
+	if err = r.Status().Update(ctx, serviceToken); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareServiceToken status")
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -240,6 +257,11 @@ func (r *CloudflareServiceTokenReconciler) ReconcileStatus(ctx context.Context, 
 		err := r.Status().Update(ctx, newToken)
 		if err != nil {
 			return errors.Wrap(err, "unable to update token")
+		}
+
+		// refetch the serviceToken
+		if err = r.Client.Get(ctx, types.NamespacedName{Namespace: k8sToken.Namespace, Name: k8sToken.Name}, k8sToken); err != nil {
+			return errors.Wrap(err, "Failed to re-fetch CloudflareServiceToken")
 		}
 	}
 
