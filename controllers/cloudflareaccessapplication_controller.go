@@ -54,7 +54,7 @@ const (
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications/finalizers,verbs=update
 
-//nolint:cyclop
+//nolint:cyclop,gocognit
 func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	var existingaccessApp *cloudflare.AccessApplication
@@ -73,14 +73,16 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessApplication")
 	}
 
-	meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "CloudflareAccessApplication is reconciling"})
-	if err = r.Status().Update(ctx, app); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
-	}
+	if app.Status.Conditions == nil || len(app.Status.Conditions) == 0 {
+		meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "CloudflareAccessApplication is reconciling"})
+		if err = r.Status().Update(ctx, app); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
+		}
 
-	// refetch the app
-	if err = r.Client.Get(ctx, req.NamespacedName, app); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareAccessApplication")
+		// refetch the app
+		if err = r.Client.Get(ctx, req.NamespacedName, app); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareAccessApplication")
+		}
 	}
 
 	cfConfig := config.ParseCloudflareConfig(app)
