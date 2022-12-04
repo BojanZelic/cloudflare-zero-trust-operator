@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
@@ -61,8 +62,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	log := logger.FromContext(ctx)
 	app := &v1alpha1.CloudflareAccessApplication{}
 
-	err = r.Client.Get(ctx, req.NamespacedName, app)
-	if err != nil {
+	if err = r.Client.Get(ctx, req.NamespacedName, app); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
@@ -89,7 +89,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		Log:    log,
 	}
 
-	if app.Status.AccessApplicationID == "" {
+	if app.Status.AccessApplicationID == "" { // nolint
 		accessApp, err := api.FindAccessApplicationByDomain(ctx, app.Spec.Domain)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "error querying application app from cloudflare")
@@ -117,8 +117,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
 		}
 
-		err = r.ReconcileStatus(ctx, &accessapp, app)
-		if err != nil {
+		if err = r.ReconcileStatus(ctx, &accessapp, app); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "issue updating status")
 		}
 	}
@@ -182,7 +181,12 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Cont
 	if err != nil {
 		return errors.Wrap(err, "unable to update access application")
 	}
-	//}
+
+	namespacedName := types.NamespacedName{Name: k8sApp.Name, Namespace: k8sApp.Namespace}
+	// refetch the app
+	if err = r.Client.Get(ctx, namespacedName, k8sApp); err != nil {
+		return errors.Wrap(err, "Failed to re-fetch CloudflareAccessApplication")
+	}
 
 	return nil
 }
