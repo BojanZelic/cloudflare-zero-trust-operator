@@ -29,7 +29,6 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -143,6 +142,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	return ctrl.Result{}, nil
 }
 
+// nolint:dupl
 func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, cfGroup *cloudflare.AccessGroup, k8sGroup *v1alpha1.CloudflareAccessGroup) error {
 	if k8sGroup.Status.AccessGroupID != "" {
 		return nil
@@ -155,8 +155,8 @@ func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, c
 	newGroup := k8sGroup.DeepCopy()
 
 	newGroup.Status.AccessGroupID = cfGroup.ID
-	newGroup.Status.CreatedAt = v1.NewTime(*cfGroup.CreatedAt)
-	newGroup.Status.UpdatedAt = v1.NewTime(*cfGroup.UpdatedAt)
+	newGroup.Status.CreatedAt = metav1.NewTime(*cfGroup.CreatedAt)
+	newGroup.Status.UpdatedAt = metav1.NewTime(*cfGroup.UpdatedAt)
 
 	if !reflect.DeepEqual(k8sGroup.Status, newGroup.Status) {
 		err := r.Status().Update(ctx, newGroup)

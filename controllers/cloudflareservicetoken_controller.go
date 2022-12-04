@@ -29,7 +29,6 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -48,7 +47,7 @@ type CloudflareServiceTokenReconciler struct {
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/finalizers,verbs=update
 
-// nolint: gocognit,cyclop
+// nolint: gocognit,cyclop,gocyclo,maintidx
 func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	var existingServiceToken *cftypes.ExtendedServiceToken
@@ -242,9 +241,9 @@ func (r *CloudflareServiceTokenReconciler) ReconcileStatus(ctx context.Context, 
 	}
 
 	newToken.Status.ServiceTokenID = cfToken.ID
-	newToken.Status.CreatedAt = v1.NewTime(*cfToken.CreatedAt)
-	newToken.Status.UpdatedAt = v1.NewTime(*cfToken.UpdatedAt)
-	newToken.Status.ExpiresAt = v1.NewTime(*cfToken.ExpiresAt)
+	newToken.Status.CreatedAt = metav1.NewTime(*cfToken.CreatedAt)
+	newToken.Status.UpdatedAt = metav1.NewTime(*cfToken.UpdatedAt)
+	newToken.Status.ExpiresAt = metav1.NewTime(*cfToken.ExpiresAt)
 	newToken.Status.SecretRef = &v1alpha1.SecretRef{
 		LocalObjectReference: corev1.LocalObjectReference{
 			Name: cfToken.K8sSecretRef.SecretName,

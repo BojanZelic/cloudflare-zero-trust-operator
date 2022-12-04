@@ -176,6 +176,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	return ctrl.Result{}, nil
 }
 
+// nolint:dupl
 func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Context, cfApp *cloudflare.AccessApplication, k8sApp *v1alpha1.CloudflareAccessApplication) error {
 	if k8sApp.Status.AccessApplicationID != "" {
 		return nil
