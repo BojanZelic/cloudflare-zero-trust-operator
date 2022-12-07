@@ -111,6 +111,7 @@ secretGenerator:
     - CLOUDFLARE_API_KEY=""
     - CLOUDFLARE_API_EMAIL=""
     - CLOUDFLARE_ACCOUNT_ID=""
+    - CLOUDFLARE_API_TOKEN=""
 ```
 
 ## Compatability
