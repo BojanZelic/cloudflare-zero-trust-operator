@@ -67,14 +67,16 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareServiceToken")
 	}
 
-	meta.SetStatusCondition(&serviceToken.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "ServiceToken is reconciling"})
-	if err = r.Status().Update(ctx, serviceToken); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareServiceToken status")
-	}
+	if serviceToken.Status.Conditions == nil || len(serviceToken.Status.Conditions) == 0 {
+		meta.SetStatusCondition(&serviceToken.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "ServiceToken is reconciling"})
+		if err = r.Status().Update(ctx, serviceToken); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareServiceToken status")
+		}
 
-	// refetch the serviceToken
-	if err = r.Client.Get(ctx, req.NamespacedName, serviceToken); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareServiceToken")
+		// refetch the serviceToken
+		if err = r.Client.Get(ctx, req.NamespacedName, serviceToken); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareServiceToken")
+		}
 	}
 
 	cfConfig := config.ParseCloudflareConfig(serviceToken)
@@ -223,6 +225,10 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	err = r.ReconcileStatus(ctx, existingServiceToken, serviceToken)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "unable to set status")
+	}
+
+	if err = r.Client.Get(ctx, req.NamespacedName, serviceToken); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareServiceToken")
 	}
 
 	meta.SetStatusCondition(&serviceToken.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionTrue, Reason: "Reconciling", Message: "CloudflareServiceToken Reconciled Successfully"})

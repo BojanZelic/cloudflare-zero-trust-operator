@@ -14,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
@@ -46,15 +45,20 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 		typeNamespaceName := types.NamespacedName{Name: cloudflareName, Namespace: cloudflareName}
 
 		BeforeEach(func() {
+			logOutput.Clear()
+
 			By("Creating the Namespace to perform the tests")
 			k8sClient.Create(ctx, namespace)
+
 			//Expect(err).To(Not(HaveOccurred()))
 		})
 
-		// AfterEach(func() {
-		// 	By("Deleting the Namespace to perform the tests")
-		// 	_ = k8sClient.Delete(ctx, namespace)
-		// })
+		AfterEach(func() {
+			By("expect no reconcile errors occured")
+			Expect(logOutput.GetErrorCount()).To(Equal(0), logOutput.GetOutput())
+			// By("Deleting the Namespace to perform the tests")
+			// _ = k8sClient.Delete(ctx, namespace)
+		})
 
 		var group *v1alpha1.CloudflareServiceToken
 
@@ -83,15 +87,6 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}, time.Second*10, time.Second).Should(Succeed())
 
-			By("Reconciling the custom resource created")
-			serviceTokenReconciler := &CloudflareServiceTokenReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
-			}
-
-			_, err = serviceTokenReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespaceName,
-			})
 			Expect(err).To(Not(HaveOccurred()))
 
 			By("Checking to get the updated CR")
@@ -100,12 +95,14 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			}, time.Second*10, time.Second).Should(Succeed())
 
 			By("Make sure the status ref is what we expect")
-			k8sClient.Get(ctx, typeNamespaceName, found)
-			Expect(found.Status.ServiceTokenID).ToNot(BeEmpty())
-			Expect(found.Status.SecretRef).ToNot(BeNil())
-			Expect(found.Status.SecretRef.ClientIDKey).ToNot(BeEmpty())
-			Expect(found.Status.SecretRef.ClientSecretKey).ToNot(BeEmpty())
-			Expect(found.Status.SecretRef.Name).ToNot(BeEmpty())
+			Eventually(func(g Gomega) {
+				k8sClient.Get(ctx, typeNamespaceName, found)
+				g.Expect(found.Status.ServiceTokenID).ToNot(BeEmpty())
+				g.Expect(found.Status.SecretRef).ToNot(BeNil())
+				g.Expect(found.Status.SecretRef.ClientIDKey).ToNot(BeEmpty())
+				g.Expect(found.Status.SecretRef.ClientSecretKey).ToNot(BeEmpty())
+				g.Expect(found.Status.SecretRef.Name).ToNot(BeEmpty())
+			}, time.Second*10, time.Second).Should(Succeed())
 
 			sec := &corev1.Secret{}
 			By("Making sure that the secret exists")
@@ -126,12 +123,6 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			Eventually(func() error {
 				return k8sClient.Update(ctx, found)
 			}, time.Second*10, time.Second).Should(Succeed())
-
-			By("Reconciling the updated resource created")
-			_, err = serviceTokenReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespaceName,
-			})
-			Expect(err).To(Not(HaveOccurred()))
 
 			By("Checking if the new secret was successfully created")
 			Eventually(func() error {
@@ -155,19 +146,13 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			err = k8sClient.Update(ctx, group)
 			Expect(err).ToNot(HaveOccurred())
 
-			By("Reconciling the updated resource created")
-			_, err = serviceTokenReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespaceName,
-			})
-			Expect(err).To(Not(HaveOccurred()))
-
-			By("fetching the latest status")
-			err = k8sClient.Get(ctx, typeNamespaceName, group)
-			Expect(err).ToNot(HaveOccurred())
-
 			By("Make sure the status ref is what we expect")
-			Expect(group.Status.SecretRef.Name).To(Equal(group.Spec.Template.Name))
-			Expect(group.Status.SecretRef.ClientIDKey).To(Equal(group.Spec.Template.ClientIDKey))
+			Eventually(func(g Gomega) {
+				err = k8sClient.Get(ctx, typeNamespaceName, group)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(group.Status.SecretRef.Name).To(Equal(group.Spec.Template.Name))
+				g.Expect(group.Status.SecretRef.ClientIDKey).To(Equal(group.Spec.Template.ClientIDKey))
+			}).Should(Succeed())
 
 			By("Checking if the new secret was successfully created")
 			Eventually(func() error {

@@ -46,7 +46,7 @@ type CloudflareAccessGroupReconciler struct {
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups/finalizers,verbs=update
 
-//nolint:cyclop
+//nolint:cyclop,gocognit
 func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	var existingCfAG *cloudflare.AccessGroup
@@ -66,14 +66,16 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessGroup")
 	}
 
-	meta.SetStatusCondition(&accessGroup.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "AccessGroup is reconciling"})
-	if err = r.Status().Update(ctx, accessGroup); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "Failed to update AccessGroup status")
-	}
+	if accessGroup.Status.Conditions == nil || len(accessGroup.Status.Conditions) == 0 {
+		meta.SetStatusCondition(&accessGroup.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "AccessGroup is reconciling"})
+		if err = r.Status().Update(ctx, accessGroup); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Failed to update AccessGroup status")
+		}
 
-	// refetch the group
-	if err = r.Client.Get(ctx, req.NamespacedName, accessGroup); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareAccessGroup")
+		// refetch the group
+		if err = r.Client.Get(ctx, req.NamespacedName, accessGroup); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareAccessGroup")
+		}
 	}
 
 	cfConfig := config.ParseCloudflareConfig(accessGroup)
@@ -134,9 +136,14 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		}
 	}
 
+	err = r.Client.Get(ctx, req.NamespacedName, accessGroup)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareAccessGroup")
+	}
+
 	meta.SetStatusCondition(&accessGroup.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionTrue, Reason: "Reconciling", Message: "AccessGroup Reconciled Successfully"})
 	if err = r.Status().Update(ctx, accessGroup); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "Failed to update AccessGroup status")
+		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessGroup status")
 	}
 
 	return ctrl.Result{}, nil
