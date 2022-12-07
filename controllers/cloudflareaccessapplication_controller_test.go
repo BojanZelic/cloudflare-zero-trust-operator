@@ -7,16 +7,28 @@ import (
 	"time"
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 	BeforeAll(func() {
+		ctx := context.Background()
+
+		By("Removing all existing access apps")
+		apps, err := api.AccessApplications(ctx)
+		Expect(err).To(Not(HaveOccurred()))
+		for _, app := range apps {
+			err = api.DeleteAccessApplication(ctx, app.ID)
+			Expect(err).To(Not(HaveOccurred()))
+		}
+	})
+
+	AfterAll(func() {
 		ctx := context.Background()
 
 		By("Removing all existing access apps")
@@ -44,10 +56,17 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 		typeNamespaceName := types.NamespacedName{Name: cloudflareName, Namespace: cloudflareName}
 
 		BeforeEach(func() {
+			logOutput.Clear()
+
 			By("Creating the Namespace to perform the tests")
 			k8sClient.Create(ctx, namespace)
 			// ignore error because of https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
 			//Expect(err).To(Not(HaveOccurred()))
+		})
+
+		AfterEach(func() {
+			By("expect no reconcile errors occured")
+			Expect(logOutput.GetErrorCount()).To(Equal(0), logOutput.GetOutput())
 		})
 
 		// AfterEach(func() {
@@ -85,17 +104,6 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			err := k8sClient.Create(ctx, apps)
 			Expect(err).To(Not(HaveOccurred()))
 
-			By("Reconciling the custom resource created")
-			accessAppReconciler := &CloudflareAccessApplicationReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
-			}
-
-			_, err = accessAppReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespaceName,
-			})
-			Expect(err).To(Not(HaveOccurred()))
-
 			found := &v1alpha1.CloudflareAccessApplication{}
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func() string {
@@ -104,34 +112,35 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				return found.Status.AccessApplicationID
 			}, time.Minute, time.Second).Should(Not(BeEmpty()))
 
+			var cfResource cfcollections.AccessPolicyCollection
 			By("Cloudflare resource should equal the spec")
-			cfResource, err := api.AccessPolicies(ctx, found.Status.AccessApplicationID)
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(cfResource[0].Name).To(Equal(found.Spec.Policies[0].Name))
-			Expect(cfResource[0].Include[0].(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[0]))
-			Expect(cfResource[0].Include[1].(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[1]))
-			Expect(cfResource[0].Include[2].(map[string]interface{})["email_domain"].(map[string]interface{})["domain"]).To(Equal(found.Spec.Policies[0].Include[1].EmailDomains[0]))
+			Eventually(func(g Gomega) {
+				cfResource, err = api.AccessPolicies(ctx, found.Status.AccessApplicationID)
+				g.Expect(err).To(Not(HaveOccurred()))
+				g.Expect(cfResource).ToNot(BeEmpty())
+				g.Expect(found.Spec.Policies).ToNot(BeEmpty())
+				g.Expect(cfResource[0].Name).To(Equal(found.Spec.Policies[0].Name))
+				g.Expect(cfResource[0].Include[0].(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[0]))
+				g.Expect(cfResource[0].Include[1].(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[1]))
+				g.Expect(cfResource[0].Include[2].(map[string]interface{})["email_domain"].(map[string]interface{})["domain"]).To(Equal(found.Spec.Policies[0].Include[1].EmailDomains[0]))
+			}).Should(Succeed())
 
 			By("changing a policy")
+			k8sClient.Get(ctx, typeNamespaceName, found)
 			found.Spec.Policies[0].Name = "updated_policy"
 			found.Spec.Policies[0].Include[0].Emails[0] = "testemail3@cf-operator-tests.uk"
 			err = k8sClient.Update(ctx, found)
 			Expect(err).To(Not(HaveOccurred()))
 
-			By("Reconciling the updated custom resource")
-			_, err = accessAppReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespaceName,
-			})
-			Expect(err).To(Not(HaveOccurred()))
-
 			By("Cloudflare resource should equal the spec")
-			cfResource, err = api.AccessPolicies(ctx, found.Status.AccessApplicationID)
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(cfResource[0].Name).To(Equal(found.Spec.Policies[0].Name))
-			Expect(cfResource[0].Include[0].(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[0]))
-			Expect(cfResource[0].Include[1].(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[1]))
-			Expect(cfResource[0].Include[2].(map[string]interface{})["email_domain"].(map[string]interface{})["domain"]).To(Equal(found.Spec.Policies[0].Include[1].EmailDomains[0]))
-
+			Eventually(func(g Gomega) {
+				cfResource, err = api.AccessPolicies(ctx, found.Status.AccessApplicationID)
+				g.Expect(err).To(Not(HaveOccurred()))
+				g.Expect(cfResource[0].Name).To(Equal(found.Spec.Policies[0].Name))
+				g.Expect(cfResource[0].Include[0].(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[0]))
+				g.Expect(cfResource[0].Include[1].(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[1]))
+				g.Expect(cfResource[0].Include[2].(map[string]interface{})["email_domain"].(map[string]interface{})["domain"]).To(Equal(found.Spec.Policies[0].Include[1].EmailDomains[0]))
+			}, time.Second*10, time.Second).Should(Succeed())
 		})
 
 		It("should fail to reconcile CloudflareAccessApplication policies with bad references", func() {
@@ -167,21 +176,13 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			err := k8sClient.Create(ctx, apps)
 			Expect(err).To(Not(HaveOccurred()))
 
-			By("Reconciling the custom resource created")
-			accessAppReconciler := &CloudflareAccessApplicationReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
-			}
-
-			_, err = accessAppReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespaceName,
-			})
-			Expect(err).To(HaveOccurred())
-
 			By("Checking the Status")
-			err = k8sClient.Get(ctx, typeNamespaceName, apps)
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(apps.Status.Conditions[len(apps.Status.Conditions)-1].Status).To(Equal(metav1.ConditionFalse))
+			Eventually(func(g Gomega) {
+				err = k8sClient.Get(ctx, typeNamespaceName, apps)
+				g.Expect(err).To(Not(HaveOccurred()))
+				g.Expect(apps.Status.Conditions).ToNot(BeEmpty())
+				g.Expect(apps.Status.Conditions[len(apps.Status.Conditions)-1].Status).To(Equal(metav1.ConditionFalse))
+			}, time.Second*10, time.Second).Should(Succeed())
 		})
 
 		It("should successfully reconcile CloudflareAccessApplication policies with references", func() {
@@ -208,17 +209,6 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			err := k8sClient.Create(ctx, group)
 			Expect(err).To(Not(HaveOccurred()))
 
-			By("Reconciling the custom resource created")
-			accessGroupReconciler := &CloudflareAccessGroupReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
-			}
-
-			_, err = accessGroupReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespaceName,
-			})
-			Expect(err).To(Not(HaveOccurred()))
-
 			err = k8sClient.Get(ctx, typeNamespaceName, group)
 			Expect(err).To(Not(HaveOccurred()))
 
@@ -234,17 +224,6 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			}
 
 			err = k8sClient.Create(ctx, token)
-			Expect(err).To(Not(HaveOccurred()))
-
-			By("Reconciling the custom resource created")
-			serviceTokenReconciler := &CloudflareServiceTokenReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
-			}
-
-			_, err = serviceTokenReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespaceName,
-			})
 			Expect(err).To(Not(HaveOccurred()))
 
 			err = k8sClient.Get(ctx, typeNamespaceName, token)
@@ -288,21 +267,13 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			err = k8sClient.Create(ctx, apps)
 			Expect(err).To(Not(HaveOccurred()))
 
-			By("Reconciling the custom resource created")
-			accessAppReconciler := &CloudflareAccessApplicationReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
-			}
-
-			_, err = accessAppReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespaceName,
-			})
-			Expect(err).To(Not(HaveOccurred()))
-
 			By("Checking the Status")
-			err = k8sClient.Get(ctx, typeNamespaceName, apps)
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(apps.Status.Conditions[0].Status).To(Equal(metav1.ConditionTrue))
+			Eventually(func(g Gomega) {
+				err = k8sClient.Get(ctx, typeNamespaceName, apps)
+				g.Expect(err).To(Not(HaveOccurred()))
+				g.Expect(apps.Status.Conditions).ToNot(BeEmpty())
+				g.Expect(apps.Status.Conditions[0].Status).To(Equal(metav1.ConditionTrue))
+			}, time.Second*10, time.Second).Should(Succeed())
 		})
 
 		It("should successfully reconcile a custom resource for CloudflareAccessApplication", func() {
@@ -326,17 +297,6 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}, time.Minute, time.Second).Should(Succeed())
 
-			By("Reconciling the custom resource created")
-			accessGroupReconciler := &CloudflareAccessApplicationReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
-			}
-
-			_, err = accessGroupReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespaceName,
-			})
-			Expect(err).To(Not(HaveOccurred()))
-
 			found := &v1alpha1.CloudflareAccessApplication{}
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func() string {
@@ -355,16 +315,12 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			k8sClient.Update(ctx, found)
 			Expect(err).To(Not(HaveOccurred()))
 
-			By("Reconciling the updated resource")
-			_, err = accessGroupReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespaceName,
-			})
-			Expect(err).To(Not(HaveOccurred()))
-
 			By("Cloudflare resource should equal the updated spec")
-			cfResource, err = api.AccessApplication(ctx, found.Status.AccessApplicationID)
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(cfResource.Name).To(Equal(found.Spec.Name))
+			Eventually(func(g Gomega) {
+				cfResource, err = api.AccessApplication(ctx, found.Status.AccessApplicationID)
+				g.Expect(err).To(Not(HaveOccurred()))
+				g.Expect(cfResource.Name).To(Equal(found.Spec.Name))
+			}, time.Second*45, time.Second).Should(Succeed(), logOutput.GetOutput()) //sometimes this is cached
 		})
 	})
 })
