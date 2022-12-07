@@ -87,15 +87,6 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}, time.Second*10, time.Second).Should(Succeed())
 
-			// By("Reconciling the custom resource created")
-			// serviceTokenReconciler := &CloudflareServiceTokenReconciler{
-			// 	Client: k8sClient,
-			// 	Scheme: k8sClient.Scheme(),
-			// }
-
-			// _, err = serviceTokenReconciler.Reconcile(ctx, reconcile.Request{
-			// 	NamespacedName: typeNamespaceName,
-			// })
 			Expect(err).To(Not(HaveOccurred()))
 
 			By("Checking to get the updated CR")
@@ -133,12 +124,6 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 				return k8sClient.Update(ctx, found)
 			}, time.Second*10, time.Second).Should(Succeed())
 
-			// By("Reconciling the updated resource created")
-			// _, err = serviceTokenReconciler.Reconcile(ctx, reconcile.Request{
-			// 	NamespacedName: typeNamespaceName,
-			// })
-			// Expect(err).To(Not(HaveOccurred()))
-
 			By("Checking if the new secret was successfully created")
 			Eventually(func() error {
 				sec := &corev1.Secret{}
@@ -160,12 +145,6 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			group.Spec.Template.ClientIDKey = "keylocation"
 			err = k8sClient.Update(ctx, group)
 			Expect(err).ToNot(HaveOccurred())
-
-			// By("Reconciling the updated resource created")
-			// _, err = serviceTokenReconciler.Reconcile(ctx, reconcile.Request{
-			// 	NamespacedName: typeNamespaceName,
-			// })
-			// Expect(err).To(Not(HaveOccurred()))
 
 			By("Make sure the status ref is what we expect")
 			Eventually(func(g Gomega) {

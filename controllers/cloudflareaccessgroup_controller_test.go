@@ -89,17 +89,6 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}, time.Minute, time.Second).Should(Succeed())
 
-			// By("Reconciling the custom resource created")
-			// accessGroupReconciler := &CloudflareAccessGroupReconciler{
-			// 	Client: k8sClient,
-			// 	Scheme: k8sClient.Scheme(),
-			// }
-
-			// _, err = accessGroupReconciler.Reconcile(ctx, reconcile.Request{
-			// 	NamespacedName: typeNamespaceName,
-			// })
-			// Expect(err).To(Not(HaveOccurred()))
-
 			found := &v1alpha1.CloudflareAccessGroup{}
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func() string {
@@ -118,22 +107,12 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			k8sClient.Update(ctx, found)
 			Expect(err).To(Not(HaveOccurred()))
 
-			// By("Reconciling the updated resource")
-			// _, err = accessGroupReconciler.Reconcile(ctx, reconcile.Request{
-			// 	NamespacedName: typeNamespaceName,
-			// })
-			// Expect(err).To(Not(HaveOccurred()))
-
 			By("Cloudflare resource should equal the updated spec")
 			Eventually(func() string {
 				cfResource, err = api.AccessGroup(ctx, found.Status.AccessGroupID)
 				return cfResource.Name
 
 			}, time.Minute, time.Second).Should(Equal(found.Spec.Name))
-
-			// cfResource, err = api.AccessGroup(ctx, found.Status.AccessGroupID)
-			// Expect(err).To(Not(HaveOccurred()))
-			// Expect(cfResource.Name).To(Equal(found.Spec.Name))
 		})
 	})
 })

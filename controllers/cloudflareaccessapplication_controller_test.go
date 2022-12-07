@@ -40,15 +40,6 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 		}
 	})
 
-	// BeforeEach(func() {
-	// 	logOutput.Clear()
-	// })
-
-	// AfterEach(func() {
-	// 	fmt.Println("called")
-	// 	Expect(logOutput.GetErrorCount()).To(Equal(0))
-	// })
-
 	Context("CloudflareAccessApplication controller test", func() {
 
 		const cloudflareName = "cloudflare-app"
@@ -152,12 +143,6 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			err = k8sClient.Update(ctx, found)
 			Expect(err).To(Not(HaveOccurred()))
 
-			// By("Reconciling the updated custom resource")
-			// _, err = accessAppReconciler.Reconcile(ctx, reconcile.Request{
-			// 	NamespacedName: typeNamespaceName,
-			// })
-			// Expect(err).To(Not(HaveOccurred()))
-
 			By("Cloudflare resource should equal the spec")
 			Eventually(func(g Gomega) {
 				cfResource, err = api.AccessPolicies(ctx, found.Status.AccessApplicationID)
@@ -235,17 +220,6 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			err := k8sClient.Create(ctx, group)
 			Expect(err).To(Not(HaveOccurred()))
 
-			// By("Reconciling the custom resource created")
-			// accessGroupReconciler := &CloudflareAccessGroupReconciler{
-			// 	Client: k8sClient,
-			// 	Scheme: k8sClient.Scheme(),
-			// }
-
-			// _, err = accessGroupReconciler.Reconcile(ctx, reconcile.Request{
-			// 	NamespacedName: typeNamespaceName,
-			// })
-			// Expect(err).To(Not(HaveOccurred()))
-
 			err = k8sClient.Get(ctx, typeNamespaceName, group)
 			Expect(err).To(Not(HaveOccurred()))
 
@@ -262,17 +236,6 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			err = k8sClient.Create(ctx, token)
 			Expect(err).To(Not(HaveOccurred()))
-
-			// By("Reconciling the custom resource created")
-			// serviceTokenReconciler := &CloudflareServiceTokenReconciler{
-			// 	Client: k8sClient,
-			// 	Scheme: k8sClient.Scheme(),
-			// }
-
-			// _, err = serviceTokenReconciler.Reconcile(ctx, reconcile.Request{
-			// 	NamespacedName: typeNamespaceName,
-			// })
-			// Expect(err).To(Not(HaveOccurred()))
 
 			err = k8sClient.Get(ctx, typeNamespaceName, token)
 			Expect(err).To(Not(HaveOccurred()))
@@ -356,17 +319,6 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}, time.Minute, time.Second).Should(Succeed())
 
-			// By("Reconciling the custom resource created")
-			// accessGroupReconciler := &CloudflareAccessApplicationReconciler{
-			// 	Client: k8sClient,
-			// 	Scheme: k8sClient.Scheme(),
-			// }
-
-			// _, err = accessGroupReconciler.Reconcile(ctx, reconcile.Request{
-			// 	NamespacedName: typeNamespaceName,
-			// })
-			// Expect(err).To(Not(HaveOccurred()))
-
 			found := &v1alpha1.CloudflareAccessApplication{}
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func() string {
@@ -384,12 +336,6 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			found.Spec.Name = "updated name"
 			k8sClient.Update(ctx, found)
 			Expect(err).To(Not(HaveOccurred()))
-
-			// By("Reconciling the updated resource")
-			// _, err = accessGroupReconciler.Reconcile(ctx, reconcile.Request{
-			// 	NamespacedName: typeNamespaceName,
-			// })
-			// Expect(err).To(Not(HaveOccurred()))
 
 			By("Cloudflare resource should equal the updated spec")
 			Eventually(func(g Gomega) {

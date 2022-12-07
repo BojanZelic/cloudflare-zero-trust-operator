@@ -98,18 +98,6 @@ var _ = BeforeSuite(func() {
 	api, err = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
 	Expect(err).NotTo(HaveOccurred())
 
-	// mycore := zapcore.NewCore(
-	// 	zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
-	// 	os.Stderr,
-	// 	zapcore.InfoLevel,
-	// )
-	// test core
-	// observed, logs := observer.New(zapcore.InfoLevel)
-
-	// // new logger with the two cores tee'd together
-	// logger := uberzap.New(zapcore.NewTee(observed))
-
-	// logger.Error("foo")
 	logOutput = NewTestLogger(logr.RuntimeInfo{CallDepth: 1})
 
 	By("bootstrapping managers")
