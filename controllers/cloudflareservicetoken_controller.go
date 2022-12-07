@@ -227,6 +227,10 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, errors.Wrap(err, "unable to set status")
 	}
 
+	if err = r.Client.Get(ctx, req.NamespacedName, serviceToken); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareServiceToken")
+	}
+
 	meta.SetStatusCondition(&serviceToken.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionTrue, Reason: "Reconciling", Message: "CloudflareServiceToken Reconciled Successfully"})
 	if err = r.Status().Update(ctx, serviceToken); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareServiceToken status")

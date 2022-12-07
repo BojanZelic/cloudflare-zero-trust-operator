@@ -156,11 +156,14 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 
 	if err := apService.PopulateAccessPolicyReferences(ctx, &app.Spec.Policies); err != nil {
 		meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusDegrated, Status: metav1.ConditionFalse, Reason: "InvalidReference", Message: err.Error()})
+		log.Info("failed to update access policies", "name", app.Name, "namespace", app.Namespace)
+
 		if err := r.Status().Update(ctx, app); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "Failed to update App status")
 		}
 
-		return ctrl.Result{}, errors.Wrap(err, "unable to populate access policies")
+		// don't requeue
+		return ctrl.Result{}, nil
 	}
 	expectedPolicies := app.Spec.Policies.ToCloudflare()
 	expectedPolicies.SortByPrecidence()
@@ -168,6 +171,10 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	err = r.ReconcilePolicies(ctx, api, app, currentPolicies, expectedPolicies)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "unable get access policies")
+	}
+
+	if err = r.Client.Get(ctx, req.NamespacedName, app); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareAccessApplication")
 	}
 
 	meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionTrue, Reason: "Reconciling", Message: "App Reconciled Successfully"})
