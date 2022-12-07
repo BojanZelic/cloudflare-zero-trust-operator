@@ -104,17 +104,6 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			err := k8sClient.Create(ctx, apps)
 			Expect(err).To(Not(HaveOccurred()))
 
-			// By("Reconciling the custom resource created")
-			// accessAppReconciler := &CloudflareAccessApplicationReconciler{
-			// 	Client: k8sClient,
-			// 	Scheme: k8sClient.Scheme(),
-			// }
-
-			// _, err = accessAppReconciler.Reconcile(ctx, reconcile.Request{
-			// 	NamespacedName: typeNamespaceName,
-			// })
-			// Expect(err).To(Not(HaveOccurred()))
-
 			found := &v1alpha1.CloudflareAccessApplication{}
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func() string {
@@ -277,17 +266,6 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			}
 			err = k8sClient.Create(ctx, apps)
 			Expect(err).To(Not(HaveOccurred()))
-
-			// By("Reconciling the custom resource created")
-			// accessAppReconciler := &CloudflareAccessApplicationReconciler{
-			// 	Client: k8sClient,
-			// 	Scheme: k8sClient.Scheme(),
-			// }
-
-			// _, err = accessAppReconciler.Reconcile(ctx, reconcile.Request{
-			// 	NamespacedName: typeNamespaceName,
-			// })
-			// Expect(err).To(Not(HaveOccurred()))
 
 			By("Checking the Status")
 			Eventually(func(g Gomega) {
