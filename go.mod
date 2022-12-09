@@ -9,9 +9,9 @@ require (
 	github.com/onsi/gomega v1.24.1
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/viper v1.14.0
-	k8s.io/api v0.25.5
-	k8s.io/apimachinery v0.25.5
-	k8s.io/client-go v0.25.5
+	k8s.io/api v0.26.0
+	k8s.io/apimachinery v0.26.0
+	k8s.io/client-go v0.26.0
 	sigs.k8s.io/controller-runtime v0.13.1
 )
 
