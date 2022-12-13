@@ -30,7 +30,8 @@ jobs:
           # Helm version
           yq e -i '.version = "${{ github.event.inputs.tag }}"' helm/cloudflare-zero-trust-operator/Chart.yaml
           yq e -i '.appVersion = "${{ github.event.inputs.tag }}"' helm/cloudflare-zero-trust-operator/Chart.yaml
-          
+          yq e -i '.images[0].newTag = "${{ github.event.inputs.tag }}"' config/manager/kustomization.yaml
+
           # Version in README.md
           sed -i.bak -e '/<!-- Version_Placeholder -->/ {' -e 'n; s|.*|![Version: ${{ github.event.inputs.tag }}](https://img.shields.io/badge/Version-${{ github.event.inputs.tag }}-informational?style=flat-square)|' -e '}' README.md && rm README.md.bak
           
