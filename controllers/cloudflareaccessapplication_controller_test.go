@@ -123,7 +123,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				g.Expect(cfResource[0].Include[0].(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[0]))
 				g.Expect(cfResource[0].Include[1].(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[1]))
 				g.Expect(cfResource[0].Include[2].(map[string]interface{})["email_domain"].(map[string]interface{})["domain"]).To(Equal(found.Spec.Policies[0].Include[1].EmailDomains[0]))
-			}).Should(Succeed())
+			}, time.Second*25, time.Second).Should(Succeed())
 
 			By("changing a policy")
 			k8sClient.Get(ctx, typeNamespaceName, found)
@@ -140,7 +140,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				g.Expect(cfResource[0].Include[0].(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[0]))
 				g.Expect(cfResource[0].Include[1].(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[1]))
 				g.Expect(cfResource[0].Include[2].(map[string]interface{})["email_domain"].(map[string]interface{})["domain"]).To(Equal(found.Spec.Policies[0].Include[1].EmailDomains[0]))
-			}, time.Second*10, time.Second).Should(Succeed())
+			}, time.Second*25, time.Second).Should(Succeed())
 		})
 
 		It("should fail to reconcile CloudflareAccessApplication policies with bad references", func() {
@@ -299,21 +299,31 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			found := &v1alpha1.CloudflareAccessApplication{}
 			By("Checking the latest Status should have the ID of the resource")
-			Eventually(func() string {
+			Eventually(func(g Gomega) {
 				found = &v1alpha1.CloudflareAccessApplication{}
-				k8sClient.Get(ctx, typeNamespaceName, found)
-				return found.Status.AccessApplicationID
-			}, time.Minute, time.Second).Should(Not(BeEmpty()))
+				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
+				g.Expect(found.Status.AccessApplicationID).ToNot(BeEmpty())
+				g.Expect(found.Status.CreatedAt.Time).To(Equal(found.Status.UpdatedAt.Time))
+			}, time.Second*10, time.Second).Should(Succeed())
 
 			By("Cloudflare resource should equal the spec")
 			cfResource, err := api.AccessApplication(ctx, found.Status.AccessApplicationID)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(cfResource.Name).To(Equal(found.Spec.Name))
 
+			By("Get the latest version of the resource")
+			Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 			By("Updating the name of the resource")
 			found.Spec.Name = "updated name"
-			k8sClient.Update(ctx, found)
-			Expect(err).To(Not(HaveOccurred()))
+			Expect(k8sClient.Update(ctx, found)).To(Not(HaveOccurred()))
+
+			By("Checking the latest Status should have the update")
+			Eventually(func(g Gomega) {
+				found = &v1alpha1.CloudflareAccessApplication{}
+				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
+				g.Expect(found.Spec.Name).To(Equal("updated name"))
+				g.Expect(found.Status.AccessApplicationID).ToNot(BeEmpty())
+			}, time.Second*25, time.Second).Should(Succeed())
 
 			By("Cloudflare resource should equal the updated spec")
 			Eventually(func(g Gomega) {
