@@ -70,7 +70,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 						Namespace: namespace.Name,
 					},
 					Spec: v1alpha1.CloudflareAccessGroupSpec{
-						Name: "integration test",
+						Name: "integration accessgroup test",
 						Include: []v1alpha1.CloudFlareAccessGroupRule{
 							{
 								Emails: []string{"test@cf-operator-tests.uk"},

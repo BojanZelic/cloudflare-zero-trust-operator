@@ -73,7 +73,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 						Namespace: typeNamespaceName.Namespace,
 					},
 					Spec: v1alpha1.CloudflareServiceTokenSpec{
-						Name: "integration test",
+						Name: "integration servicetoken test",
 					},
 				}
 
