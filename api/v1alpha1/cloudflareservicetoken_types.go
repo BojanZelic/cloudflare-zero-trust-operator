@@ -122,7 +122,7 @@ func (c CloudflareServiceToken) ToExtendedToken() cftypes.ExtendedServiceToken {
 			UpdatedAt: &c.Status.UpdatedAt.Time,
 			ExpiresAt: &c.Status.ExpiresAt.Time,
 			ID:        c.Status.ServiceTokenID,
-			Name:      c.Name,
+			Name:      c.Spec.Name,
 		},
 	}
 }

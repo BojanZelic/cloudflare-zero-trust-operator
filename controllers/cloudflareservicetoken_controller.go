@@ -53,10 +53,12 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	var existingServiceToken *cftypes.ExtendedServiceToken
 	var api *cfapi.API
 
-	log := logger.FromContext(ctx)
+	log := logger.FromContext(ctx).WithName("CloudflareServiceTokenController")
+
 	serviceToken := &v1alpha1.CloudflareServiceToken{}
 
 	err = r.Client.Get(ctx, req.NamespacedName, serviceToken)
+
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -127,6 +129,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 
 	if existingServiceToken == nil {
 		token, err := api.CreateAccessServiceToken(ctx, serviceToken.ToExtendedToken())
+		log.Info("created access service token", "token_id", token.ID)
 		existingServiceToken = &token
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access service token")
@@ -183,10 +186,14 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 			return ctrl.Result{}, errors.Wrap(err, "Failed to create Secret")
 		}
 
+		log.Info("created secret", "secret.namespace", secretNamespacedName.Namespace, "secret.name", secretNamespacedName.Name)
+
 		if secretToDelete != nil {
 			if err := r.Client.Delete(ctx, secretToDelete); err != nil {
 				log.Error(nil, "failed to remove secret", "secret.namespace", secretToDelete.Namespace, "secret.name", secretToDelete.Name)
 			}
+
+			log.Info("removed secret", "secret.namespace", secretNamespacedName.Namespace, "secret.name", secretNamespacedName.Name)
 		}
 
 		if err := existingServiceToken.SetSecretValues(*secret); err != nil {
@@ -197,6 +204,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get Secret")
 	}
+	log.Info("log test6")
 
 	updatedSecret := secret.DeepCopy()
 	updatedSecret.SetAnnotations(map[string]string{
@@ -214,6 +222,8 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "Failed to update Secret")
 		}
+
+		log.Info("updated secret", "secret.namespace", secretNamespacedName.Namespace, "secret.name", secretNamespacedName.Name)
 	}
 
 	existingServiceToken.SetSecretReference(serviceToken.Spec.Template.ClientIDKey, serviceToken.Spec.Template.ClientSecretKey, *secret)

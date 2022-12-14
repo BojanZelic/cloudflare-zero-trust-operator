@@ -52,7 +52,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	var existingCfAG *cloudflare.AccessGroup
 	var api *cfapi.API
 
-	log := logger.FromContext(ctx)
+	log := logger.FromContext(ctx).WithName("CloudflareAccessGroupController")
 	accessGroup := &v1alpha1.CloudflareAccessGroup{}
 
 	err = r.Client.Get(ctx, req.NamespacedName, accessGroup)
