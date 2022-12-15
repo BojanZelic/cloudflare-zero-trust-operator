@@ -204,7 +204,6 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get Secret")
 	}
-	log.Info("log test6")
 
 	updatedSecret := secret.DeepCopy()
 	updatedSecret.SetAnnotations(map[string]string{
