@@ -60,7 +60,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	var existingaccessApp *cloudflare.AccessApplication
 	var api *cfapi.API
 
-	log := logger.FromContext(ctx)
+	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController")
 	app := &v1alpha1.CloudflareAccessApplication{}
 
 	if err = r.Client.Get(ctx, req.NamespacedName, app); err != nil {

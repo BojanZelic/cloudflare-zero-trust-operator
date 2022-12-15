@@ -31,21 +31,19 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 
 	Context("CloudflareServiceToken controller test", func() {
 
-		const cloudflareName = "stokens-cloudflare"
+		const nsName = "servicetoken"
 
 		ctx := context.Background()
 
 		namespace := &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      cloudflareName,
-				Namespace: cloudflareName,
+				Name:      nsName,
+				Namespace: nsName,
 			},
 		}
 
-		typeNamespaceName := types.NamespacedName{Name: cloudflareName, Namespace: cloudflareName}
-
 		BeforeEach(func() {
-			logOutput.Clear()
+			//logOutput.Clear()
 
 			By("Creating the Namespace to perform the tests")
 			k8sClient.Create(ctx, namespace)
@@ -60,10 +58,74 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			// _ = k8sClient.Delete(ctx, namespace)
 		})
 
-		var group *v1alpha1.CloudflareServiceToken
+		It("should successfully reconcile a custom resource for CloudflareServiceToken", func() {
+			typeNamespaceName := types.NamespacedName{Name: "token1", Namespace: nsName}
+
+			By("Creating the custom resource for the Kind CloudflareServiceToken")
+			var serviceToken *v1alpha1.CloudflareServiceToken
+
+			serviceToken = &v1alpha1.CloudflareServiceToken{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      typeNamespaceName.Name,
+					Namespace: typeNamespaceName.Namespace,
+				},
+				Spec: v1alpha1.CloudflareServiceTokenSpec{
+					Name: "servicetoken v2 test",
+					Template: v1alpha1.SecretTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "secret-location",
+						},
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, serviceToken)).To(Not(HaveOccurred()))
+
+			By("Checking if the secret was successfully created")
+			sec := &corev1.Secret{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{Name: serviceToken.Spec.Template.Name, Namespace: serviceToken.Namespace}, sec)
+			}, time.Second*20, time.Second).Should(Succeed(), logOutput.GetOutput())
+
+			By("Make sure the status ref is what we expect")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, typeNamespaceName, serviceToken)).ToNot(HaveOccurred())
+				g.Expect(serviceToken.Status.ServiceTokenID).ToNot(BeEmpty())
+				g.Expect(serviceToken.Status.SecretRef).ToNot(BeNil())
+				g.Expect(serviceToken.Status.SecretRef.ClientIDKey).ToNot(BeEmpty())
+				g.Expect(serviceToken.Status.SecretRef.ClientSecretKey).ToNot(BeEmpty())
+				g.Expect(serviceToken.Status.SecretRef.Name).To(Equal(sec.Name))
+			}, time.Second*10, time.Second).Should(Succeed())
+
+			By("Checking if the resource exists in cloudflare")
+			tokens, err := api.ServiceTokens(ctx)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Renaming the secret")
+			serviceToken.Spec.Name = "updated_secret_name"
+			Expect(k8sClient.Update(ctx, serviceToken)).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				tokenfound := false
+				for _, token := range tokens {
+					if token.Name == serviceToken.Spec.Name {
+						tokenfound = true
+
+						g.Expect(token.ID).To(Equal(string(sec.Data[sec.Annotations[cftypes.AnnotationTokenIDKey]])))
+						g.Expect(token.ClientID).To(Equal(string(sec.Data[sec.Annotations[cftypes.AnnotationClientIDKey]])))
+					}
+				}
+				g.Expect(tokenfound).To(BeTrue(), "token not found")
+			})
+
+		})
 
 		It("should successfully reconcile a custom resource for CloudflareServiceToken", func() {
+			typeNamespaceName := types.NamespacedName{Name: "token2", Namespace: nsName}
+
 			By("Creating the custom resource for the Kind CloudflareServiceToken")
+			var group *v1alpha1.CloudflareServiceToken
+
 			token := &v1alpha1.CloudflareServiceToken{}
 			err := k8sClient.Get(ctx, typeNamespaceName, token)
 			if err != nil && errors.IsNotFound(err) {
@@ -113,9 +175,19 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			By("Checking if the resource exists in cloudflare")
 			tokens, err := api.ServiceTokens(ctx)
 			Expect(err).To(Not(HaveOccurred()))
+
+			secretFound := false
+			for _, token := range tokens {
+				if token.Name == found.Spec.Name {
+					secretFound = true
+
+					Expect(token.ID).To(Equal(string(sec.Data[sec.Annotations[cftypes.AnnotationTokenIDKey]])))
+					Expect(token.ClientID).To(Equal(string(sec.Data[sec.Annotations[cftypes.AnnotationClientIDKey]])))
+				}
+			}
 			//we should only have 1 Token created
-			Expect(tokens[0].ID).To(Equal(string(sec.Data[sec.Annotations[cftypes.AnnotationTokenIDKey]])))
-			Expect(tokens[0].ClientID).To(Equal(string(sec.Data[sec.Annotations[cftypes.AnnotationClientIDKey]])))
+
+			Expect(secretFound).To(BeTrue(), "secret not found", found.Spec.Name, tokens)
 
 			By("Updating the service token to move the secret")
 			k8sClient.Get(ctx, typeNamespaceName, found)
