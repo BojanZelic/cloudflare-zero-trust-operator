@@ -1,0 +1,12 @@
+namespace: bojanzelic-cloudflare-zero-trust-operator-system
+
+secretGenerator:
+  - name: cloudflare-creds
+    behavior: create
+    literals:
+      - CLOUDFLARE_API_KEY=""
+      - CLOUDFLARE_API_EMAIL=""
+      - CLOUDFLARE_ACCOUNT_ID=""
+
+resources:
+- ../default

@@ -106,7 +106,6 @@ resources:
 
 secretGenerator:
 - name: cloudflare-creds
-  behavior: replace
   literals:
     - CLOUDFLARE_API_KEY=""
     - CLOUDFLARE_API_EMAIL=""
