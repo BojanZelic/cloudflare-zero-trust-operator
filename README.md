@@ -96,7 +96,7 @@ helm install --namespace=zero-trust-system --set secretRef=cloudflare-creds clou
 
 ## Install with Kustomize
 
-`kustomize.yaml`
+`kustomization.yaml`
 ```yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -106,7 +106,6 @@ resources:
 
 secretGenerator:
 - name: cloudflare-creds
-  behavior: replace
   literals:
     - CLOUDFLARE_API_KEY=""
     - CLOUDFLARE_API_EMAIL=""

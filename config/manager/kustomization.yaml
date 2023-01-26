@@ -1,11 +1,6 @@
 resources:
   - manager.yaml
-secretGenerator:
-  - name: cloudflare-creds
-    literals:
-      - CLOUDFLARE_API_KEY=""
-      - CLOUDFLARE_API_EMAIL=""
-      - CLOUDFLARE_ACCOUNT_ID=""
+
 images:
   - name: controller
     newName: ghcr.io/bojanzelic/cloudflare-zero-trust-operator
