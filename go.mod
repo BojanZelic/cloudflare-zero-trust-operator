@@ -6,7 +6,7 @@ require (
 	github.com/cloudflare/cloudflare-go v0.59.0
 	github.com/go-logr/logr v1.2.3
 	github.com/onsi/ginkgo/v2 v2.7.0
-	github.com/onsi/gomega v1.25.0
+	github.com/onsi/gomega v1.26.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/viper v1.14.0
 	k8s.io/api v0.26.0
