@@ -47,7 +47,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build cloudflare-zero-trust-operator
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           tags: ghcr.io/bojanzelic/cloudflare-zero-trust-operator:${{ steps.imagetag.outputs.value }}
           file: Dockerfile
