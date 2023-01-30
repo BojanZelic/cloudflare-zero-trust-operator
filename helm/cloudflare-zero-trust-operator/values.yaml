@@ -12,13 +12,14 @@ image:
   tag: ""
 
 # provide the cloudflare creds
-# cloudflare_api_key -- API Key from cloudflare - required (or set secretRef)
-cloudflare_api_key: ""
 # cloudflare_account_id -- Cloudflare Account ID - required (or set secretRef)
 cloudflare_account_id: ""
-# cloudflare_api_email -- Cloudflare API Email - required (or set secretRef)
+
+# cloudflare_api_key -- API Key from cloudflare - required (one of cloudflare_api_token or cloudflare_api_key + cloudflare_api_email) (or set secretRef)
+cloudflare_api_key: ""
+# cloudflare_api_email -- Cloudflare API Email - required (one of cloudflare_api_token or cloudflare_api_key + cloudflare_api_email) (or set secretRef)
 cloudflare_api_email: ""
-# cloudflare_api_token -- Cloudflare API Token - required (or set secretRef)
+# cloudflare_api_token -- Cloudflare API Token - required (one of cloudflare_api_token or cloudflare_api_key + cloudflare_api_email) (or set secretRef)
 cloudflare_api_token: ""
 
 # secretRef -- name of the secret that contains the following keys:

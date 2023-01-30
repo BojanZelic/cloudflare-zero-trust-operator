@@ -73,26 +73,29 @@ spec:
         image: controller:latest
         name: manager
         env:
-          - name: CLOUDFLARE_API_KEY
-            valueFrom:
-              secretKeyRef:
-                name: cloudflare-creds
-                key: CLOUDFLARE_API_KEY
-          - name: CLOUDFLARE_API_EMAIL
-            valueFrom:
-              secretKeyRef:
-                name: cloudflare-creds
-                key: CLOUDFLARE_API_EMAIL
           - name: CLOUDFLARE_ACCOUNT_ID
             valueFrom:
               secretKeyRef:
                 name: cloudflare-creds
                 key: CLOUDFLARE_ACCOUNT_ID
+          - name: CLOUDFLARE_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: cloudflare-creds
+                key: CLOUDFLARE_API_KEY
+                optional: true
+          - name: CLOUDFLARE_API_EMAIL
+            valueFrom:
+              secretKeyRef:
+                name: cloudflare-creds
+                key: CLOUDFLARE_API_EMAIL
+                optional: true
           - name: CLOUDFLARE_API_TOKEN
             valueFrom:
               secretKeyRef:
                 name: cloudflare-creds
                 key: CLOUDFLARE_API_TOKEN
+                optional: true
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
