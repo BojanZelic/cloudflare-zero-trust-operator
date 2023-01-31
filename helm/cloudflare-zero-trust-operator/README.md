@@ -1,6 +1,6 @@
 # cloudflare-zero-trust-operator
 
-![Version: 0.1.8](https://img.shields.io/badge/Version-0.1.8-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.8](https://img.shields.io/badge/AppVersion-0.1.8-informational?style=flat-square)
+![Version: 0.1.9](https://img.shields.io/badge/Version-0.1.9-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.9](https://img.shields.io/badge/AppVersion-0.1.9-informational?style=flat-square)
 
 Operator for managing Cloudflare Zero Trust settings
 
@@ -13,9 +13,9 @@ Cloudflare Zero-Trust operator allow you to manage your zero-trust configuration
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | cloudflare_account_id | string | `""` | Cloudflare Account ID - required (or set secretRef) |
-| cloudflare_api_email | string | `""` | Cloudflare API Email - optional (or set secretRef) |
-| cloudflare_api_key | string | `""` | API Key from cloudflare - optional (or set secretRef) |
-| cloudflare_api_token | string | `""` | Cloudflare API Token - optional (or set secretRef) |
+| cloudflare_api_email | string | `""` | Cloudflare API Email - required (one of cloudflare_api_token or cloudflare_api_key + cloudflare_api_email) (or set secretRef) |
+| cloudflare_api_key | string | `""` | API Key from cloudflare - required (one of cloudflare_api_token or cloudflare_api_key + cloudflare_api_email) (or set secretRef) |
+| cloudflare_api_token | string | `""` | Cloudflare API Token - required (one of cloudflare_api_token or cloudflare_api_key + cloudflare_api_email) (or set secretRef) |
 | fullnameOverride | string | `""` | override name for helm chart |
 | image.pullPolicy | string | `"IfNotPresent"` | manager pullPolicy |
 | image.repository | string | `"ghcr.io/bojanzelic/cloudflare-zero-trust-operator"` | manager image repo |
@@ -26,7 +26,7 @@ Cloudflare Zero-Trust operator allow you to manage your zero-trust configuration
 | podAnnotations | object | `{}` | annotations to add to the pod |
 | proxy.resources | object | `{}` | limits & requests(cpu & memory) to apply to the manager container |
 | replicaCount | int | `1` | number of replicas to run |
-| secretRef | string | `""` | name of the secret that contains the following keys: CLOUDFLARE_ACCOUNT_ID, (CLOUDFLARE_API_KEY + CLOUDFLARE_API_EMAIL, or CLOUDFLARE_API_TOKEN) |
+| secretRef | string | `""` | name of the secret that contains the following keys: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_KEY, CLOUDFLARE_API_EMAIL, CLOUDFLARE_API_TOKEN |
 | service.port | int | `8443` | port of service |
 | service.type | string | `"ClusterIP"` | type of service |
 | serviceAccount.annotations | object | `{}` | Annotations to add to the service account |
