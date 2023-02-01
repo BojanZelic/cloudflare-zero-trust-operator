@@ -116,7 +116,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 
 	if existingCfAG == nil {
 		//nolint:varnamelen
-		ag, err := api.CreateAccessGroup(ctx, newCfAG)
+		ag, err := api.CreateAccessGroup(ctx, accessGroup.ToCloudflare())
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
 		}
@@ -127,10 +127,10 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		existingCfAG = &ag
 	}
 
-	if !cfcollections.AccessGroupEqual(*existingCfAG, newCfAG) {
+	if !cfcollections.AccessGroupEqual(*existingCfAG, accessGroup.ToCloudflare()) {
 		log.Info(newCfAG.Name + " has changed, updating...")
 
-		_, err := api.UpdateAccessGroup(ctx, newCfAG)
+		_, err := api.UpdateAccessGroup(ctx, accessGroup.ToCloudflare())
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to update access groups")
 		}

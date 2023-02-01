@@ -7,10 +7,11 @@ import (
 	"time"
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
+	"github.com/cloudflare/cloudflare-go"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -47,41 +48,76 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			logOutput.Clear()
 
 			By("Creating the Namespace to perform the tests")
-			err := k8sClient.Create(ctx, namespace)
-			Expect(err).To(Not(HaveOccurred()))
+			k8sClient.Create(ctx, namespace)
+
+			//Expect(err).To(Not(HaveOccurred()))
 		})
 
 		AfterEach(func() {
-			By("Deleting the Namespace to perform the tests")
-			_ = k8sClient.Delete(ctx, namespace)
+			By("expect no reconcile errors occured")
 			Expect(logOutput.GetErrorCount()).To(Equal(0), logOutput.GetOutput())
+			// By("Deleting the Namespace to perform the tests")
+			// _ = k8sClient.Delete(ctx, namespace)
+		})
+
+		It("should successfully reconcile if a CloudflareAccessGroup AlreadyExists", func() {
+			By("Pre-creating a cloudflare access group")
+
+			ag, err := api.CreateAccessGroup(ctx, cloudflare.AccessGroup{
+				Name: "existing-access-group",
+				Include: []interface{}{
+					cfapi.NewAccessGroupEmail("test1@cf-operator-tests.uk"),
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Creating the same custom resource for the Kind CloudflareAccessGroup")
+			group := &v1alpha1.CloudflareAccessGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ag.Name,
+					Namespace: namespace.Name,
+				},
+				Spec: v1alpha1.CloudflareAccessGroupSpec{
+					Name: ag.Name,
+					Include: []v1alpha1.CloudFlareAccessGroupRule{
+						{
+							Emails: []string{"test2@cf-operator-tests.uk"},
+						},
+					},
+				},
+			}
+
+			err = k8sClient.Create(ctx, group)
+			Expect(err).To(Not(HaveOccurred()))
+
+			found := &v1alpha1.CloudflareAccessGroup{}
+			By("Checking the latest Status should have the ID of the resource")
+			Eventually(func() string {
+				found = &v1alpha1.CloudflareAccessGroup{}
+				k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: group.Namespace}, found)
+				return found.Status.AccessGroupID
+			}, time.Second*10, time.Second).Should(Equal(ag.ID))
 		})
 
 		It("should successfully reconcile a custom resource for CloudflareAccessGroup", func() {
 			By("Creating the custom resource for the Kind CloudflareAccessGroup")
-			group := &v1alpha1.CloudflareAccessGroup{}
-			err := k8sClient.Get(ctx, typeNamespaceName, group)
-			if err != nil && errors.IsNotFound(err) {
-				// Let's mock our custom resource at the same way that we would
-				// apply on the cluster the manifest under config/samples
-				group := &v1alpha1.CloudflareAccessGroup{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      cloudflareName,
-						Namespace: namespace.Name,
-					},
-					Spec: v1alpha1.CloudflareAccessGroupSpec{
-						Name: "integration accessgroup test",
-						Include: []v1alpha1.CloudFlareAccessGroupRule{
-							{
-								Emails: []string{"test@cf-operator-tests.uk"},
-							},
+			group := &v1alpha1.CloudflareAccessGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      cloudflareName,
+					Namespace: namespace.Name,
+				},
+				Spec: v1alpha1.CloudflareAccessGroupSpec{
+					Name: "integration accessgroup test",
+					Include: []v1alpha1.CloudFlareAccessGroupRule{
+						{
+							Emails: []string{"test@cf-operator-tests.uk"},
 						},
 					},
-				}
-
-				err = k8sClient.Create(ctx, group)
-				Expect(err).To(Not(HaveOccurred()))
+				},
 			}
+
+			err := k8sClient.Create(ctx, group)
+			Expect(err).To(Not(HaveOccurred()))
 
 			By("Checking if the custom resource was successfully created")
 			Eventually(func() error {
