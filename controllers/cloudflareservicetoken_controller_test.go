@@ -7,6 +7,8 @@ import (
 	"time"
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	v1alpha1meta "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1/meta"
+
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -43,7 +45,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 		}
 
 		BeforeEach(func() {
-			//logOutput.Clear()
+			logOutput.Clear()
 
 			By("Creating the Namespace to perform the tests")
 			k8sClient.Create(ctx, namespace)
@@ -111,8 +113,8 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 					if token.Name == serviceToken.Spec.Name {
 						tokenfound = true
 
-						g.Expect(token.ID).To(Equal(string(sec.Data[sec.Annotations[cftypes.AnnotationTokenIDKey]])))
-						g.Expect(token.ClientID).To(Equal(string(sec.Data[sec.Annotations[cftypes.AnnotationClientIDKey]])))
+						g.Expect(token.ID).To(Equal(string(sec.Data[sec.Annotations[v1alpha1meta.AnnotationTokenIDKey]])))
+						g.Expect(token.ClientID).To(Equal(string(sec.Data[sec.Annotations[v1alpha1meta.AnnotationClientIDKey]])))
 					}
 				}
 				g.Expect(tokenfound).To(BeTrue(), "token not found")
@@ -181,8 +183,8 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 				if token.Name == found.Spec.Name {
 					secretFound = true
 
-					Expect(token.ID).To(Equal(string(sec.Data[sec.Annotations[cftypes.AnnotationTokenIDKey]])))
-					Expect(token.ClientID).To(Equal(string(sec.Data[sec.Annotations[cftypes.AnnotationClientIDKey]])))
+					Expect(token.ID).To(Equal(string(sec.Data[sec.Annotations[v1alpha1meta.AnnotationTokenIDKey]])))
+					Expect(token.ClientID).To(Equal(string(sec.Data[sec.Annotations[v1alpha1meta.AnnotationClientIDKey]])))
 				}
 			}
 			//we should only have 1 Token created
@@ -238,6 +240,69 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 				sec := &corev1.Secret{}
 				return k8sClient.Get(ctx, types.NamespacedName{Name: typeNamespaceName.Name, Namespace: typeNamespaceName.Namespace}, sec)
 			}, time.Second*10, time.Second).ShouldNot(Succeed())
+		})
+
+		It("should successfully reconcile a custom resource for CloudflareServiceToken", func() {
+			typeNamespaceName := types.NamespacedName{Name: "token3", Namespace: nsName}
+
+			By("Creating the custom resource for the Kind CloudflareServiceToken")
+			//var token *v1alpha1.CloudflareServiceToken
+			token := &v1alpha1.CloudflareServiceToken{}
+
+			err := k8sClient.Get(ctx, typeNamespaceName, token)
+			if err != nil && errors.IsNotFound(err) {
+				token = &v1alpha1.CloudflareServiceToken{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      typeNamespaceName.Name,
+						Namespace: typeNamespaceName.Namespace,
+					},
+					Spec: v1alpha1.CloudflareServiceTokenSpec{
+						Name: "integration servicetoken test3",
+					},
+				}
+
+				err = k8sClient.Create(ctx, token)
+				Expect(err).To(Not(HaveOccurred()))
+			}
+
+			By("Checking to get the updated CR")
+			Eventually(func() error {
+				return k8sClient.Get(ctx, typeNamespaceName, token)
+			}, time.Second*10, time.Second).Should(Succeed())
+
+			By("Make sure the status ref is what we expect")
+			Eventually(func(g Gomega) {
+				k8sClient.Get(ctx, typeNamespaceName, token)
+				g.Expect(token.Status.ServiceTokenID).ToNot(BeEmpty())
+			}, time.Second*10, time.Second).Should(Succeed())
+
+			By("Make sure the service token exists on cloudflare")
+			tokens, err := api.ServiceTokens(ctx)
+			Expect(err).To(Not(HaveOccurred()))
+			var foundToken *cftypes.ExtendedServiceToken
+			for _, cfToken := range tokens {
+				if cfToken.ID == token.Status.ServiceTokenID {
+					foundToken = &cfToken
+				}
+			}
+
+			Expect(foundToken).ToNot(BeNil())
+
+			By("Removing the access service token")
+			k8sClient.Delete(ctx, token)
+
+			By("Expecting that the token is removed from cloudflare")
+			Eventually(func(g Gomega) {
+				tokens, _ := api.ServiceTokens(ctx)
+				var foundToken *cftypes.ExtendedServiceToken
+				for _, cfToken := range tokens {
+					if cfToken.ID == token.Status.ServiceTokenID {
+						foundToken = &cfToken
+					}
+				}
+
+				g.Expect(foundToken).To(BeNil())
+			}, time.Second*10, time.Second).Should(Succeed())
 		})
 	})
 })

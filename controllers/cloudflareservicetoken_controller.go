@@ -21,9 +21,12 @@ import (
 	"reflect"
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	v1alpha1meta "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1/meta"
+
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -40,6 +44,7 @@ import (
 type CloudflareServiceTokenReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	api    *cfapi.API
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -69,18 +74,6 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareServiceToken")
 	}
 
-	if serviceToken.Status.Conditions == nil || len(serviceToken.Status.Conditions) == 0 {
-		meta.SetStatusCondition(&serviceToken.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "ServiceToken is reconciling"})
-		if err = r.Status().Update(ctx, serviceToken); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareServiceToken status")
-		}
-
-		// refetch the serviceToken
-		if err = r.Client.Get(ctx, req.NamespacedName, serviceToken); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareServiceToken")
-		}
-	}
-
 	cfConfig := config.ParseCloudflareConfig(serviceToken)
 	validConfig, err := cfConfig.IsValid()
 	if !validConfig {
@@ -93,10 +86,34 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, errors.Wrap(err, "unable to initialize cloudflare object")
 	}
 
+	continueReconcilliation, err := r.ReconcileDeletion(ctx, api, serviceToken)
+	if !continueReconcilliation || err != nil {
+		if err != nil {
+			log.Error(err, "unable to reconcile deletion for service token", map[string]string{
+				"name":      serviceToken.Name,
+				"namespace": serviceToken.Namespace,
+			})
+		}
+
+		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion")
+	}
+
+	if serviceToken.Status.Conditions == nil || len(serviceToken.Status.Conditions) == 0 {
+		meta.SetStatusCondition(&serviceToken.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "ServiceToken is reconciling"})
+		if err = r.Status().Update(ctx, serviceToken); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareServiceToken status")
+		}
+
+		// refetch the serviceToken
+		if err = r.Client.Get(ctx, req.NamespacedName, serviceToken); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareServiceToken")
+		}
+	}
+
 	// this is used just for populating existingServiceToken
 	secretList := &corev1.SecretList{}
 	if err := r.Client.List(ctx, secretList,
-		client.MatchingLabels{cftypes.LabelOwnedBy: serviceToken.Name},
+		client.MatchingLabels{v1alpha1meta.LabelOwnedBy: serviceToken.Name},
 		client.InNamespace(serviceToken.Namespace),
 	); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "unable to list created secrets")
@@ -109,7 +126,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		secret = &secretList.Items[0]
 
 		if len(secretList.Items) > 1 {
-			log.Info("Found multiple secrets with the same owner label", "label", cftypes.LabelOwnedBy, "owner", serviceToken.Name)
+			log.Info("Found multiple secrets with the same owner label", "label", v1alpha1meta.LabelOwnedBy, "owner", serviceToken.Name)
 		}
 	}
 
@@ -119,7 +136,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access service token")
 		}
 		for i, token := range allTokens {
-			if token.ID == string(secret.Data[secret.Annotations[cftypes.AnnotationTokenIDKey]]) {
+			if token.ID == string(secret.Data[secret.Annotations[v1alpha1meta.AnnotationTokenIDKey]]) {
 				existingServiceToken = &allTokens[i]
 
 				break
@@ -167,12 +184,12 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		secret.Name = secretNamespacedName.Name
 		secret.Namespace = secretNamespacedName.Namespace
 		secret.SetLabels(map[string]string{
-			cftypes.LabelOwnedBy: serviceToken.Name,
+			v1alpha1meta.LabelOwnedBy: serviceToken.Name,
 		})
 		secret.SetAnnotations(map[string]string{
-			cftypes.AnnotationClientIDKey:     serviceToken.Spec.Template.ClientIDKey,
-			cftypes.AnnotationClientSecretKey: serviceToken.Spec.Template.ClientSecretKey,
-			cftypes.AnnotationTokenIDKey:      "serviceTokenID",
+			v1alpha1meta.AnnotationClientIDKey:     serviceToken.Spec.Template.ClientIDKey,
+			v1alpha1meta.AnnotationClientSecretKey: serviceToken.Spec.Template.ClientSecretKey,
+			v1alpha1meta.AnnotationTokenIDKey:      "serviceTokenID",
 		})
 
 		secret.Data = map[string][]byte{}
@@ -207,9 +224,9 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 
 	updatedSecret := secret.DeepCopy()
 	updatedSecret.SetAnnotations(map[string]string{
-		cftypes.AnnotationClientIDKey:     serviceToken.Spec.Template.ClientIDKey,
-		cftypes.AnnotationClientSecretKey: serviceToken.Spec.Template.ClientSecretKey,
-		cftypes.AnnotationTokenIDKey:      "serviceTokenID",
+		v1alpha1meta.AnnotationClientIDKey:     serviceToken.Spec.Template.ClientIDKey,
+		v1alpha1meta.AnnotationClientSecretKey: serviceToken.Spec.Template.ClientSecretKey,
+		v1alpha1meta.AnnotationTokenIDKey:      "serviceTokenID",
 	})
 
 	updatedSecret.Data[serviceToken.Spec.Template.ClientSecretKey] = []byte(existingServiceToken.ClientSecret)
@@ -246,6 +263,43 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// Returns if reconcilliation should continue or not
+func (r *CloudflareServiceTokenReconciler) ReconcileDeletion(ctx context.Context, api *cfapi.API, k8sServiceToken *v1alpha1.CloudflareServiceToken) (bool, error) {
+	log := logger.FromContext(ctx).WithName("CloudflareServiceTokenReconciler::ReconcileDeletion")
+
+	// examine DeletionTimestamp to determine if object is under deletion
+	if k8sServiceToken.ObjectMeta.DeletionTimestamp.IsZero() {
+		if err := ctrlhelper.EnsureFinalizer(ctx, r.Client, k8sServiceToken); err != nil {
+			return false, errors.Wrap(err, "unable to reconcile finalizer")
+		}
+	} else {
+		// The object is being deleted
+		if controllerutil.ContainsFinalizer(k8sServiceToken, v1alpha1meta.FinalizerDeletion) {
+			// our finalizer is present, so lets handle any external dependency
+			if k8sServiceToken.Status.ServiceTokenID != "" {
+				if err := api.DeleteAccessServiceToken(ctx, k8sServiceToken.Status.ServiceTokenID); err != nil {
+					log.Error(err, "unable to delete serivce token")
+
+					return false, errors.Wrap(err, "unable to delete service token")
+				}
+			}
+
+			// remove our finalizer from the list and update it.
+			controllerutil.RemoveFinalizer(k8sServiceToken, v1alpha1meta.FinalizerDeletion)
+			if err := r.Update(ctx, k8sServiceToken); err != nil {
+				log.Error(err, "unable to remove finalizer")
+
+				return false, err
+			}
+		}
+
+		// Stop reconciliation as the item is being deleted
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (r *CloudflareServiceTokenReconciler) ReconcileStatus(ctx context.Context, cfToken *cftypes.ExtendedServiceToken, k8sToken *v1alpha1.CloudflareServiceToken) error {

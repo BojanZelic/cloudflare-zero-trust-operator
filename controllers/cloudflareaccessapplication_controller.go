@@ -21,9 +21,12 @@ import (
 	"reflect"
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	v1alpha1meta "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1/meta"
+
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/services"
 	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/pkg/errors"
@@ -34,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -60,7 +64,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	var existingaccessApp *cloudflare.AccessApplication
 	var api *cfapi.API
 
-	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController")
+	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::Reconcile")
 	app := &v1alpha1.CloudflareAccessApplication{}
 
 	if err = r.Client.Get(ctx, req.NamespacedName, app); err != nil {
@@ -73,18 +77,6 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessApplication")
 	}
 
-	if app.Status.Conditions == nil || len(app.Status.Conditions) == 0 {
-		meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "CloudflareAccessApplication is reconciling"})
-		if err = r.Status().Update(ctx, app); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
-		}
-
-		// refetch the app
-		if err = r.Client.Get(ctx, req.NamespacedName, app); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareAccessApplication")
-		}
-	}
-
 	cfConfig := config.ParseCloudflareConfig(app)
 	validConfig, err := cfConfig.IsValid()
 	if !validConfig {
@@ -95,6 +87,30 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "unable to initialize cloudflare object")
+	}
+
+	continueReconcilliation, err := r.ReconcileDeletion(ctx, api, app)
+	if !continueReconcilliation || err != nil {
+		if err != nil {
+			log.Error(err, "unable to reconcile deletion for access app", map[string]string{
+				"name":      app.Name,
+				"namespace": app.Namespace,
+			})
+		}
+
+		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion")
+	}
+
+	if app.Status.Conditions == nil || len(app.Status.Conditions) == 0 {
+		meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "CloudflareAccessApplication is reconciling"})
+		if err = r.Status().Update(ctx, app); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
+		}
+
+		// refetch the app
+		if err = r.Client.Get(ctx, req.NamespacedName, app); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareAccessApplication")
+		}
 	}
 
 	apService := &services.AccessPolicyService{
@@ -185,8 +201,52 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	return ctrl.Result{}, nil
 }
 
+// Returns if reconcilliation should continue or not
+func (r *CloudflareAccessApplicationReconciler) ReconcileDeletion(ctx context.Context, api *cfapi.API, k8sApp *v1alpha1.CloudflareAccessApplication) (bool, error) {
+	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::ReconcileDeletion")
+
+	// examine DeletionTimestamp to determine if object is under deletion
+	if k8sApp.ObjectMeta.DeletionTimestamp.IsZero() {
+		if err := ctrlhelper.EnsureFinalizer(ctx, r.Client, k8sApp); err != nil {
+			return false, errors.Wrap(err, "unable to reconcile finalizer")
+		}
+	} else {
+		// The object is being deleted
+		if controllerutil.ContainsFinalizer(k8sApp, v1alpha1meta.FinalizerDeletion) {
+			// our finalizer is present, so lets handle any external dependency
+			if k8sApp.Status.AccessApplicationID != "" {
+				if err := api.DeleteAccessApplication(ctx, k8sApp.Status.AccessApplicationID); err != nil {
+					log.Error(err, "unable to delete app")
+
+					return false, errors.Wrap(err, "unable to delete app")
+				}
+			}
+
+			// remove our finalizer from the list and update it.
+			controllerutil.RemoveFinalizer(k8sApp, v1alpha1meta.FinalizerDeletion)
+			if err := r.Update(ctx, k8sApp); err != nil {
+				log.Error(err, "unable to remove finalizer")
+
+				return false, err
+			}
+		}
+
+		// Stop reconciliation as the item is being deleted
+		log.Info("app is deleted", map[string]string{
+			"name":      k8sApp.Name,
+			"namespace": k8sApp.Namespace,
+		})
+
+		return false, nil
+	}
+
+	return true, nil
+}
+
 // nolint:dupl
 func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Context, cfApp *cloudflare.AccessApplication, k8sApp *v1alpha1.CloudflareAccessApplication) error {
+	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::ReconcileStatus")
+
 	if k8sApp.Status.AccessApplicationID != "" {
 		return nil
 	}
@@ -203,6 +263,8 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Cont
 	if !reflect.DeepEqual(newApp.Status, k8sApp.Status) {
 		err := r.Status().Update(ctx, newApp)
 		if err != nil {
+			log.Error(err, "unable to update access application")
+
 			return errors.Wrap(err, "unable to update access application")
 		}
 

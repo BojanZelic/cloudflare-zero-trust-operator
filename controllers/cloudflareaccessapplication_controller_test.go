@@ -53,8 +53,6 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			},
 		}
 
-		typeNamespaceName := types.NamespacedName{Name: cloudflareName, Namespace: cloudflareName}
-
 		BeforeEach(func() {
 			logOutput.Clear()
 
@@ -110,7 +108,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				found = &v1alpha1.CloudflareAccessApplication{}
 				k8sClient.Get(ctx, typeNamespaceName, found)
 				return found.Status.AccessApplicationID
-			}, time.Minute, time.Second).Should(Not(BeEmpty()))
+			}, time.Second*10, time.Second).Should(Not(BeEmpty()))
 
 			var cfResource cfcollections.AccessPolicyCollection
 			By("Cloudflare resource should equal the spec")
@@ -153,7 +151,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 					Namespace: namespace.Name,
 				},
 				Spec: v1alpha1.CloudflareAccessApplicationSpec{
-					Name:   "bad-reference policies ",
+					Name:   "bad-reference policies",
 					Domain: "bad-reference-policies.cf-operator-tests.uk",
 					Policies: v1alpha1.CloudflareAccessPolicyList{
 						{
@@ -278,6 +276,75 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 		It("should successfully reconcile a custom resource for CloudflareAccessApplication", func() {
 			By("Creating the custom resource for the Kind CloudflareAccessApplication")
+			typeNamespaceName := types.NamespacedName{Name: "cloudflare-app-five", Namespace: cloudflareName}
+
+			apps := &v1alpha1.CloudflareAccessApplication{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      typeNamespaceName.Name,
+					Namespace: typeNamespaceName.Namespace,
+				},
+				Spec: v1alpha1.CloudflareAccessApplicationSpec{
+					Name:   "integration test",
+					Domain: "integration.cf-operator-tests.uk",
+				},
+			}
+			err := k8sClient.Create(ctx, apps)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				found := &v1alpha1.CloudflareAccessApplication{}
+				return k8sClient.Get(ctx, typeNamespaceName, found)
+			}, time.Second*10, time.Second).Should(Succeed())
+
+			found := &v1alpha1.CloudflareAccessApplication{}
+			By("Checking the latest Status should have the ID of the resource")
+			Eventually(func(g Gomega) {
+				found = &v1alpha1.CloudflareAccessApplication{}
+				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
+				g.Expect(found.Status.AccessApplicationID).ToNot(BeEmpty())
+				g.Expect(found.Status.CreatedAt.Time).To(Equal(found.Status.UpdatedAt.Time))
+			}, time.Second*10, time.Second).Should(Succeed())
+
+			By("Cloudflare resource should equal the spec")
+			cfResource, err := api.AccessApplication(ctx, found.Status.AccessApplicationID)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(cfResource.Name).To(Equal(found.Spec.Name))
+
+			By("Get the latest version of the resource")
+			Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
+			By("Updating the name of the resource")
+			found.Spec.Name = "updated name"
+			Expect(k8sClient.Update(ctx, found)).To(Not(HaveOccurred()))
+
+			By("Checking the latest Status should have the update")
+			Eventually(func(g Gomega) {
+				found = &v1alpha1.CloudflareAccessApplication{}
+				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
+				g.Expect(found.Spec.Name).To(Equal("updated name"))
+				g.Expect(found.Status.AccessApplicationID).ToNot(BeEmpty())
+			}, time.Second*25, time.Second).Should(Succeed())
+
+			By("Cloudflare resource should equal the updated spec")
+			Eventually(func(g Gomega) {
+				cfResource, err = api.AccessApplication(ctx, found.Status.AccessApplicationID)
+				g.Expect(err).To(Not(HaveOccurred()))
+				g.Expect(cfResource.Name).To(Equal(found.Spec.Name))
+			}, time.Second*45, time.Second).Should(Succeed(), logOutput.GetOutput()) //sometimes this is cached
+
+			By("Cloudflare resource should be deleted")
+			Expect(k8sClient.Delete(ctx, apps)).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully deleted")
+			Eventually(func() error {
+				return k8sClient.Get(ctx, typeNamespaceName, apps)
+			}, time.Second*10, time.Second).Should(Not(Succeed()))
+		})
+
+		It("should successfully reconcile a custom resource for CloudflareAccessApplication", func() {
+			By("Creating the custom resource for the Kind CloudflareAccessApplication")
+			typeNamespaceName := types.NamespacedName{Name: "cloudflare-app-four", Namespace: cloudflareName}
+
 			apps := &v1alpha1.CloudflareAccessApplication{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      cloudflareName,
