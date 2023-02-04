@@ -91,6 +91,18 @@ type CloudflareAccessGroup struct {
 	Status CloudflareAccessGroupStatus `json:"status,omitempty"`
 }
 
+func (c *CloudflareAccessGroup) GetType() string {
+	return "CloudflareAccessGroup"
+}
+
+func (c *CloudflareAccessGroup) GetID() string {
+	return c.Status.AccessGroupID
+}
+
+func (c *CloudflareAccessGroup) UnderDeletion() bool {
+	return !c.ObjectMeta.DeletionTimestamp.IsZero()
+}
+
 func (c *CloudflareAccessGroup) ToCloudflare() cloudflare.AccessGroup {
 	accessGroup := cloudflare.AccessGroup{
 		Name:      c.Spec.Name,

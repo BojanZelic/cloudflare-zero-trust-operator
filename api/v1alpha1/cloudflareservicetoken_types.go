@@ -115,6 +115,18 @@ type CloudflareServiceToken struct {
 	Status CloudflareServiceTokenStatus `json:"status,omitempty"`
 }
 
+func (c *CloudflareServiceToken) GetType() string {
+	return "CloudflareServiceToken"
+}
+
+func (c *CloudflareServiceToken) GetID() string {
+	return c.Status.ServiceTokenID
+}
+
+func (c *CloudflareServiceToken) UnderDeletion() bool {
+	return !c.ObjectMeta.DeletionTimestamp.IsZero()
+}
+
 func (c CloudflareServiceToken) ToExtendedToken() cftypes.ExtendedServiceToken {
 	return cftypes.ExtendedServiceToken{
 		AccessServiceToken: cloudflare.AccessServiceToken{

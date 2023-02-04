@@ -268,10 +268,12 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 // Returns if reconcilliation should continue or not
 func (r *CloudflareServiceTokenReconciler) ReconcileDeletion(ctx context.Context, api *cfapi.API, k8sServiceToken *v1alpha1.CloudflareServiceToken) (bool, error) {
 	log := logger.FromContext(ctx).WithName("CloudflareServiceTokenReconciler::ReconcileDeletion")
-
+	controllerHelper := &ctrlhelper.ControllerHelper{
+		R: r.Client,
+	}
 	// examine DeletionTimestamp to determine if object is under deletion
 	if k8sServiceToken.ObjectMeta.DeletionTimestamp.IsZero() {
-		if err := ctrlhelper.EnsureFinalizer(ctx, r.Client, k8sServiceToken); err != nil {
+		if err := controllerHelper.EnsureFinalizer(ctx, k8sServiceToken); err != nil {
 			return false, errors.Wrap(err, "unable to reconcile finalizer")
 		}
 	} else {

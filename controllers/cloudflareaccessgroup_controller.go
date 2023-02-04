@@ -201,9 +201,13 @@ func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, c
 func (r *CloudflareAccessGroupReconciler) ReconcileDeletion(ctx context.Context, api *cfapi.API, k8sGroup *v1alpha1.CloudflareAccessGroup) (bool, error) {
 	log := logger.FromContext(ctx).WithName("CloudflareAccessGroupReconciler::ReconcileDeletion")
 
+	controllerHelper := &ctrlhelper.ControllerHelper{
+		R: r.Client,
+	}
+
 	// examine DeletionTimestamp to determine if object is under deletion
 	if k8sGroup.ObjectMeta.DeletionTimestamp.IsZero() {
-		if err := ctrlhelper.EnsureFinalizer(ctx, r.Client, k8sGroup); err != nil {
+		if err := controllerHelper.EnsureFinalizer(ctx, k8sGroup); err != nil {
 			return false, errors.Wrap(err, "unable to reconcile finalizer")
 		}
 	} else {
