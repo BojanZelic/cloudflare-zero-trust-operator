@@ -23,6 +23,7 @@ import (
 	cloudflarev1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/controllers"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -90,9 +91,14 @@ func main() {
 
 	config.SetConfigDefaults()
 
+	controllerHelper := &ctrlhelper.ControllerHelper{
+		R: mgr.GetClient(),
+	}
+
 	if err = (&controllers.CloudflareAccessGroupReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Helper: controllerHelper,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudflareAccessGroup")
 		os.Exit(1)
@@ -100,6 +106,7 @@ func main() {
 	if err = (&controllers.CloudflareAccessApplicationReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Helper: controllerHelper,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudflareAccessApplication")
 		os.Exit(1)
@@ -107,6 +114,7 @@ func main() {
 	if err = (&controllers.CloudflareServiceTokenReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Helper: controllerHelper,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudflareServiceToken")
 		os.Exit(1)

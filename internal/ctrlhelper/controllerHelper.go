@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	v1alpha1meta "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1/meta"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/pkg/errors"
@@ -12,20 +13,12 @@ import (
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// type CloudflareCR interface {
-// 	*v1alpha1.CloudflareServiceToken | *v1alpha1.CloudflareAccessApplication | *v1alpha1.CloudflareAccessGroup
-// }
-
-// func EnsureFinalizer[C CloudflareCR](cr C) {
-
-// }
-
 type ControllerHelper struct {
 	R client.Client
 }
 
 func (h *ControllerHelper) EnsureFinalizer(ctx context.Context, c CloudflareCR) error {
-	log := logger.FromContext(ctx).WithName("CloudflareAccessGroupController")
+	log := logger.FromContext(ctx).WithName("finalizerHelper::CloudflareAccessGroupController")
 
 	annotations := c.GetAnnotations()
 	preventDestroy := false
@@ -52,15 +45,12 @@ func (h *ControllerHelper) EnsureFinalizer(ctx context.Context, c CloudflareCR) 
 	return nil
 }
 
-func ReconcileDeletion(ctx context.Context, c CloudflareCR) error {
-	return nil
-}
-
-// @todo: finish this by adding this to the controllers
-// needs better logging
-// we can use this same logic across multiple controllers for other stuff (ex: updating status)
 func (r *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API, k8sCR CloudflareCR) (bool, error) {
-	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::ReconcileDeletion")
+	log := logger.FromContext(ctx).WithName("finalizerHelper::ReconcileDeletion").WithValues(map[string]string{
+		"type":      k8sCR.GetType(),
+		"name":      k8sCR.GetName(),
+		"namespace": k8sCR.GetNamespace(),
+	})
 
 	// examine DeletionTimestamp to determine if object is under deletion
 	if !k8sCR.UnderDeletion() {
@@ -72,10 +62,23 @@ func (r *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 		if controllerutil.ContainsFinalizer(k8sCR, v1alpha1meta.FinalizerDeletion) {
 			// our finalizer is present, so lets handle any external dependency
 			if k8sCR.GetID() != "" {
-				if err := api.DeleteAccessApplication(ctx, k8sCR.GetID()); err != nil {
-					log.Error(err, "unable to delete app")
+				var err error
 
-					return false, errors.Wrap(err, "unable to delete app")
+				switch k8sCR.(type) {
+				case *v1alpha1.CloudflareAccessApplication:
+					err = api.DeleteAccessApplication(ctx, k8sCR.GetID())
+				case *v1alpha1.CloudflareAccessGroup:
+					err = api.DeleteAccessGroup(ctx, k8sCR.GetID())
+				case *v1alpha1.CloudflareServiceToken:
+					err = api.DeleteAccessServiceToken(ctx, k8sCR.GetID())
+				default:
+					return false, errors.Errorf("unknown type %T", k8sCR)
+				}
+
+				if err != nil {
+					log.Error(err, "unable to delete")
+
+					return false, errors.Wrap(err, "unable to delete")
 				}
 			}
 
@@ -89,10 +92,7 @@ func (r *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 		}
 
 		// Stop reconciliation as the item is being deleted
-		log.Info("app is deleted", map[string]string{
-			"name":      k8sCR.GetName(),
-			"namespace": k8sCR.GetNamespace(),
-		})
+		log.Info("destroyed successfully")
 
 		return false, nil
 	}

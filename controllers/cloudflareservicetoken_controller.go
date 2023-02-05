@@ -36,7 +36,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -44,7 +43,7 @@ import (
 type CloudflareServiceTokenReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	api    *cfapi.API
+	Helper *ctrlhelper.ControllerHelper
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -86,7 +85,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, errors.Wrap(err, "unable to initialize cloudflare object")
 	}
 
-	continueReconcilliation, err := r.ReconcileDeletion(ctx, api, serviceToken)
+	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, serviceToken)
 	if !continueReconcilliation || err != nil {
 		if err != nil {
 			log.Error(err, "unable to reconcile deletion for service token", map[string]string{
@@ -263,45 +262,6 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	}
 
 	return ctrl.Result{}, nil
-}
-
-// Returns if reconcilliation should continue or not
-func (r *CloudflareServiceTokenReconciler) ReconcileDeletion(ctx context.Context, api *cfapi.API, k8sServiceToken *v1alpha1.CloudflareServiceToken) (bool, error) {
-	log := logger.FromContext(ctx).WithName("CloudflareServiceTokenReconciler::ReconcileDeletion")
-	controllerHelper := &ctrlhelper.ControllerHelper{
-		R: r.Client,
-	}
-	// examine DeletionTimestamp to determine if object is under deletion
-	if k8sServiceToken.ObjectMeta.DeletionTimestamp.IsZero() {
-		if err := controllerHelper.EnsureFinalizer(ctx, k8sServiceToken); err != nil {
-			return false, errors.Wrap(err, "unable to reconcile finalizer")
-		}
-	} else {
-		// The object is being deleted
-		if controllerutil.ContainsFinalizer(k8sServiceToken, v1alpha1meta.FinalizerDeletion) {
-			// our finalizer is present, so lets handle any external dependency
-			if k8sServiceToken.Status.ServiceTokenID != "" {
-				if err := api.DeleteAccessServiceToken(ctx, k8sServiceToken.Status.ServiceTokenID); err != nil {
-					log.Error(err, "unable to delete serivce token")
-
-					return false, errors.Wrap(err, "unable to delete service token")
-				}
-			}
-
-			// remove our finalizer from the list and update it.
-			controllerutil.RemoveFinalizer(k8sServiceToken, v1alpha1meta.FinalizerDeletion)
-			if err := r.Update(ctx, k8sServiceToken); err != nil {
-				log.Error(err, "unable to remove finalizer")
-
-				return false, err
-			}
-		}
-
-		// Stop reconciliation as the item is being deleted
-		return false, nil
-	}
-
-	return true, nil
 }
 
 func (r *CloudflareServiceTokenReconciler) ReconcileStatus(ctx context.Context, cfToken *cftypes.ExtendedServiceToken, k8sToken *v1alpha1.CloudflareServiceToken) error {

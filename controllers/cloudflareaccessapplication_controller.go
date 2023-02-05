@@ -21,7 +21,6 @@ import (
 	"reflect"
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
-	v1alpha1meta "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1/meta"
 
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
@@ -37,7 +36,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -45,6 +43,7 @@ import (
 type CloudflareAccessApplicationReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	Helper *ctrlhelper.ControllerHelper
 }
 
 const (
@@ -64,7 +63,12 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	var existingaccessApp *cloudflare.AccessApplication
 	var api *cfapi.API
 
-	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::Reconcile")
+	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::Reconcile").WithValues(map[string]string{
+		"type":      "CloudflareAccessApplication",
+		"name":      req.Name,
+		"namespace": req.Namespace,
+	})
+
 	app := &v1alpha1.CloudflareAccessApplication{}
 
 	if err = r.Client.Get(ctx, req.NamespacedName, app); err != nil {
@@ -72,7 +76,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 			return ctrl.Result{}, nil
 		}
 
-		log.Error(err, "Failed to get CloudflareAccessApplication", "CloudflareAccessApplication.Name", req.Name)
+		log.Error(err, "Failed to get CloudflareAccessApplication")
 
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessApplication")
 	}
@@ -89,13 +93,10 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, errors.Wrap(err, "unable to initialize cloudflare object")
 	}
 
-	continueReconcilliation, err := r.ReconcileDeletion(ctx, api, app)
+	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, app)
 	if !continueReconcilliation || err != nil {
 		if err != nil {
-			log.Error(err, "unable to reconcile deletion for access app", map[string]string{
-				"name":      app.Name,
-				"namespace": app.Namespace,
-			})
+			log.Error(err, "unable to reconcile deletion")
 		}
 
 		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion")
@@ -199,51 +200,6 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	}
 
 	return ctrl.Result{}, nil
-}
-
-// Returns if reconcilliation should continue or not
-func (r *CloudflareAccessApplicationReconciler) ReconcileDeletion(ctx context.Context, api *cfapi.API, k8sApp *v1alpha1.CloudflareAccessApplication) (bool, error) {
-	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::ReconcileDeletion")
-
-	controllerHelper := &ctrlhelper.ControllerHelper{
-		R: r.Client,
-	}
-	// examine DeletionTimestamp to determine if object is under deletion
-	if k8sApp.ObjectMeta.DeletionTimestamp.IsZero() {
-		if err := controllerHelper.EnsureFinalizer(ctx, k8sApp); err != nil {
-			return false, errors.Wrap(err, "unable to reconcile finalizer")
-		}
-	} else {
-		// The object is being deleted
-		if controllerutil.ContainsFinalizer(k8sApp, v1alpha1meta.FinalizerDeletion) {
-			// our finalizer is present, so lets handle any external dependency
-			if k8sApp.Status.AccessApplicationID != "" {
-				if err := api.DeleteAccessApplication(ctx, k8sApp.Status.AccessApplicationID); err != nil {
-					log.Error(err, "unable to delete app")
-
-					return false, errors.Wrap(err, "unable to delete app")
-				}
-			}
-
-			// remove our finalizer from the list and update it.
-			controllerutil.RemoveFinalizer(k8sApp, v1alpha1meta.FinalizerDeletion)
-			if err := r.Update(ctx, k8sApp); err != nil {
-				log.Error(err, "unable to remove finalizer")
-
-				return false, err
-			}
-		}
-
-		// Stop reconciliation as the item is being deleted
-		log.Info("app is deleted", map[string]string{
-			"name":      k8sApp.Name,
-			"namespace": k8sApp.Namespace,
-		})
-
-		return false, nil
-	}
-
-	return true, nil
 }
 
 // nolint:dupl

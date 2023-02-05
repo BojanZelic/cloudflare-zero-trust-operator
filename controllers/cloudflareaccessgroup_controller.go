@@ -21,7 +21,6 @@ import (
 	"reflect"
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
-	v1alpha1meta "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1/meta"
 
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
@@ -36,7 +35,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -44,7 +42,7 @@ import (
 type CloudflareAccessGroupReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	api    *cfapi.API
+	Helper *ctrlhelper.ControllerHelper
 }
 
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups,verbs=get;list;watch;create;update;patch;delete
@@ -82,7 +80,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, errors.Wrap(err, "unable to initialize cloudflare object")
 	}
 
-	continueReconcilliation, err := r.ReconcileDeletion(ctx, api, accessGroup)
+	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, accessGroup)
 	if !continueReconcilliation || err != nil {
 		if err != nil {
 			log.Error(err, "unable to reconcile deletion for access group", map[string]string{
@@ -195,47 +193,6 @@ func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, c
 	}
 
 	return nil
-}
-
-// Returns if reconcilliation should continue or not
-func (r *CloudflareAccessGroupReconciler) ReconcileDeletion(ctx context.Context, api *cfapi.API, k8sGroup *v1alpha1.CloudflareAccessGroup) (bool, error) {
-	log := logger.FromContext(ctx).WithName("CloudflareAccessGroupReconciler::ReconcileDeletion")
-
-	controllerHelper := &ctrlhelper.ControllerHelper{
-		R: r.Client,
-	}
-
-	// examine DeletionTimestamp to determine if object is under deletion
-	if k8sGroup.ObjectMeta.DeletionTimestamp.IsZero() {
-		if err := controllerHelper.EnsureFinalizer(ctx, k8sGroup); err != nil {
-			return false, errors.Wrap(err, "unable to reconcile finalizer")
-		}
-	} else {
-		// The object is being deleted
-		if controllerutil.ContainsFinalizer(k8sGroup, v1alpha1meta.FinalizerDeletion) {
-			// our finalizer is present, so lets handle any external dependency
-			if k8sGroup.Status.AccessGroupID != "" {
-				if err := api.DeleteAccessGroup(ctx, k8sGroup.Status.AccessGroupID); err != nil {
-					log.Error(err, "unable to delete app")
-
-					return false, errors.Wrap(err, "unable to delete app")
-				}
-			}
-
-			// remove our finalizer from the list and update it.
-			controllerutil.RemoveFinalizer(k8sGroup, v1alpha1meta.FinalizerDeletion)
-			if err := r.Update(ctx, k8sGroup); err != nil {
-				log.Error(err, "unable to remove finalizer")
-
-				return false, err
-			}
-		}
-
-		// Stop reconciliation as the item is being deleted
-		return false, nil
-	}
-
-	return true, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
