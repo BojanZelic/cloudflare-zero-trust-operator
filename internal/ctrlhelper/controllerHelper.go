@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
-	v1alpha1meta "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1/meta"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -22,19 +21,19 @@ func (h *ControllerHelper) EnsureFinalizer(ctx context.Context, c CloudflareCR) 
 
 	annotations := c.GetAnnotations()
 	preventDestroy := false
-	if annotationPreventDestroy, ok := annotations[v1alpha1meta.AnnotationPreventDestroy]; ok {
+	if annotationPreventDestroy, ok := annotations[v1alpha1.AnnotationPreventDestroy]; ok {
 		preventDestroy, _ = strconv.ParseBool(annotationPreventDestroy)
 	}
 
-	if preventDestroy && controllerutil.ContainsFinalizer(c, v1alpha1meta.FinalizerDeletion) {
-		controllerutil.RemoveFinalizer(c, v1alpha1meta.FinalizerDeletion)
+	if preventDestroy && controllerutil.ContainsFinalizer(c, v1alpha1.FinalizerDeletion) {
+		controllerutil.RemoveFinalizer(c, v1alpha1.FinalizerDeletion)
 		if err := h.R.Update(ctx, c); err != nil {
 			log.Error(err, "unable to remove finalizer")
 
 			return errors.Wrap(err, "unable to remove finalizer")
 		}
-	} else if !controllerutil.ContainsFinalizer(c, v1alpha1meta.FinalizerDeletion) {
-		controllerutil.AddFinalizer(c, v1alpha1meta.FinalizerDeletion)
+	} else if !controllerutil.ContainsFinalizer(c, v1alpha1.FinalizerDeletion) {
+		controllerutil.AddFinalizer(c, v1alpha1.FinalizerDeletion)
 		if err := h.R.Update(ctx, c); err != nil {
 			log.Error(err, "unable to add finalizer")
 
@@ -63,7 +62,7 @@ func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 	}
 
 	// The object is being deleted
-	if controllerutil.ContainsFinalizer(k8sCR, v1alpha1meta.FinalizerDeletion) {
+	if controllerutil.ContainsFinalizer(k8sCR, v1alpha1.FinalizerDeletion) {
 		// our finalizer is present, so lets handle any external dependency
 		if k8sCR.GetID() != "" {
 			var err error
@@ -87,7 +86,7 @@ func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 		}
 
 		// remove our finalizer from the list and update it.
-		controllerutil.RemoveFinalizer(k8sCR, v1alpha1meta.FinalizerDeletion)
+		controllerutil.RemoveFinalizer(k8sCR, v1alpha1.FinalizerDeletion)
 		if err := h.R.Update(ctx, k8sCR); err != nil {
 			log.Error(err, "unable to remove finalizer")
 

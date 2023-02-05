@@ -21,7 +21,7 @@ import (
 	"reflect"
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
-	v1alpha1meta "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1/meta"
+	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1/v1alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
@@ -112,7 +112,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	// this is used just for populating existingServiceToken
 	secretList := &corev1.SecretList{}
 	if err := r.Client.List(ctx, secretList,
-		client.MatchingLabels{v1alpha1meta.LabelOwnedBy: serviceToken.Name},
+		client.MatchingLabels{v1alpha1.LabelOwnedBy: serviceToken.Name},
 		client.InNamespace(serviceToken.Namespace),
 	); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "unable to list created secrets")
@@ -125,7 +125,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		secret = &secretList.Items[0]
 
 		if len(secretList.Items) > 1 {
-			log.Info("Found multiple secrets with the same owner label", "label", v1alpha1meta.LabelOwnedBy, "owner", serviceToken.Name)
+			log.Info("Found multiple secrets with the same owner label", "label", v1alpha1.LabelOwnedBy, "owner", serviceToken.Name)
 		}
 	}
 
@@ -135,7 +135,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access service token")
 		}
 		for i, token := range allTokens {
-			if token.ID == string(secret.Data[secret.Annotations[v1alpha1meta.AnnotationTokenIDKey]]) {
+			if token.ID == string(secret.Data[secret.Annotations[v1alpha1.AnnotationTokenIDKey]]) {
 				existingServiceToken = &allTokens[i]
 
 				break
@@ -183,12 +183,12 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		secret.Name = secretNamespacedName.Name
 		secret.Namespace = secretNamespacedName.Namespace
 		secret.SetLabels(map[string]string{
-			v1alpha1meta.LabelOwnedBy: serviceToken.Name,
+			v1alpha1.LabelOwnedBy: serviceToken.Name,
 		})
 		secret.SetAnnotations(map[string]string{
-			v1alpha1meta.AnnotationClientIDKey:     serviceToken.Spec.Template.ClientIDKey,
-			v1alpha1meta.AnnotationClientSecretKey: serviceToken.Spec.Template.ClientSecretKey,
-			v1alpha1meta.AnnotationTokenIDKey:      "serviceTokenID",
+			v1alpha1.AnnotationClientIDKey:     serviceToken.Spec.Template.ClientIDKey,
+			v1alpha1.AnnotationClientSecretKey: serviceToken.Spec.Template.ClientSecretKey,
+			v1alpha1.AnnotationTokenIDKey:      "serviceTokenID",
 		})
 
 		secret.Data = map[string][]byte{}
@@ -223,9 +223,9 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 
 	updatedSecret := secret.DeepCopy()
 	updatedSecret.SetAnnotations(map[string]string{
-		v1alpha1meta.AnnotationClientIDKey:     serviceToken.Spec.Template.ClientIDKey,
-		v1alpha1meta.AnnotationClientSecretKey: serviceToken.Spec.Template.ClientSecretKey,
-		v1alpha1meta.AnnotationTokenIDKey:      "serviceTokenID",
+		v1alpha1.AnnotationClientIDKey:     serviceToken.Spec.Template.ClientIDKey,
+		v1alpha1.AnnotationClientSecretKey: serviceToken.Spec.Template.ClientSecretKey,
+		v1alpha1.AnnotationTokenIDKey:      "serviceTokenID",
 	})
 
 	updatedSecret.Data[serviceToken.Spec.Template.ClientSecretKey] = []byte(existingServiceToken.ClientSecret)

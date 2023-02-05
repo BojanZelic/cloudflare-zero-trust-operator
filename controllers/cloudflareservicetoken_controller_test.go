@@ -7,7 +7,7 @@ import (
 	"time"
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
-	v1alpha1meta "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1/meta"
+	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1/v1alpha1"
 
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	. "github.com/onsi/ginkgo/v2"
@@ -113,8 +113,8 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 					if token.Name == serviceToken.Spec.Name {
 						tokenfound = true
 
-						g.Expect(token.ID).To(Equal(string(sec.Data[sec.Annotations[v1alpha1meta.AnnotationTokenIDKey]])))
-						g.Expect(token.ClientID).To(Equal(string(sec.Data[sec.Annotations[v1alpha1meta.AnnotationClientIDKey]])))
+						g.Expect(token.ID).To(Equal(string(sec.Data[sec.Annotations[v1alpha1.AnnotationTokenIDKey]])))
+						g.Expect(token.ClientID).To(Equal(string(sec.Data[sec.Annotations[v1alpha1.AnnotationClientIDKey]])))
 					}
 				}
 				g.Expect(tokenfound).To(BeTrue(), "token not found")
@@ -183,8 +183,8 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 				if token.Name == found.Spec.Name {
 					secretFound = true
 
-					Expect(token.ID).To(Equal(string(sec.Data[sec.Annotations[v1alpha1meta.AnnotationTokenIDKey]])))
-					Expect(token.ClientID).To(Equal(string(sec.Data[sec.Annotations[v1alpha1meta.AnnotationClientIDKey]])))
+					Expect(token.ID).To(Equal(string(sec.Data[sec.Annotations[v1alpha1.AnnotationTokenIDKey]])))
+					Expect(token.ClientID).To(Equal(string(sec.Data[sec.Annotations[v1alpha1.AnnotationClientIDKey]])))
 				}
 			}
 			//we should only have 1 Token created
