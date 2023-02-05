@@ -22,7 +22,6 @@ import (
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	v1alpha1meta "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1/meta"
-
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
@@ -57,7 +56,11 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	var existingServiceToken *cftypes.ExtendedServiceToken
 	var api *cfapi.API
 
-	log := logger.FromContext(ctx).WithName("CloudflareServiceTokenController")
+	log := logger.FromContext(ctx).WithName("CloudflareServiceTokenController").WithValues(
+		"type", "CloudflareAccessApplication",
+		"name", req.Name,
+		"namespace", req.Namespace,
+	)
 
 	serviceToken := &v1alpha1.CloudflareServiceToken{}
 
@@ -88,10 +91,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, serviceToken)
 	if !continueReconcilliation || err != nil {
 		if err != nil {
-			log.Error(err, "unable to reconcile deletion for service token", map[string]string{
-				"name":      serviceToken.Name,
-				"namespace": serviceToken.Namespace,
-			})
+			log.Error(err, "unable to reconcile deletion for service token")
 		}
 
 		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion")

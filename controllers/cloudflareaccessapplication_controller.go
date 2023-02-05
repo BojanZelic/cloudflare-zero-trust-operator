@@ -21,7 +21,6 @@ import (
 	"reflect"
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
-
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
@@ -63,11 +62,11 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	var existingaccessApp *cloudflare.AccessApplication
 	var api *cfapi.API
 
-	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::Reconcile").WithValues(map[string]string{
-		"type":      "CloudflareAccessApplication",
-		"name":      req.Name,
-		"namespace": req.Namespace,
-	})
+	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::Reconcile").WithValues(
+		"type", "CloudflareAccessApplication",
+		"name", req.Name,
+		"namespace", req.Namespace,
+	)
 
 	app := &v1alpha1.CloudflareAccessApplication{}
 

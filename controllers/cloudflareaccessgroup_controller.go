@@ -21,7 +21,6 @@ import (
 	"reflect"
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
-
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
@@ -55,7 +54,11 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	var existingCfAG *cloudflare.AccessGroup
 	var api *cfapi.API
 
-	log := logger.FromContext(ctx).WithName("CloudflareAccessGroupController")
+	log := logger.FromContext(ctx).WithName("CloudflareAccessGroupController").WithValues(
+		"type", "CloudflareAccessApplication",
+		"name", req.Name,
+		"namespace", req.Namespace,
+	)
 	accessGroup := &v1alpha1.CloudflareAccessGroup{}
 
 	err = r.Client.Get(ctx, req.NamespacedName, accessGroup)
@@ -83,10 +86,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, accessGroup)
 	if !continueReconcilliation || err != nil {
 		if err != nil {
-			log.Error(err, "unable to reconcile deletion for access group", map[string]string{
-				"name":      accessGroup.Name,
-				"namespace": accessGroup.Namespace,
-			})
+			log.Error(err, "unable to reconcile deletion for access group")
 		}
 
 		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion")
