@@ -24,6 +24,7 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -40,6 +41,7 @@ import (
 type CloudflareAccessGroupReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	Helper *ctrlhelper.ControllerHelper
 }
 
 //+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups,verbs=get;list;watch;create;update;patch;delete
@@ -52,7 +54,11 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	var existingCfAG *cloudflare.AccessGroup
 	var api *cfapi.API
 
-	log := logger.FromContext(ctx).WithName("CloudflareAccessGroupController")
+	log := logger.FromContext(ctx).WithName("CloudflareAccessGroupController").WithValues(
+		"type", "CloudflareAccessApplication",
+		"name", req.Name,
+		"namespace", req.Namespace,
+	)
 	accessGroup := &v1alpha1.CloudflareAccessGroup{}
 
 	err = r.Client.Get(ctx, req.NamespacedName, accessGroup)
@@ -66,6 +72,26 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessGroup")
 	}
 
+	cfConfig := config.ParseCloudflareConfig(accessGroup)
+	validConfig, err := cfConfig.IsValid()
+	if !validConfig {
+		return ctrl.Result{}, errors.Wrap(err, "invalid config")
+	}
+
+	api, err = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "unable to initialize cloudflare object")
+	}
+
+	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, accessGroup)
+	if !continueReconcilliation || err != nil {
+		if err != nil {
+			log.Error(err, "unable to reconcile deletion for access group")
+		}
+
+		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion")
+	}
+
 	if accessGroup.Status.Conditions == nil || len(accessGroup.Status.Conditions) == 0 {
 		meta.SetStatusCondition(&accessGroup.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "AccessGroup is reconciling"})
 		if err = r.Status().Update(ctx, accessGroup); err != nil {
@@ -76,18 +102,6 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		if err = r.Client.Get(ctx, req.NamespacedName, accessGroup); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareAccessGroup")
 		}
-	}
-
-	cfConfig := config.ParseCloudflareConfig(accessGroup)
-	validConfig, err := cfConfig.IsValid()
-	if !validConfig {
-		return ctrl.Result{}, errors.Wrap(err, "invalid config")
-	}
-
-	api, err = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
-
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "unable to initialize cloudflare object")
 	}
 
 	cfAccessGroups, err := api.AccessGroups(ctx)
@@ -116,7 +130,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 
 	if existingCfAG == nil {
 		//nolint:varnamelen
-		ag, err := api.CreateAccessGroup(ctx, newCfAG)
+		ag, err := api.CreateAccessGroup(ctx, accessGroup.ToCloudflare())
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
 		}
@@ -127,10 +141,10 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		existingCfAG = &ag
 	}
 
-	if !cfcollections.AccessGroupEqual(*existingCfAG, newCfAG) {
+	if !cfcollections.AccessGroupEqual(*existingCfAG, accessGroup.ToCloudflare()) {
 		log.Info(newCfAG.Name + " has changed, updating...")
 
-		_, err := api.UpdateAccessGroup(ctx, newCfAG)
+		_, err := api.UpdateAccessGroup(ctx, accessGroup.ToCloudflare())
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to update access groups")
 		}

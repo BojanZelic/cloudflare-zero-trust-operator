@@ -21,6 +21,10 @@ apiVersion: cloudflare.zelic.io/v1alpha1
 kind: CloudflareAccessGroup
 metadata:
   name: accessgroup-example
+  annotations:
+    # (optional) default: "false"
+    #   ensures that the resource isn't removed from cloudflare if the CR is deleted
+    cloudflare.zelic.io/prevent-destroy: "true"
 spec:
   name: my access group
   include:
@@ -34,6 +38,10 @@ apiVersion: cloudflare.zelic.io/v1alpha1
 kind: CloudflareAccessApplication
 metadata:
   name: domain-example
+  annotations:
+    # (optional) default: "false"
+    #   ensures that the resource isn't removed from cloudflare if the CR is deleted
+    cloudflare.zelic.io/prevent-destroy: "true"
 spec:
   name: my application
   domain: domain.example.com
@@ -52,9 +60,6 @@ Currently in Project scope
 - [x] Manage Cloudflare Access Groups
 - [x] Manage Cloudflare Access Applications
 - [x] Manage Cloudflare Access Tokens
-
-## Roadmap
-- [ ] Deletion of Managed resources
 
 ## Advanced Usage
 

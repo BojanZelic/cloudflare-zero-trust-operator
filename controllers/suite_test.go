@@ -43,6 +43,7 @@ import (
 	cloudflarev1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -108,17 +109,24 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
+	controllerHelper := &ctrlhelper.ControllerHelper{
+		R: k8sClient,
+	}
+
 	Expect((&CloudflareAccessGroupReconciler{
 		Client: k8sClient,
 		Scheme: k8sClient.Scheme(),
+		Helper: controllerHelper,
 	}).SetupWithManager(k8sManager)).ToNot(HaveOccurred())
 	Expect((&CloudflareAccessApplicationReconciler{
 		Client: k8sClient,
 		Scheme: k8sClient.Scheme(),
+		Helper: controllerHelper,
 	}).SetupWithManager(k8sManager)).ToNot(HaveOccurred())
 	Expect((&CloudflareServiceTokenReconciler{
 		Client: k8sClient,
 		Scheme: k8sClient.Scheme(),
+		Helper: controllerHelper,
 	}).SetupWithManager(k8sManager)).ToNot(HaveOccurred())
 
 	go func() {

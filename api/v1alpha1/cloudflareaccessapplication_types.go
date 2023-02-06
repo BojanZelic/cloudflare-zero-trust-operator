@@ -159,6 +159,18 @@ type CloudflareAccessApplication struct {
 	Status CloudflareAccessApplicationStatus `json:"status,omitempty"`
 }
 
+func (c *CloudflareAccessApplication) GetType() string {
+	return "CloudflareAccessApplication"
+}
+
+func (c *CloudflareAccessApplication) GetID() string {
+	return c.Status.AccessApplicationID
+}
+
+func (c *CloudflareAccessApplication) UnderDeletion() bool {
+	return !c.ObjectMeta.DeletionTimestamp.IsZero()
+}
+
 func (c *CloudflareAccessApplication) ToCloudflare() cloudflare.AccessApplication {
 	allowedIdps := []string{}
 	if c.Spec.AllowedIdps != nil {

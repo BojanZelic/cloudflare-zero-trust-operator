@@ -107,7 +107,7 @@ test: manifests generate fmt vet envtest ## Run tests.
 
 .PHONY: integration-test
 integration-test: manifests generate fmt vet envtest ## Run integration tests.
-	$(shell cat .env.integration 2>/dev/null | xargs) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... --tags=integration -coverprofile cover.out
+	$(shell cat .env.integration 2>/dev/null | xargs) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -covermode=atomic -coverpkg=all --tags=integration -coverprofile cover.out
 
 ##@ Build
 

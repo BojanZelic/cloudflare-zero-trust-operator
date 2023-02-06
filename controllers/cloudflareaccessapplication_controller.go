@@ -24,6 +24,7 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/services"
 	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/pkg/errors"
@@ -41,6 +42,7 @@ import (
 type CloudflareAccessApplicationReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	Helper *ctrlhelper.ControllerHelper
 }
 
 const (
@@ -60,7 +62,12 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	var existingaccessApp *cloudflare.AccessApplication
 	var api *cfapi.API
 
-	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController")
+	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::Reconcile").WithValues(
+		"type", "CloudflareAccessApplication",
+		"name", req.Name,
+		"namespace", req.Namespace,
+	)
+
 	app := &v1alpha1.CloudflareAccessApplication{}
 
 	if err = r.Client.Get(ctx, req.NamespacedName, app); err != nil {
@@ -68,21 +75,9 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 			return ctrl.Result{}, nil
 		}
 
-		log.Error(err, "Failed to get CloudflareAccessApplication", "CloudflareAccessApplication.Name", req.Name)
+		log.Error(err, "Failed to get CloudflareAccessApplication")
 
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessApplication")
-	}
-
-	if app.Status.Conditions == nil || len(app.Status.Conditions) == 0 {
-		meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "CloudflareAccessApplication is reconciling"})
-		if err = r.Status().Update(ctx, app); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
-		}
-
-		// refetch the app
-		if err = r.Client.Get(ctx, req.NamespacedName, app); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareAccessApplication")
-		}
 	}
 
 	cfConfig := config.ParseCloudflareConfig(app)
@@ -95,6 +90,27 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "unable to initialize cloudflare object")
+	}
+
+	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, app)
+	if !continueReconcilliation || err != nil {
+		if err != nil {
+			log.Error(err, "unable to reconcile deletion")
+		}
+
+		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion")
+	}
+
+	if app.Status.Conditions == nil || len(app.Status.Conditions) == 0 {
+		meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "CloudflareAccessApplication is reconciling"})
+		if err = r.Status().Update(ctx, app); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
+		}
+
+		// refetch the app
+		if err = r.Client.Get(ctx, req.NamespacedName, app); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareAccessApplication")
+		}
 	}
 
 	apService := &services.AccessPolicyService{
@@ -187,6 +203,8 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 
 // nolint:dupl
 func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Context, cfApp *cloudflare.AccessApplication, k8sApp *v1alpha1.CloudflareAccessApplication) error {
+	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::ReconcileStatus")
+
 	if k8sApp.Status.AccessApplicationID != "" {
 		return nil
 	}
@@ -203,6 +221,8 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Cont
 	if !reflect.DeepEqual(newApp.Status, k8sApp.Status) {
 		err := r.Status().Update(ctx, newApp)
 		if err != nil {
+			log.Error(err, "unable to update access application")
+
 			return errors.Wrap(err, "unable to update access application")
 		}
 
