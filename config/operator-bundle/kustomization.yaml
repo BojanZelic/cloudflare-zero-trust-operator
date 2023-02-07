@@ -1,4 +1,4 @@
-namespace: bojanzelic-cloudflare-zero-trust-operator-system
+namespace: cf-zero-trust-system
 
 secretGenerator:
   - name: cloudflare-creds

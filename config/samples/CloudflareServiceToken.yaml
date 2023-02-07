@@ -1,0 +1,7 @@
+apiVersion: cloudflare.zelic.io/v1alpha1
+kind: CloudflareServiceToken
+metadata:
+  annotation: 
+  name: cloudflare-test
+spec:
+  name: cloudflare-test
