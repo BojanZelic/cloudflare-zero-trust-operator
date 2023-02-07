@@ -1,7 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-metrics-reader
+  name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-f-zero-trust-operator-metrics-reader
   labels:
     app.kubernetes.io/component: kube-rbac-proxy
     app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator

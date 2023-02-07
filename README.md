@@ -6,7 +6,7 @@ Expect breaking changes
 Cloudflare Zero-Trust operator allow you to manage your zero-trust configuration directly from kubernetes
 
 <!-- Version_Placeholder -->
-![Version: 0.1.8](https://img.shields.io/badge/Version-0.1.8-informational?style=flat-square)
+![Version: 0.1.9](https://img.shields.io/badge/Version-0.1.9-informational?style=flat-square)
 [![CRD - reference](https://img.shields.io/badge/CRD-reference-2ea44f)](https://doc.crds.dev/github.com/BojanZelic/cloudflare-zero-trust-operator)
 ![Unit Tests](https://github.com/BojanZelic/cloudflare-zero-trust-operator/actions/workflows/unit.yaml/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/bojanzelic/cloudflare-zero-trust-operator)](https://goreportcard.com/report/github.com/bojanzelic/cloudflare-zero-trust-operator)
@@ -72,6 +72,15 @@ See some more examples of how to use the [cloudflare zero-trust operator here](.
 
 ## Install
 
+### Token Permissions
+
+On your Cloudflare Dashboard; Create a custom API token with the following permissions:
+* Access: Service Tokens:Edit
+* Access: Organizations, Identity Providers, and Groups: Edit
+* Access: Apps and Policies:Edit
+
+This token will be used referenced as `CLOUDFLARE_API_TOKEN` in the secret below; 
+
 ### Install with Helm
 
 1) Create your namespace
@@ -127,9 +136,18 @@ secretGenerator:
 
 This provider's versions are able to install and manage the following versions of Kubernetes:
 
-|                                                | v1.22 | v1.23 | v1.24 |
-| ---------------------------------------------- | ----- | ----- | ----- |
-| Cloudflare Zero Trust Operator v0.0.1-current  | ✓     | ✓     | ✓     |
+|                                                | v1.22 | v1.23 | v1.24 | v1.25 | v1.26 |
+| ---------------------------------------------- | ----- | ----- | ----- | ----- | ----- |
+| Cloudflare Zero Trust Operator v0.0.1-current  | ✓     | ✓     | ✓     | ✓     | ✓     |
+
+
+## Local Development
+
+```
+cp .env.example .env.integration
+vim .env.integration # add your creds here
+make integration-test
+```
 
 ## License
 
