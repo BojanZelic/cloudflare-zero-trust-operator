@@ -2,7 +2,6 @@ package ctrlhelper
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
@@ -26,8 +25,6 @@ func (h *ControllerHelper) EnsureFinalizer(ctx context.Context, c CloudflareCR) 
 	if annotationPreventDestroy, ok := annotations[v1alpha1.AnnotationPreventDestroy]; ok {
 		preventDestroy, _ = strconv.ParseBool(annotationPreventDestroy)
 	}
-
-	fmt.Println(preventDestroy)
 
 	if preventDestroy && controllerutil.ContainsFinalizer(c, v1alpha1.FinalizerDeletion) {
 		controllerutil.RemoveFinalizer(c, v1alpha1.FinalizerDeletion)
