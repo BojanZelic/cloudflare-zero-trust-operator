@@ -86,7 +86,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			sec := &corev1.Secret{}
 			Eventually(func() error {
 				return k8sClient.Get(ctx, types.NamespacedName{Name: serviceToken.Spec.Template.Name, Namespace: serviceToken.Namespace}, sec)
-			}, time.Second*20, time.Second).Should(Succeed(), logOutput.GetOutput())
+			}, time.Second*20, time.Second).Should(Succeed())
 
 			By("Make sure the status ref is what we expect")
 			Eventually(func(g Gomega) {
