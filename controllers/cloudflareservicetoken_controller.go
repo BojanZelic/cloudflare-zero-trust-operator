@@ -100,7 +100,8 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 				Type:    statusAvailable,
 				Status:  metav1.ConditionUnknown,
 				Reason:  "Reconciling",
-				Message: "ServiceToken is reconciling"})
+				Message: "ServiceToken is reconciling",
+			})
 		}
 
 		return nil
@@ -207,7 +208,6 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		}
 
 		return nil
-
 	})
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "Failed to create/update Secret")
@@ -267,7 +267,6 @@ func (r *CloudflareServiceTokenReconciler) ReconcileStatus(ctx context.Context, 
 		}
 
 		return nil
-
 	}); err != nil {
 		return errors.Wrap(err, "Failed to update CloudflareServiceToken")
 	}

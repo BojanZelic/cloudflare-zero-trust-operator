@@ -96,7 +96,8 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 				Type:    statusAvailable,
 				Status:  metav1.ConditionUnknown,
 				Reason:  "Reconciling",
-				Message: "AccessGroup is reconciling"})
+				Message: "AccessGroup is reconciling",
+			})
 		}
 
 		return nil
@@ -154,6 +155,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 
 	_, err = controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
 		meta.SetStatusCondition(&accessGroup.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionTrue, Reason: "Reconciling", Message: "AccessGroup Reconciled Successfully"})
+
 		return nil
 	})
 
@@ -180,9 +182,9 @@ func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, c
 		k8sGroup.Status.AccessGroupID = cfGroup.ID
 		k8sGroup.Status.CreatedAt = metav1.NewTime(*cfGroup.CreatedAt)
 		k8sGroup.Status.UpdatedAt = metav1.NewTime(*cfGroup.UpdatedAt)
+
 		return nil
 	})
-
 	if err != nil {
 		return errors.Wrap(err, "Failed to update CloudflareAccessGroup status")
 	}

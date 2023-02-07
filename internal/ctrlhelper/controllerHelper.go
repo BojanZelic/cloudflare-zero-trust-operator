@@ -2,14 +2,11 @@ package ctrlhelper
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/api/equality"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
@@ -42,70 +39,6 @@ func (h *ControllerHelper) EnsureFinalizer(ctx context.Context, c CloudflareCR) 
 
 			return errors.Wrap(err, "unable to add finalizer")
 		}
-	}
-
-	return nil
-}
-
-func (h *ControllerHelper) StatusUpdate(ctx context.Context, obj CloudflareCR, f controllerutil.MutateFn) error {
-	key := client.ObjectKeyFromObject(obj)
-	existing := obj.DeepCopyObject().(CloudflareCR)
-
-	if err := h.R.Get(ctx, key, obj); err != nil {
-		return err
-	}
-
-	if equality.Semantic.DeepEqual(existing.GetStatus(), obj.GetStatus()) {
-		fmt.Println("objects equal")
-		return nil
-	}
-
-	fmt.Println("updating object")
-	fmt.Println(obj)
-	if err := h.R.Status().Update(ctx, obj); err != nil {
-		return errors.Wrap(err, "update error")
-	}
-
-	return nil
-}
-
-func (h *ControllerHelper) Update(ctx context.Context, c client.Client, obj client.Object, f controllerutil.MutateFn) (controllerutil.OperationResult, error) {
-	key := client.ObjectKeyFromObject(obj)
-	if err := c.Get(ctx, key, obj); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return controllerutil.OperationResultNone, err
-		}
-		if err := mutate(f, key, obj); err != nil {
-			return controllerutil.OperationResultNone, err
-		}
-		if err := c.Create(ctx, obj); err != nil {
-			return controllerutil.OperationResultNone, err
-		}
-		return controllerutil.OperationResultCreated, nil
-	}
-
-	existing := obj.DeepCopyObject()
-	if err := mutate(f, key, obj); err != nil {
-		return controllerutil.OperationResultNone, err
-	}
-
-	if equality.Semantic.DeepEqual(existing, obj) {
-		return controllerutil.OperationResultNone, nil
-	}
-
-	if err := c.Update(ctx, obj); err != nil {
-		return controllerutil.OperationResultNone, err
-	}
-
-	return controllerutil.OperationResultUpdated, nil
-}
-
-func mutate(f controllerutil.MutateFn, key client.ObjectKey, obj client.Object) error {
-	if err := f(); err != nil {
-		return err
-	}
-	if newKey := client.ObjectKeyFromObject(obj); key != newKey {
-		return fmt.Errorf("MutateFn cannot mutate object name and/or object namespace")
 	}
 
 	return nil
