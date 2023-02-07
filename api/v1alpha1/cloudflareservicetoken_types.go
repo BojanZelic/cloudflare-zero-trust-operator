@@ -127,10 +127,6 @@ func (c *CloudflareServiceToken) UnderDeletion() bool {
 	return !c.ObjectMeta.DeletionTimestamp.IsZero()
 }
 
-func (c *CloudflareServiceToken) GetStatus() interface{} {
-	return c.Status
-}
-
 func (c CloudflareServiceToken) ToExtendedToken() cftypes.ExtendedServiceToken {
 	return cftypes.ExtendedServiceToken{
 		AccessServiceToken: cloudflare.AccessServiceToken{
