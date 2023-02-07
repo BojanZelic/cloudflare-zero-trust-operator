@@ -33,8 +33,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // CloudflareServiceTokenReconciler reconciles a CloudflareServiceToken object.
@@ -55,11 +58,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	var existingServiceToken *cftypes.ExtendedServiceToken
 	var api *cfapi.API
 
-	log := logger.FromContext(ctx).WithName("CloudflareServiceTokenController").WithValues(
-		"type", "CloudflareAccessApplication",
-		"name", req.Name,
-		"namespace", req.Namespace,
-	)
+	log := logger.FromContext(ctx).WithName("CloudflareServiceTokenController")
 
 	serviceToken := &v1alpha1.CloudflareServiceToken{}
 
@@ -96,16 +95,19 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion")
 	}
 
-	if serviceToken.Status.Conditions == nil || len(serviceToken.Status.Conditions) == 0 {
-		meta.SetStatusCondition(&serviceToken.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "ServiceToken is reconciling"})
-		if err = r.Status().Update(ctx, serviceToken); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareServiceToken status")
+	_, err = controllerutil.CreateOrPatch(ctx, r.Client, serviceToken, func() error {
+		if serviceToken.Status.Conditions == nil || len(serviceToken.Status.Conditions) == 0 {
+			meta.SetStatusCondition(&serviceToken.Status.Conditions, metav1.Condition{
+				Type:    statusAvailable,
+				Status:  metav1.ConditionUnknown,
+				Reason:  "Reconciling",
+				Message: "ServiceToken is reconciling"})
 		}
+		return nil
+	})
 
-		// refetch the serviceToken
-		if err = r.Client.Get(ctx, req.NamespacedName, serviceToken); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareServiceToken")
-		}
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareServiceToken status")
 	}
 
 	// this is used just for populating existingServiceToken
@@ -208,7 +210,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 				log.Error(nil, "failed to remove secret", "secret.namespace", secretToDelete.Namespace, "secret.name", secretToDelete.Name)
 			}
 
-			log.Info("removed secret", "secret.namespace", secretNamespacedName.Namespace, "secret.name", secretNamespacedName.Name)
+			log.Info("removed old secret", "secret.namespace", secretNamespacedName.Namespace, "secret.name", secretNamespacedName.Name)
 		}
 
 		if err := existingServiceToken.SetSecretValues(*secret); err != nil {
@@ -220,25 +222,25 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get Secret")
 	}
 
-	updatedSecret := secret.DeepCopy()
-	updatedSecret.SetAnnotations(map[string]string{
-		v1alpha1.AnnotationClientIDKey:     serviceToken.Spec.Template.ClientIDKey,
-		v1alpha1.AnnotationClientSecretKey: serviceToken.Spec.Template.ClientSecretKey,
-		v1alpha1.AnnotationTokenIDKey:      "serviceTokenID",
+	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
+		secret.SetAnnotations(map[string]string{
+			v1alpha1.AnnotationClientIDKey:     serviceToken.Spec.Template.ClientIDKey,
+			v1alpha1.AnnotationClientSecretKey: serviceToken.Spec.Template.ClientSecretKey,
+			v1alpha1.AnnotationTokenIDKey:      "serviceTokenID",
+		})
+
+		secret.Data[serviceToken.Spec.Template.ClientSecretKey] = []byte(existingServiceToken.ClientSecret)
+		secret.Data[serviceToken.Spec.Template.ClientIDKey] = []byte(existingServiceToken.ClientID)
+		secret.Data["serviceTokenID"] = []byte(existingServiceToken.ID)
+
+		return nil
 	})
 
-	updatedSecret.Data[serviceToken.Spec.Template.ClientSecretKey] = []byte(existingServiceToken.ClientSecret)
-	updatedSecret.Data[serviceToken.Spec.Template.ClientIDKey] = []byte(existingServiceToken.ClientID)
-	updatedSecret.Data["serviceTokenID"] = []byte(existingServiceToken.ID)
-	if !reflect.DeepEqual(secret, updatedSecret) {
-		secret = updatedSecret
-		err = r.Client.Update(ctx, secret)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Failed to update Secret")
-		}
-
-		log.Info("updated secret", "secret.namespace", secretNamespacedName.Namespace, "secret.name", secretNamespacedName.Name)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Failed to update Secret")
 	}
+
+	log.Info("updated secret", "secret.namespace", secretNamespacedName.Namespace, "secret.name", secretNamespacedName.Name)
 
 	existingServiceToken.SetSecretReference(serviceToken.Spec.Template.ClientIDKey, serviceToken.Spec.Template.ClientSecretKey, *secret)
 
@@ -251,12 +253,11 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, errors.Wrap(err, "unable to set status")
 	}
 
-	if err = r.Client.Get(ctx, req.NamespacedName, serviceToken); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareServiceToken")
-	}
+	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, serviceToken, func() error {
+		meta.SetStatusCondition(&serviceToken.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionTrue, Reason: "Reconciling", Message: "CloudflareServiceToken Reconciled Successfully"})
 
-	meta.SetStatusCondition(&serviceToken.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionTrue, Reason: "Reconciling", Message: "CloudflareServiceToken Reconciled Successfully"})
-	if err = r.Status().Update(ctx, serviceToken); err != nil {
+		return nil
+	}); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareServiceToken status")
 	}
 
@@ -301,7 +302,7 @@ func (r *CloudflareServiceTokenReconciler) ReconcileStatus(ctx context.Context, 
 func (r *CloudflareServiceTokenReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	//nolint:wrapcheck
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.CloudflareServiceToken{}).
+		For(&v1alpha1.CloudflareServiceToken{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Owns(&corev1.Secret{}).
 		Complete(r)
 }

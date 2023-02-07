@@ -171,6 +171,10 @@ func (c *CloudflareAccessApplication) UnderDeletion() bool {
 	return !c.ObjectMeta.DeletionTimestamp.IsZero()
 }
 
+func (c *CloudflareAccessApplication) GetStatus() interface{} {
+	return c.Status
+}
+
 func (c *CloudflareAccessApplication) ToCloudflare() cloudflare.AccessApplication {
 	allowedIdps := []string{}
 	if c.Spec.AllowedIdps != nil {

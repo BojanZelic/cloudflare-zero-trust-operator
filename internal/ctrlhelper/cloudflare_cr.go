@@ -6,5 +6,6 @@ type CloudflareCR interface {
 	GetID() string
 	GetType() string
 	UnderDeletion() bool
+	GetStatus() interface{}
 	client.Object
 }

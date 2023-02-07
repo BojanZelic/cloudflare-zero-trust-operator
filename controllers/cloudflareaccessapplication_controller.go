@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"reflect"
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
@@ -32,10 +31,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // CloudflareAccessApplicationReconciler reconciles a CloudflareAccessApplication object.
@@ -62,11 +63,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	var existingaccessApp *cloudflare.AccessApplication
 	var api *cfapi.API
 
-	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::Reconcile").WithValues(
-		"type", "CloudflareAccessApplication",
-		"name", req.Name,
-		"namespace", req.Namespace,
-	)
+	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::Reconcile")
 
 	app := &v1alpha1.CloudflareAccessApplication{}
 
@@ -101,16 +98,16 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion")
 	}
 
-	if app.Status.Conditions == nil || len(app.Status.Conditions) == 0 {
-		meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "CloudflareAccessApplication is reconciling"})
-		if err = r.Status().Update(ctx, app); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
+	_, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
+		if app.Status.Conditions == nil || len(app.Status.Conditions) == 0 {
+			meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "CloudflareAccessApplication is reconciling"})
 		}
 
-		// refetch the app
-		if err = r.Client.Get(ctx, req.NamespacedName, app); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareAccessApplication")
-		}
+		return nil
+	})
+
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
 	}
 
 	apService := &services.AccessPolicyService{
@@ -171,11 +168,16 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	}
 
 	if err := apService.PopulateAccessPolicyReferences(ctx, &app.Spec.Policies); err != nil {
-		meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusDegrated, Status: metav1.ConditionFalse, Reason: "InvalidReference", Message: err.Error()})
-		log.Info("failed to update access policies", "name", app.Name, "namespace", app.Namespace)
+		_, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
+			meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusDegrated, Status: metav1.ConditionFalse, Reason: "InvalidReference", Message: err.Error()})
 
-		if err := r.Status().Update(ctx, app); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Failed to update App status")
+			return nil
+		})
+
+		log.Info("failed to update access policies")
+
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
 		}
 
 		// don't requeue
@@ -189,13 +191,12 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, errors.Wrap(err, "unable get access policies")
 	}
 
-	if err = r.Client.Get(ctx, req.NamespacedName, app); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "Failed to re-fetch CloudflareAccessApplication")
-	}
+	if _, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
+		meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionTrue, Reason: "Reconciling", Message: "App Reconciled Successfully"})
 
-	meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionTrue, Reason: "Reconciling", Message: "App Reconciled Successfully"})
-	if err = r.Status().Update(ctx, app); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "Failed to update App status")
+		return nil
+	}); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
 	}
 
 	return ctrl.Result{}, nil
@@ -203,8 +204,6 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 
 // nolint:dupl
 func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Context, cfApp *cloudflare.AccessApplication, k8sApp *v1alpha1.CloudflareAccessApplication) error {
-	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::ReconcileStatus")
-
 	if k8sApp.Status.AccessApplicationID != "" {
 		return nil
 	}
@@ -213,24 +212,14 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Cont
 		return nil
 	}
 
-	newApp := k8sApp.DeepCopy()
+	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, k8sApp, func() error {
+		k8sApp.Status.AccessApplicationID = cfApp.ID
+		k8sApp.Status.CreatedAt = metav1.NewTime(*cfApp.CreatedAt)
+		k8sApp.Status.UpdatedAt = metav1.NewTime(*cfApp.UpdatedAt)
 
-	newApp.Status.AccessApplicationID = cfApp.ID
-	newApp.Status.CreatedAt = metav1.NewTime(*cfApp.CreatedAt)
-	newApp.Status.UpdatedAt = metav1.NewTime(*cfApp.UpdatedAt)
-	if !reflect.DeepEqual(newApp.Status, k8sApp.Status) {
-		err := r.Status().Update(ctx, newApp)
-		if err != nil {
-			log.Error(err, "unable to update access application")
-
-			return errors.Wrap(err, "unable to update access application")
-		}
-
-		namespacedName := types.NamespacedName{Name: k8sApp.Name, Namespace: k8sApp.Namespace}
-		// refetch the app
-		if err = r.Client.Get(ctx, namespacedName, k8sApp); err != nil {
-			return errors.Wrap(err, "Failed to re-fetch CloudflareAccessApplication")
-		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
 	}
 
 	return nil
@@ -283,6 +272,6 @@ func (r *CloudflareAccessApplicationReconciler) ReconcilePolicies(ctx context.Co
 func (r *CloudflareAccessApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	//nolint:wrapcheck
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.CloudflareAccessApplication{}).
+		For(&v1alpha1.CloudflareAccessApplication{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)
 }

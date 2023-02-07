@@ -61,6 +61,11 @@ Currently in Project scope
 - [x] Manage Cloudflare Access Applications
 - [x] Manage Cloudflare Access Tokens
 
+## TODO:
+* Test for deleting CR with annotation set
+* What if resource is deleted in cloudflare; we need to ignore it;
+* Reconcilliation Errors
+
 ## Advanced Usage
 
 See some more examples of how to use the [cloudflare zero-trust operator here](./docs/Advanced_Usage.md) 

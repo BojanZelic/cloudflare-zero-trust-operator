@@ -103,6 +103,10 @@ func (c *CloudflareAccessGroup) UnderDeletion() bool {
 	return !c.ObjectMeta.DeletionTimestamp.IsZero()
 }
 
+func (c *CloudflareAccessGroup) GetStatus() interface{} {
+	return c.Status
+}
+
 func (c *CloudflareAccessGroup) ToCloudflare() cloudflare.AccessGroup {
 	accessGroup := cloudflare.AccessGroup{
 		Name:      c.Spec.Name,
