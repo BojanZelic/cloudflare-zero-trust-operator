@@ -63,6 +63,7 @@ func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 	}
 
 	// The object is being deleted
+	//nolint:nestif
 	if controllerutil.ContainsFinalizer(k8sCR, v1alpha1.FinalizerDeletion) {
 		// our finalizer is present, so lets handle any external dependency
 		if k8sCR.GetID() != "" {
@@ -81,9 +82,8 @@ func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 			}
 
 			if err != nil {
-				//@todo there has to be a better way of doing
-				// this errors.Is or Errors.As doesn't seem to work
-				if _, ok := errors.Unwrap(errors.Unwrap(err)).(*cloudflare.NotFoundError); ok {
+				var notFound *cloudflare.NotFoundError
+				if errors.As(err, &notFound) {
 					log.Info("unable to remove resource from cloudflare - appears to be already deleted")
 				} else {
 					log.Error(err, "unable to delete")
