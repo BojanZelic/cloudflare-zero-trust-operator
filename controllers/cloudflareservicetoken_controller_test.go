@@ -6,7 +6,7 @@ import (
 	"context"
 	"time"
 
-	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	. "github.com/onsi/ginkgo/v2"
@@ -310,10 +310,13 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 				return k8sClient.Get(ctx, typeNamespaceName, token)
 			}, time.Second*10, time.Second).Should(Succeed())
 
-			By("Make sure the status ref is what we expect")
+			By("Make sure the annotation is not present")
 			Eventually(func(g Gomega) {
 				k8sClient.Get(ctx, typeNamespaceName, token)
 				g.Expect(token.Status.ServiceTokenID).ToNot(BeEmpty())
+				keyValue, keyExists := token.Annotations[v1alpha1.AnnotationPreventDestroy]
+				g.Expect(keyExists).To(BeFalse())
+				g.Expect(keyValue).To(Or(BeEmpty(), Equal("false")))
 			}, time.Second*10, time.Second).Should(Succeed())
 
 			By("Make sure the service token exists on cloudflare")
@@ -343,6 +346,70 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 
 				g.Expect(foundToken).To(BeNil())
 			}, time.Second*10, time.Second).Should(Succeed())
+		})
+
+		It("should successfully not remove the resource in CF if annotation is set", func() {
+			typeNamespaceName := types.NamespacedName{Name: "token5", Namespace: nsName}
+
+			By("Creating the custom resource for the Kind CloudflareServiceToken")
+			token := &v1alpha1.CloudflareServiceToken{}
+
+			err := k8sClient.Get(ctx, typeNamespaceName, token)
+			if err != nil && errors.IsNotFound(err) {
+				token = &v1alpha1.CloudflareServiceToken{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      typeNamespaceName.Name,
+						Namespace: typeNamespaceName.Namespace,
+						Annotations: map[string]string{
+							v1alpha1.AnnotationPreventDestroy: "true",
+						},
+					},
+					Spec: v1alpha1.CloudflareServiceTokenSpec{
+						Name: "integration servicetoken test5",
+					},
+				}
+
+				err = k8sClient.Create(ctx, token)
+				Expect(err).To(Not(HaveOccurred()))
+			}
+
+			By("Checking to get the updated CR")
+			Eventually(func() error {
+				return k8sClient.Get(ctx, typeNamespaceName, token)
+			}, time.Second*10, time.Second).Should(Succeed())
+
+			By("Make sure the status ref is what we expect")
+			Eventually(func(g Gomega) {
+				k8sClient.Get(ctx, typeNamespaceName, token)
+				g.Expect(token.Status.ServiceTokenID).ToNot(BeEmpty())
+			}, time.Second*10, time.Second).Should(Succeed())
+
+			By("Make sure the service token exists on cloudflare")
+			tokens, err := api.ServiceTokens(ctx)
+			Expect(err).To(Not(HaveOccurred()))
+			var foundToken *cftypes.ExtendedServiceToken
+			for _, cfToken := range tokens {
+				if cfToken.ID == token.Status.ServiceTokenID {
+					foundToken = &cfToken
+				}
+			}
+
+			Expect(foundToken).ToNot(BeNil())
+
+			By("Removing the access service token")
+			k8sClient.Delete(ctx, token)
+
+			By("Make sure the service token exists on cloudflare")
+			tokens, err = api.ServiceTokens(ctx)
+			Expect(err).To(Not(HaveOccurred()))
+			foundToken = nil
+			for _, cfToken := range tokens {
+				if cfToken.ID == token.Status.ServiceTokenID {
+					foundToken = &cfToken
+				}
+			}
+
+			Expect(foundToken).ToNot(BeNil())
 		})
 
 	})
