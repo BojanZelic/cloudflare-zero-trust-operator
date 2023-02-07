@@ -89,14 +89,10 @@ func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 					log.Error(err, "unable to delete")
 
 					return false, errors.Wrap(err, "unable to delete")
-
 				}
-
 			} else {
 				log.Info("resource removed in Cloudflare")
-
 			}
-
 		}
 
 		// remove our finalizer from the list and update it.
