@@ -86,7 +86,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			sec := &corev1.Secret{}
 			Eventually(func() error {
 				return k8sClient.Get(ctx, types.NamespacedName{Name: serviceToken.Spec.Template.Name, Namespace: serviceToken.Namespace}, sec)
-			}, time.Second*20, time.Second).Should(Succeed(), logOutput.GetOutput())
+			}, time.Second*20, time.Second).Should(Succeed())
 
 			By("Make sure the status ref is what we expect")
 			Eventually(func(g Gomega) {
@@ -241,6 +241,47 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			}, time.Second*10, time.Second).ShouldNot(Succeed())
 		})
 
+		It("should successfully allow removal of resource if externally deleted", func() {
+			typeNamespaceName := types.NamespacedName{Name: "token4", Namespace: nsName}
+
+			By("Creating the custom resource for the Kind CloudflareServiceToken")
+			//var token *v1alpha1.CloudflareServiceToken
+			token := &v1alpha1.CloudflareServiceToken{}
+
+			err := k8sClient.Get(ctx, typeNamespaceName, token)
+			if err != nil && errors.IsNotFound(err) {
+				token = &v1alpha1.CloudflareServiceToken{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      typeNamespaceName.Name,
+						Namespace: typeNamespaceName.Namespace,
+					},
+					Spec: v1alpha1.CloudflareServiceTokenSpec{
+						Name: "integration servicetoken test4",
+					},
+				}
+
+				err = k8sClient.Create(ctx, token)
+				Expect(err).To(Not(HaveOccurred()))
+			}
+
+			By("Checking to get the updated CR")
+			Eventually(func() error {
+				return k8sClient.Get(ctx, typeNamespaceName, token)
+			}, time.Second*10, time.Second).Should(Succeed())
+
+			By("Make sure the status ref is what we expect")
+			Eventually(func(g Gomega) {
+				k8sClient.Get(ctx, typeNamespaceName, token)
+				g.Expect(token.Status.ServiceTokenID).ToNot(BeEmpty())
+			}, time.Second*10, time.Second).Should(Succeed())
+
+			By("Externally removing the token")
+			Expect(api.DeleteAccessServiceToken(ctx, token.Status.ServiceTokenID)).To(Succeed())
+
+			By("Removing the access service token")
+			Expect(k8sClient.Delete(ctx, token)).To(Succeed())
+		})
+
 		It("should successfully reconcile a custom resource for CloudflareServiceToken", func() {
 			typeNamespaceName := types.NamespacedName{Name: "token3", Namespace: nsName}
 
@@ -303,5 +344,6 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 				g.Expect(foundToken).To(BeNil())
 			}, time.Second*10, time.Second).Should(Succeed())
 		})
+
 	})
 })
