@@ -6,6 +6,7 @@ import (
 
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
+	"github.com/cloudflare/cloudflare-go"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -80,12 +81,22 @@ func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 			}
 
 			if err != nil {
-				log.Error(err, "unable to delete")
+				//@todo there has to be a better way of doing
+				// this errors.Is or Errors.As doesn't seem to work
+				if _, ok := errors.Unwrap(errors.Unwrap(err)).(*cloudflare.NotFoundError); ok {
+					log.Info("unable to remove resource from cloudflare - appears to be already deleted")
+				} else {
+					log.Error(err, "unable to delete")
 
-				return false, errors.Wrap(err, "unable to delete")
+					return false, errors.Wrap(err, "unable to delete")
+
+				}
+
+			} else {
+				log.Info("resource removed in Cloudflare")
+
 			}
 
-			log.Info("resource removed in Cloudflare")
 		}
 
 		// remove our finalizer from the list and update it.
