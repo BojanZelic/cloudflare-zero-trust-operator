@@ -219,8 +219,8 @@ helm: manifests kustomize helmify helm-docs
 	sed -i.bak 's|{{ include "cloudflare-zero-trust-operator.fullname" . }}-controller-manager|{{ include "cloudflare-zero-trust-operator.serviceAccountName" . }}|g' helm/cloudflare-zero-trust-operator/templates/*-rbac.yaml && rm helm/cloudflare-zero-trust-operator/templates/*-rbac.yaml.bak
 	rm -rf cloudflare-zero-trust-operator
 	$(HELM_DOCS)
-	# Remove lines starting with the specified strings from RBAC files
-	for file in helm/cloudflare-zero-trust-operator/templates/f-zero-trust-operator-*-rbac.yaml; do \
+	# Remove app.kubernetes.io labels that conflict with FluxCD
+	for file in helm/cloudflare-zero-trust-operator/templates/*.yaml; do \
 		sed -i.bak '/^\( *\)app.kubernetes.io\/managed-by:/d; /^\( *\)app.kubernetes.io\/name:/d; /^\( *\)app.kubernetes.io\/instance:/d' "$$file"; \
 		rm -f "$$file.bak"; \
 	done
