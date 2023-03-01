@@ -219,6 +219,11 @@ helm: manifests kustomize helmify helm-docs
 	sed -i.bak 's|{{ include "cloudflare-zero-trust-operator.fullname" . }}-controller-manager|{{ include "cloudflare-zero-trust-operator.serviceAccountName" . }}|g' helm/cloudflare-zero-trust-operator/templates/*-rbac.yaml && rm helm/cloudflare-zero-trust-operator/templates/*-rbac.yaml.bak
 	rm -rf cloudflare-zero-trust-operator
 	$(HELM_DOCS)
+	# Remove app.kubernetes.io labels that conflict with FluxCD
+	for file in helm/cloudflare-zero-trust-operator/templates/*.yaml; do \
+		sed -i.bak '/^\( *\)app.kubernetes.io\/managed-by:/d; /^\( *\)app.kubernetes.io\/name:/d; /^\( *\)app.kubernetes.io\/instance:/d' "$$file"; \
+		rm -f "$$file.bak"; \
+	done
 
 .PHONY: bundle
 bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.

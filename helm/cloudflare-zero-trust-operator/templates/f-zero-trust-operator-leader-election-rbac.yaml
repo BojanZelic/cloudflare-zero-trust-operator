@@ -5,9 +5,6 @@ metadata:
   labels:
     app.kubernetes.io/component: rbac
     app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
-    app.kubernetes.io/instance: leader-election-role
-    app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: role
     app.kubernetes.io/part-of: bojanzelic-cloudflare-zero-trust-operator
   {{- include "cloudflare-zero-trust-operator.labels" . | nindent 4 }}
 rules:
@@ -50,9 +47,6 @@ metadata:
   labels:
     app.kubernetes.io/component: rbac
     app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
-    app.kubernetes.io/instance: leader-election-rolebinding
-    app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: rolebinding
     app.kubernetes.io/part-of: bojanzelic-cloudflare-zero-trust-operator
   {{- include "cloudflare-zero-trust-operator.labels" . | nindent 4 }}
 roleRef:
