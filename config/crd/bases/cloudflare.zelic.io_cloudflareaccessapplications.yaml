@@ -136,23 +136,8 @@ spec:
                           everyone:
                             description: Allow Everyone
                             type: boolean
-                          googleGroup:
-                            description: Google Workspace Groups
-                            items:
-                              type: string
-                            type: array
                           ipRanges:
                             description: Matches an IP CIDR block
-                            items:
-                              type: string
-                            type: array
-                          loginMethod:
-                            description: ID of the login method
-                            items:
-                              type: string
-                            type: array
-                          oktaGroup:
-                            description: Okta Groups
                             items:
                               type: string
                             type: array
@@ -244,23 +229,8 @@ spec:
                           everyone:
                             description: Allow Everyone
                             type: boolean
-                          googleGroup:
-                            description: Google Workspace Groups
-                            items:
-                              type: string
-                            type: array
                           ipRanges:
                             description: Matches an IP CIDR block
-                            items:
-                              type: string
-                            type: array
-                          loginMethod:
-                            description: ID of the login method
-                            items:
-                              type: string
-                            type: array
-                          oktaGroup:
-                            description: Okta Groups
                             items:
                               type: string
                             type: array
@@ -355,23 +325,8 @@ spec:
                           everyone:
                             description: Allow Everyone
                             type: boolean
-                          googleGroup:
-                            description: Google Workspace Groups
-                            items:
-                              type: string
-                            type: array
                           ipRanges:
                             description: Matches an IP CIDR block
-                            items:
-                              type: string
-                            type: array
-                          loginMethod:
-                            description: ID of the login method
-                            items:
-                              type: string
-                            type: array
-                          oktaGroup:
-                            description: Okta Groups
                             items:
                               type: string
                             type: array
