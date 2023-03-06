@@ -106,21 +106,6 @@ func (in *CloudFlareAccessGroupRule) DeepCopyInto(out *CloudFlareAccessGroupRule
 		*out = new(bool)
 		**out = **in
 	}
-	if in.LoginMethod != nil {
-		in, out := &in.LoginMethod, &out.LoginMethod
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
-	if in.OktaGroup != nil {
-		in, out := &in.OktaGroup, &out.OktaGroup
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
-	if in.GoogleGroup != nil {
-		in, out := &in.GoogleGroup, &out.GoogleGroup
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
 	if in.ServiceToken != nil {
 		in, out := &in.ServiceToken, &out.ServiceToken
 		*out = make([]ServiceToken, len(*in))
