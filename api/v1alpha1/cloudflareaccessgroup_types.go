@@ -68,20 +68,6 @@ type CloudFlareAccessGroupRule struct {
 	// Any valid certificate will be matched
 	ValidCertificate *bool `json:"validCertificate,omitempty"`
 
-	// ID of the login method
-	LoginMethod []string `json:"loginMethod,omitempty"`
-
-	// Okta Groups
-	OktaGroup []string `json:"oktaGroup,omitempty"`
-
-	// Google Workspace Groups
-	GoogleGroup []string `json:"googleGroup,omitempty"`
-
-	// @todo
-	// GithubOrganization []struct{
-
-	// }
-
 	// Matches a service token
 	ServiceToken []ServiceToken `json:"serviceToken,omitempty"`
 
