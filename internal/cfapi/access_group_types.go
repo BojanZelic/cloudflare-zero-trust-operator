@@ -55,3 +55,25 @@ func NewAccessGroupAnyValidServiceToken() cloudflare.AccessGroupAnyValidServiceT
 		AnyValidServiceToken: struct{}{},
 	}
 }
+
+func NewAccessGroupGeo(country string) cloudflare.AccessGroupGeo {
+	return cloudflare.AccessGroupGeo{
+		Geo: struct {
+			CountryCode string "json:\"country_code\""
+		}{
+			CountryCode: country,
+		},
+	}
+}
+
+func NewAccessGroupEveryone() cloudflare.AccessGroupEveryone {
+	return cloudflare.AccessGroupEveryone{
+		Everyone: struct{}{},
+	}
+}
+
+func NewAccessGroupCertificate() cloudflare.AccessGroupCertificate {
+	return cloudflare.AccessGroupCertificate{
+		Certificate: struct{}{},
+	}
+}

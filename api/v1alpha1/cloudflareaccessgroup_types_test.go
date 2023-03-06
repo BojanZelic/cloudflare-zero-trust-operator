@@ -116,6 +116,41 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 			}))
 		})
 
+		It("can export validCertificate to the cloudflare object", func() {
+			validCert := true
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+				ValidCertificate: &validCert},
+			}
+			Expect(accessRule.ToCloudflare().Include[0]).To(Equal(cloudflare.AccessGroupCertificate{
+				Certificate: struct{}{},
+			}))
+		})
+
+		It("can export everyone to the cloudflare object", func() {
+			everyone := true
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+				Everyone: &everyone},
+			}
+			Expect(accessRule.ToCloudflare().Include[0]).To(Equal(cloudflare.AccessGroupEveryone{
+				Everyone: struct{}{},
+			}))
+		})
+
+		It("can export Country to the cloudflare object", func() {
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+				Country: []string{"US", "UK"}},
+			}
+			for i, country := range accessRule.Spec.Include[0].Country {
+				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(cloudflare.AccessGroupGeo{
+					Geo: struct {
+						CountryCode string "json:\"country_code\""
+					}{
+						CountryCode: country,
+					},
+				}))
+			}
+		})
+
 		It("can export accessGroups to the cloudflare object", func() {
 			ids := []v1alpha1.AccessGroup{{Value: "first_access_group_id"}, {Value: "second_access_group_id"}}
 			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{

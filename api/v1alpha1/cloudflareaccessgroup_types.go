@@ -52,9 +52,18 @@ type CloudFlareAccessGroupRule struct {
 
 	// Reference to other access groups
 	AccessGroups []AccessGroup `json:"accessGroups,omitempty"`
-	// @todo: add the rest of the fields
 
-	// ValidCertificate []string
+	// Country
+	Country []string `json:"country,omitempty"`
+
+	// Allow Everyone
+	Everyone *bool `json:"everyone,omitempty"`
+
+	// Certificate CN
+	CommonName []string `json:"commonName,omitempty"`
+
+	// Any valid certificate will be matched
+	ValidCertificate *bool `json:"validCertificate,omitempty"`
 
 	// Matches a service token
 	ServiceToken []ServiceToken `json:"serviceToken,omitempty"`
@@ -154,7 +163,15 @@ func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCF
 			if field.AnyAccessServiceToken != nil && *field.AnyAccessServiceToken {
 				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupAnyValidServiceToken())
 			}
-
+			if field.Everyone != nil && *field.Everyone {
+				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupEveryone())
+			}
+			if field.ValidCertificate != nil && *field.ValidCertificate {
+				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupCertificate())
+			}
+			for _, country := range field.Country {
+				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupGeo(country))
+			}
 			for _, group := range field.AccessGroups {
 				if group.Value != "" {
 					*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupAccessGroup(group.Value))
