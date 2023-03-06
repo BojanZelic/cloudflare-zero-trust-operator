@@ -113,6 +113,16 @@ spec:
                           anyAccessServiceToken:
                             description: Matches any valid service token
                             type: boolean
+                          commonName:
+                            description: Certificate CN
+                            items:
+                              type: string
+                            type: array
+                          country:
+                            description: Country
+                            items:
+                              type: string
+                            type: array
                           emailDomains:
                             description: Matches a specific email Domain
                             items:
@@ -123,17 +133,20 @@ spec:
                             items:
                               type: string
                             type: array
+                          everyone:
+                            description: Allow Everyone
+                            type: boolean
                           googleGroups:
                             description: Matches Google Group
                             items:
                               properties:
                                 email:
                                   type: string
-                                identity_provider_id:
+                                identityProviderId:
                                   type: string
                               required:
                               - email
-                              - identity_provider_id
+                              - identityProviderId
                               type: object
                             type: array
                           ipRanges:
@@ -167,6 +180,9 @@ spec:
                                   type: object
                               type: object
                             type: array
+                          validCertificate:
+                            description: Any valid certificate will be matched
+                            type: boolean
                         type: object
                       type: array
                     include:
@@ -203,6 +219,16 @@ spec:
                           anyAccessServiceToken:
                             description: Matches any valid service token
                             type: boolean
+                          commonName:
+                            description: Certificate CN
+                            items:
+                              type: string
+                            type: array
+                          country:
+                            description: Country
+                            items:
+                              type: string
+                            type: array
                           emailDomains:
                             description: Matches a specific email Domain
                             items:
@@ -213,17 +239,20 @@ spec:
                             items:
                               type: string
                             type: array
+                          everyone:
+                            description: Allow Everyone
+                            type: boolean
                           googleGroups:
                             description: Matches Google Group
                             items:
                               properties:
                                 email:
                                   type: string
-                                identity_provider_id:
+                                identityProviderId:
                                   type: string
                               required:
                               - email
-                              - identity_provider_id
+                              - identityProviderId
                               type: object
                             type: array
                           ipRanges:
@@ -257,6 +286,9 @@ spec:
                                   type: object
                               type: object
                             type: array
+                          validCertificate:
+                            description: Any valid certificate will be matched
+                            type: boolean
                         type: object
                       type: array
                     name:
@@ -296,6 +328,16 @@ spec:
                           anyAccessServiceToken:
                             description: Matches any valid service token
                             type: boolean
+                          commonName:
+                            description: Certificate CN
+                            items:
+                              type: string
+                            type: array
+                          country:
+                            description: Country
+                            items:
+                              type: string
+                            type: array
                           emailDomains:
                             description: Matches a specific email Domain
                             items:
@@ -306,17 +348,20 @@ spec:
                             items:
                               type: string
                             type: array
+                          everyone:
+                            description: Allow Everyone
+                            type: boolean
                           googleGroups:
                             description: Matches Google Group
                             items:
                               properties:
                                 email:
                                   type: string
-                                identity_provider_id:
+                                identityProviderId:
                                   type: string
                               required:
                               - email
-                              - identity_provider_id
+                              - identityProviderId
                               type: object
                             type: array
                           ipRanges:
@@ -350,6 +395,9 @@ spec:
                                   type: object
                               type: object
                             type: array
+                          validCertificate:
+                            description: Any valid certificate will be matched
+                            type: boolean
                         type: object
                       type: array
                   required:

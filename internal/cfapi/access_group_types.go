@@ -30,14 +30,15 @@ func NewAccessGroupIP(ip string) cloudflare.AccessGroupIP {
 	}
 }
 
-func NewAccessGroupGSuite(email string, identity_provider_id string) cloudflare.AccessGroupGSuite {
-	return cloudflare.AccessGroupGSuite{Gsuite: struct {
-		Email              string "json:\"email\""
-		IdentityProviderID string "json:\"identity_provider_id\""
-	}{
-		Email:              email,
-		IdentityProviderID: identity_provider_id,
-	},
+func NewAccessGroupGSuite(email string, identityProviderID string) cloudflare.AccessGroupGSuite {
+	return cloudflare.AccessGroupGSuite{
+		Gsuite: struct {
+			Email              string "json:\"email\""
+			IdentityProviderID string "json:\"identity_provider_id\""
+		}{
+			Email:              email,
+			IdentityProviderID: identityProviderID,
+		},
 	}
 }
 
@@ -64,5 +65,27 @@ func NewAccessGroupAccessGroup(id string) cloudflare.AccessGroupAccessGroup {
 func NewAccessGroupAnyValidServiceToken() cloudflare.AccessGroupAnyValidServiceToken {
 	return cloudflare.AccessGroupAnyValidServiceToken{
 		AnyValidServiceToken: struct{}{},
+	}
+}
+
+func NewAccessGroupGeo(country string) cloudflare.AccessGroupGeo {
+	return cloudflare.AccessGroupGeo{
+		Geo: struct {
+			CountryCode string "json:\"country_code\""
+		}{
+			CountryCode: country,
+		},
+	}
+}
+
+func NewAccessGroupEveryone() cloudflare.AccessGroupEveryone {
+	return cloudflare.AccessGroupEveryone{
+		Everyone: struct{}{},
+	}
+}
+
+func NewAccessGroupCertificate() cloudflare.AccessGroupCertificate {
+	return cloudflare.AccessGroupCertificate{
+		Certificate: struct{}{},
 	}
 }

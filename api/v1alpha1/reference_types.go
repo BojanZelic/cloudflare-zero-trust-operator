@@ -24,7 +24,7 @@ type ServiceToken struct {
 
 type GoogleGroup struct {
 	Email              string `json:"email"`
-	IdentityProviderID string `json:"identity_provider_id"`
+	IdentityProviderID string `json:"identityProviderId"`
 }
 
 type AccessGroupReference struct {
