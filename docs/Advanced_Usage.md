@@ -31,6 +31,7 @@ metadata:
 spec:
   name: my application
   domain: domain.example.com
+  autoRedirectToIdentity: true
   policies: 
     - name: Allow testemail1
       decision: allow
