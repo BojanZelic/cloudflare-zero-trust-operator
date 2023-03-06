@@ -53,9 +53,6 @@ type CloudFlareAccessGroupRule struct {
 	// Reference to other access groups
 	AccessGroups []AccessGroup `json:"accessGroups,omitempty"`
 
-	// External Evaluation
-	//ExternalEvaluation cloudflare.AccessGroupExternalEvaluation `json:"externalEvaluation,omitempty"`
-
 	// Country
 	Country []string `json:"country,omitempty"`
 
