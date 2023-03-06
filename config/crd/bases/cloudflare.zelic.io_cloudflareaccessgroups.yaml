@@ -70,6 +70,16 @@ spec:
                     anyAccessServiceToken:
                       description: Matches any valid service token
                       type: boolean
+                    commonName:
+                      description: Certificate CN
+                      items:
+                        type: string
+                      type: array
+                    country:
+                      description: Country
+                      items:
+                        type: string
+                      type: array
                     emailDomains:
                       description: Matches a specific email Domain
                       items:
@@ -80,8 +90,26 @@ spec:
                       items:
                         type: string
                       type: array
+                    everyone:
+                      description: Allow Everyone
+                      type: boolean
+                    googleGroup:
+                      description: Google Workspace Groups
+                      items:
+                        type: string
+                      type: array
                     ipRanges:
                       description: Matches an IP CIDR block
+                      items:
+                        type: string
+                      type: array
+                    loginMethod:
+                      description: ID of the login method
+                      items:
+                        type: string
+                      type: array
+                    oktaGroup:
+                      description: Okta Groups
                       items:
                         type: string
                       type: array
@@ -111,6 +139,9 @@ spec:
                             type: object
                         type: object
                       type: array
+                    validCertificate:
+                      description: Any valid certificate will be matched
+                      type: boolean
                   type: object
                 type: array
               include:
@@ -147,6 +178,16 @@ spec:
                     anyAccessServiceToken:
                       description: Matches any valid service token
                       type: boolean
+                    commonName:
+                      description: Certificate CN
+                      items:
+                        type: string
+                      type: array
+                    country:
+                      description: Country
+                      items:
+                        type: string
+                      type: array
                     emailDomains:
                       description: Matches a specific email Domain
                       items:
@@ -157,8 +198,26 @@ spec:
                       items:
                         type: string
                       type: array
+                    everyone:
+                      description: Allow Everyone
+                      type: boolean
+                    googleGroup:
+                      description: Google Workspace Groups
+                      items:
+                        type: string
+                      type: array
                     ipRanges:
                       description: Matches an IP CIDR block
+                      items:
+                        type: string
+                      type: array
+                    loginMethod:
+                      description: ID of the login method
+                      items:
+                        type: string
+                      type: array
+                    oktaGroup:
+                      description: Okta Groups
                       items:
                         type: string
                       type: array
@@ -188,6 +247,9 @@ spec:
                             type: object
                         type: object
                       type: array
+                    validCertificate:
+                      description: Any valid certificate will be matched
+                      type: boolean
                   type: object
                 type: array
               name:
@@ -227,6 +289,16 @@ spec:
                     anyAccessServiceToken:
                       description: Matches any valid service token
                       type: boolean
+                    commonName:
+                      description: Certificate CN
+                      items:
+                        type: string
+                      type: array
+                    country:
+                      description: Country
+                      items:
+                        type: string
+                      type: array
                     emailDomains:
                       description: Matches a specific email Domain
                       items:
@@ -237,8 +309,26 @@ spec:
                       items:
                         type: string
                       type: array
+                    everyone:
+                      description: Allow Everyone
+                      type: boolean
+                    googleGroup:
+                      description: Google Workspace Groups
+                      items:
+                        type: string
+                      type: array
                     ipRanges:
                       description: Matches an IP CIDR block
+                      items:
+                        type: string
+                      type: array
+                    loginMethod:
+                      description: ID of the login method
+                      items:
+                        type: string
+                      type: array
+                    oktaGroup:
+                      description: Okta Groups
                       items:
                         type: string
                       type: array
@@ -268,6 +358,9 @@ spec:
                             type: object
                         type: object
                       type: array
+                    validCertificate:
+                      description: Any valid certificate will be matched
+                      type: boolean
                   type: object
                 type: array
             required:

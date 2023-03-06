@@ -86,6 +86,41 @@ func (in *CloudFlareAccessGroupRule) DeepCopyInto(out *CloudFlareAccessGroupRule
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.Country != nil {
+		in, out := &in.Country, &out.Country
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.Everyone != nil {
+		in, out := &in.Everyone, &out.Everyone
+		*out = new(bool)
+		**out = **in
+	}
+	if in.CommonName != nil {
+		in, out := &in.CommonName, &out.CommonName
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.ValidCertificate != nil {
+		in, out := &in.ValidCertificate, &out.ValidCertificate
+		*out = new(bool)
+		**out = **in
+	}
+	if in.LoginMethod != nil {
+		in, out := &in.LoginMethod, &out.LoginMethod
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.OktaGroup != nil {
+		in, out := &in.OktaGroup, &out.OktaGroup
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.GoogleGroup != nil {
+		in, out := &in.GoogleGroup, &out.GoogleGroup
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.ServiceToken != nil {
 		in, out := &in.ServiceToken, &out.ServiceToken
 		*out = make([]ServiceToken, len(*in))

@@ -116,6 +116,51 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 			}))
 		})
 
+		// // External Evaluation
+		// ExternalEvaluation cloudflare.AccessGroupExternalEvaluation `json:"externalEvaluation,omitempty"`
+
+		// // Country
+		// Country []string `json:"country,omitempty"`
+
+		// // Certificate CN
+		// CommonName []string `json:"commonName,omitempty"`
+
+		// // Any valid certificate will be matched
+		// ValidCertificate *bool `json:"validCertificate,omitempty"`
+
+		// // ID of the login method
+		// LoginMethod []string `json:"loginMethod,omitempty"`
+
+		// // Okta Groups
+		// OktaGroup []string `json:"oktaGroup,omitempty"`
+
+		// // Google Workspace Groups
+		// GoogleGroup []string `json:"googleGroup,omitempty"`
+		It("can export everyone to the cloudflare object", func() {
+			everyone := true
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+				Everyone: &everyone},
+			}
+			Expect(accessRule.ToCloudflare().Include[0]).To(Equal(cloudflare.AccessGroupEveryone{
+				Everyone: struct{}{},
+			}))
+		})
+
+		It("can export Country to the cloudflare object", func() {
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+				Country: []string{"US", "UK"}},
+			}
+			for i, country := range accessRule.Spec.Include[0].Country {
+				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(cloudflare.AccessGroupGeo{
+					Geo: struct {
+						CountryCode string "json:\"country_code\""
+					}{
+						CountryCode: country,
+					},
+				}))
+			}
+		})
+
 		It("can export accessGroups to the cloudflare object", func() {
 			ids := []v1alpha1.AccessGroup{{Value: "first_access_group_id"}, {Value: "second_access_group_id"}}
 			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
