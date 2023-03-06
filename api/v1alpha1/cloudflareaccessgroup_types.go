@@ -61,6 +61,9 @@ type CloudFlareAccessGroupRule struct {
 
 	// Matches any valid service token
 	AnyAccessServiceToken *bool `json:"anyAccessServiceToken,omitempty"`
+
+	// Matches Google Group
+	GoogleGroups []googleGroup `json:"googleGroups,omitempty"`
 }
 
 // CloudflareAccessGroupStatus defines the observed state of CloudflareAccessGroup.
@@ -158,6 +161,12 @@ func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCF
 			for _, group := range field.AccessGroups {
 				if group.Value != "" {
 					*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupAccessGroup(group.Value))
+				}
+			}
+
+			for _, googleGroup := range field.GoogleGroups {
+				if googleGroup.Email != "" && googleGroup.IdentityProviderID != "" {
+					*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupGSuite(googleGroup.Email, googleGroup.IdentityProviderID))
 				}
 			}
 		}

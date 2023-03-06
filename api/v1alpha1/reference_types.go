@@ -22,6 +22,11 @@ type ServiceToken struct {
 	ValueFrom *ServiceTokenReference `json:"valueFrom,omitempty" protobuf:"bytes,2,opt,name=valueFrom"`
 }
 
+type googleGroup struct {
+	Email              string `json:"email"`
+	IdentityProviderID string `json:"identity_provider_id"`
+}
+
 type AccessGroupReference struct {
 	// `namespace` is the namespace of the AccessGroup.
 	// Required
