@@ -119,14 +119,8 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 		// // External Evaluation
 		// ExternalEvaluation cloudflare.AccessGroupExternalEvaluation `json:"externalEvaluation,omitempty"`
 
-		// // Country
-		// Country []string `json:"country,omitempty"`
-
 		// // Certificate CN
 		// CommonName []string `json:"commonName,omitempty"`
-
-		// // Any valid certificate will be matched
-		// ValidCertificate *bool `json:"validCertificate,omitempty"`
 
 		// // ID of the login method
 		// LoginMethod []string `json:"loginMethod,omitempty"`
@@ -136,6 +130,17 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 
 		// // Google Workspace Groups
 		// GoogleGroup []string `json:"googleGroup,omitempty"`
+
+		It("can export validCertificate to the cloudflare object", func() {
+			validCert := true
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+				ValidCertificate: &validCert},
+			}
+			Expect(accessRule.ToCloudflare().Include[0]).To(Equal(cloudflare.AccessGroupCertificate{
+				Certificate: struct{}{},
+			}))
+		})
+
 		It("can export everyone to the cloudflare object", func() {
 			everyone := true
 			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{

@@ -183,6 +183,9 @@ func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCF
 			if field.Everyone != nil && *field.Everyone {
 				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupEveryone())
 			}
+			if field.ValidCertificate != nil && *field.ValidCertificate {
+				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupCertificate())
+			}
 			for _, country := range field.Country {
 				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupGeo(country))
 			}

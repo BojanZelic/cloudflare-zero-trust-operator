@@ -71,3 +71,9 @@ func NewAccessGroupEveryone() cloudflare.AccessGroupEveryone {
 		Everyone: struct{}{},
 	}
 }
+
+func NewAccessGroupCertificate() cloudflare.AccessGroupCertificate {
+	return cloudflare.AccessGroupCertificate{
+		Certificate: struct{}{},
+	}
+}
