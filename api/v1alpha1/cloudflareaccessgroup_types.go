@@ -63,7 +63,7 @@ type CloudFlareAccessGroupRule struct {
 	AnyAccessServiceToken *bool `json:"anyAccessServiceToken,omitempty"`
 
 	// Matches Google Group
-	GoogleGroups []googleGroup `json:"googleGroups,omitempty"`
+	GoogleGroups []GoogleGroup `json:"googleGroups,omitempty"`
 }
 
 // CloudflareAccessGroupStatus defines the observed state of CloudflareAccessGroup.
