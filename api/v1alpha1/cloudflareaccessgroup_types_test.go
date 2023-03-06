@@ -116,21 +116,6 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 			}))
 		})
 
-		// // External Evaluation
-		// ExternalEvaluation cloudflare.AccessGroupExternalEvaluation `json:"externalEvaluation,omitempty"`
-
-		// // Certificate CN
-		// CommonName []string `json:"commonName,omitempty"`
-
-		// // ID of the login method
-		// LoginMethod []string `json:"loginMethod,omitempty"`
-
-		// // Okta Groups
-		// OktaGroup []string `json:"oktaGroup,omitempty"`
-
-		// // Google Workspace Groups
-		// GoogleGroup []string `json:"googleGroup,omitempty"`
-
 		It("can export validCertificate to the cloudflare object", func() {
 			validCert := true
 			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
