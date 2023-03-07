@@ -1,7 +1,8 @@
 name: Integration Tests
 on:
-  #pull_request:
+  pull_request:
   pull_request_target:
+    types: [labeled]
   push:
     branches:
       - 'main'
@@ -25,11 +26,12 @@ jobs:
       uses: actions/checkout@v3
       with:
         fetch-depth: 2
-        ref: ${{ github.event.pull_request.head.sha }}
+        ref: "refs/pull/${{ github.event.number }}/merge"
     - uses: actions/setup-go@v3
       with:
         go-version: '1.19.0'
     - run: make integration-test
+      if: github.event_name == 'push' || github.event_name == 'pull_request' || (github.event_name == 'pull_request_target' && contains(github.event.pull_request.labels.*.name, 'safe to test'))
       env:
         CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
