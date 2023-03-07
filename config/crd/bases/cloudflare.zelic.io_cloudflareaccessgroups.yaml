@@ -111,6 +111,11 @@ spec:
                       items:
                         type: string
                       type: array
+                    loginMethod:
+                      description: ID of the login method
+                      items:
+                        type: string
+                      type: array
                     serviceToken:
                       description: Matches a service token
                       items:
@@ -214,6 +219,11 @@ spec:
                       type: array
                     ipRanges:
                       description: Matches an IP CIDR block
+                      items:
+                        type: string
+                      type: array
+                    loginMethod:
+                      description: ID of the login method
                       items:
                         type: string
                       type: array
@@ -323,6 +333,11 @@ spec:
                       type: array
                     ipRanges:
                       description: Matches an IP CIDR block
+                      items:
+                        type: string
+                      type: array
+                    loginMethod:
+                      description: ID of the login method
                       items:
                         type: string
                       type: array

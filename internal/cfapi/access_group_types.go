@@ -89,3 +89,13 @@ func NewAccessGroupCertificate() cloudflare.AccessGroupCertificate {
 		Certificate: struct{}{},
 	}
 }
+
+func NewAccessGroupLoginMethod(id string) cloudflare.AccessGroupLoginMethod {
+	return cloudflare.AccessGroupLoginMethod{
+		LoginMethod: struct {
+			ID string "json:\"id\""
+		}{
+			ID: id,
+		},
+	}
+}

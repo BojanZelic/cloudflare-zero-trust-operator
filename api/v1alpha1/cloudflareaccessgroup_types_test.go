@@ -193,5 +193,21 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 				}))
 			}
 		})
+
+		It("can export loginMethods to the cloudflare object", func() {
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+				LoginMethod: []string{"00000000-1234-5678-1234-123456789012"}},
+			}
+
+			for i, id := range accessRule.Spec.Include[0].LoginMethod {
+				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(cloudflare.AccessGroupLoginMethod{
+					LoginMethod: struct {
+						ID string "json:\"id\""
+					}{
+						ID: id,
+					},
+				}))
+			}
+		})
 	})
 })
