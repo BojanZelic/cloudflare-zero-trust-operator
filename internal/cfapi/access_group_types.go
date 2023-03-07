@@ -30,6 +30,18 @@ func NewAccessGroupIP(ip string) cloudflare.AccessGroupIP {
 	}
 }
 
+func NewAccessGroupGSuite(email string, identityProviderID string) cloudflare.AccessGroupGSuite {
+	return cloudflare.AccessGroupGSuite{
+		Gsuite: struct {
+			Email              string "json:\"email\""
+			IdentityProviderID string "json:\"identity_provider_id\""
+		}{
+			Email:              email,
+			IdentityProviderID: identityProviderID,
+		},
+	}
+}
+
 func NewAccessGroupServiceToken(token string) cloudflare.AccessGroupServiceToken {
 	return cloudflare.AccessGroupServiceToken{
 		ServiceToken: struct {

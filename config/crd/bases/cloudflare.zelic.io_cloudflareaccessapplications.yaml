@@ -136,6 +136,19 @@ spec:
                           everyone:
                             description: Allow Everyone
                             type: boolean
+                          googleGroups:
+                            description: Matches Google Group
+                            items:
+                              properties:
+                                email:
+                                  type: string
+                                identityProviderId:
+                                  type: string
+                              required:
+                              - email
+                              - identityProviderId
+                              type: object
+                            type: array
                           ipRanges:
                             description: Matches an IP CIDR block
                             items:
@@ -229,6 +242,19 @@ spec:
                           everyone:
                             description: Allow Everyone
                             type: boolean
+                          googleGroups:
+                            description: Matches Google Group
+                            items:
+                              properties:
+                                email:
+                                  type: string
+                                identityProviderId:
+                                  type: string
+                              required:
+                              - email
+                              - identityProviderId
+                              type: object
+                            type: array
                           ipRanges:
                             description: Matches an IP CIDR block
                             items:
@@ -325,6 +351,19 @@ spec:
                           everyone:
                             description: Allow Everyone
                             type: boolean
+                          googleGroups:
+                            description: Matches Google Group
+                            items:
+                              properties:
+                                email:
+                                  type: string
+                                identityProviderId:
+                                  type: string
+                              required:
+                              - email
+                              - identityProviderId
+                              type: object
+                            type: array
                           ipRanges:
                             description: Matches an IP CIDR block
                             items:

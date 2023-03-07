@@ -75,6 +75,33 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 			}
 		})
 
+		It("can export googleGroups to the cloudflare object", func() {
+			googleGroups := []v1alpha1.GoogleGroup{
+				{
+					Email:              "test@email.com",
+					IdentityProviderID: "00000000-0000-0000-0000-00000000000000",
+				},
+				{
+					Email:              "test2@email.com",
+					IdentityProviderID: "11111111-1111-1111-1111-111111111111",
+				},
+			}
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+				GoogleGroups: googleGroups},
+			}
+			for i := range googleGroups {
+				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(cloudflare.AccessGroupGSuite{
+					Gsuite: struct {
+						Email              string "json:\"email\""
+						IdentityProviderID string "json:\"identity_provider_id\""
+					}{
+						Email:              googleGroups[i].Email,
+						IdentityProviderID: googleGroups[i].IdentityProviderID,
+					},
+				}))
+			}
+		})
+
 		It("can export ipRanges to the cloudflare object", func() {
 			ips := []string{"1.1.1.1/32", "8.8.8.8/32"}
 			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
