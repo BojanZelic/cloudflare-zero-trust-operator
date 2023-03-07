@@ -99,3 +99,15 @@ func NewAccessGroupLoginMethod(id string) cloudflare.AccessGroupLoginMethod {
 		},
 	}
 }
+
+func NewAccessGroupOktaGroup(name string, identityProviderID string) cloudflare.AccessGroupOkta {
+	return cloudflare.AccessGroupOkta{
+		Okta: struct {
+			Name               string "json:\"name\""
+			IdentityProviderID string "json:\"identity_provider_id\""
+		}{
+			Name:               name,
+			IdentityProviderID: identityProviderID,
+		},
+	}
+}

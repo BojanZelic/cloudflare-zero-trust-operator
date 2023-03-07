@@ -98,8 +98,10 @@ spec:
                       items:
                         properties:
                           email:
+                            description: Google group email
                             type: string
                           identityProviderId:
+                            description: Identity Provider Id
                             type: string
                         required:
                         - email
@@ -115,6 +117,21 @@ spec:
                       description: ID of the login method
                       items:
                         type: string
+                      type: array
+                    oktaGroup:
+                      description: // Okta Groups
+                      items:
+                        properties:
+                          identityProviderId:
+                            description: Identity Provider Id
+                            type: string
+                          name:
+                            description: Name of the Okta Group
+                            type: string
+                        required:
+                        - identityProviderId
+                        - name
+                        type: object
                       type: array
                     serviceToken:
                       description: Matches a service token
@@ -209,8 +226,10 @@ spec:
                       items:
                         properties:
                           email:
+                            description: Google group email
                             type: string
                           identityProviderId:
+                            description: Identity Provider Id
                             type: string
                         required:
                         - email
@@ -226,6 +245,21 @@ spec:
                       description: ID of the login method
                       items:
                         type: string
+                      type: array
+                    oktaGroup:
+                      description: // Okta Groups
+                      items:
+                        properties:
+                          identityProviderId:
+                            description: Identity Provider Id
+                            type: string
+                          name:
+                            description: Name of the Okta Group
+                            type: string
+                        required:
+                        - identityProviderId
+                        - name
+                        type: object
                       type: array
                     serviceToken:
                       description: Matches a service token
@@ -323,8 +357,10 @@ spec:
                       items:
                         properties:
                           email:
+                            description: Google group email
                             type: string
                           identityProviderId:
+                            description: Identity Provider Id
                             type: string
                         required:
                         - email
@@ -340,6 +376,21 @@ spec:
                       description: ID of the login method
                       items:
                         type: string
+                      type: array
+                    oktaGroup:
+                      description: // Okta Groups
+                      items:
+                        properties:
+                          identityProviderId:
+                            description: Identity Provider Id
+                            type: string
+                          name:
+                            description: Name of the Okta Group
+                            type: string
+                        required:
+                        - identityProviderId
+                        - name
+                        type: object
                       type: array
                     serviceToken:
                       description: Matches a service token

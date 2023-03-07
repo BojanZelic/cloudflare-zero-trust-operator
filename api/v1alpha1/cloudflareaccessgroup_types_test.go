@@ -102,6 +102,32 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 			}
 		})
 
+		It("can export oktaGroups to the cloudflare object", func() {
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+				OktaGroup: []v1alpha1.OktaGroup{
+					{
+						Name:               "myOktaGroup1",
+						IdentityProviderID: "00000000-0000-0000-0000-00000000000000",
+					},
+					{
+						Name:               "myOktaGroup2",
+						IdentityProviderID: "11111111-1111-1111-1111-111111111111",
+					},
+				}},
+			}
+			for i, group := range accessRule.Spec.Include[0].OktaGroup {
+				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(cloudflare.AccessGroupOkta{
+					Okta: struct {
+						Name               string "json:\"name\""
+						IdentityProviderID string "json:\"identity_provider_id\""
+					}{
+						Name:               group.Name,
+						IdentityProviderID: group.IdentityProviderID,
+					},
+				}))
+			}
+		})
+
 		It("can export ipRanges to the cloudflare object", func() {
 			ips := []string{"1.1.1.1/32", "8.8.8.8/32"}
 			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
