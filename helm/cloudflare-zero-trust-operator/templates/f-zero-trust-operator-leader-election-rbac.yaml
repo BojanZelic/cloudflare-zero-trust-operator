@@ -55,5 +55,5 @@ roleRef:
   name: '{{ include "cloudflare-zero-trust-operator.fullname" . }}-f-zero-trust-operator-leader-election-role'
 subjects:
 - kind: ServiceAccount
-  name: '{{ include "cloudflare-zero-trust-operator.fullname" . }}-f-zero-trust-operator-controller-manager'
+  name: '{{ include "cloudflare-zero-trust-operator.serviceAccountName" . }}'
   namespace: '{{ .Release.Namespace }}'
