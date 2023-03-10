@@ -224,6 +224,12 @@ helm: manifests kustomize helmify helm-docs
 		sed -i.bak '/^\( *\)app.kubernetes.io\/managed-by:/d; /^\( *\)app.kubernetes.io\/name:/d; /^\( *\)app.kubernetes.io\/instance:/d' "$$file"; \
 		rm -f "$$file.bak"; \
 	done
+	# Add banner to generated files
+	for file in helm/cloudflare-zero-trust-operator/templates/*-{crd,rbac}.yaml; do \
+		echo "$$file"; \
+		cat hack/header.txt $$file > $$file.modified; \
+		mv $$file.modified $$file; \
+	done
 
 .PHONY: bundle
 bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
