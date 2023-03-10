@@ -23,7 +23,16 @@ type ServiceToken struct {
 }
 
 type GoogleGroup struct {
-	Email              string `json:"email"`
+	// Google group email
+	Email string `json:"email"`
+	// Identity Provider Id
+	IdentityProviderID string `json:"identityProviderId"`
+}
+
+type OktaGroup struct {
+	// Name of the Okta Group
+	Name string `json:"name"`
+	// Identity Provider Id
 	IdentityProviderID string `json:"identityProviderId"`
 }
 
