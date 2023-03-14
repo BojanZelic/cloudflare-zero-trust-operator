@@ -11,12 +11,8 @@ description: Operator for managing Cloudflare Zero Trust settings
 # pipeline. Library charts do not define any templates and therefore cannot be deployed.
 type: application
 home: https://github.com/bojanzelic/cloudflare-zero-trust-operator
-# This is the chart version. This version number should be incremented each time you make changes
-# to the chart and its templates, including the app version.
-# Versions are expected to follow Semantic Versioning (https://semver.org/)
-version: "0.3.1"
-# This is the version number of the application being deployed. This version number should be
-# incremented each time you make changes to the application. Versions are not expected to
-# follow Semantic Versioning. They should reflect the version the application is using.
-# It is recommended to use it with quotes.
+# Version numbers are automatically updated during releases
+# helm version == appVersion
+version: "0.3.0"
+# Version numbers are automatically updated during releases
 appVersion: "0.3.0"

@@ -71,8 +71,14 @@ type CloudFlareAccessGroupRule struct {
 	// Matches any valid service token
 	AnyAccessServiceToken *bool `json:"anyAccessServiceToken,omitempty"`
 
+	// ID of the login method
+	LoginMethod []string `json:"loginMethod,omitempty"`
+
 	// Matches Google Group
 	GoogleGroups []GoogleGroup `json:"googleGroups,omitempty"`
+
+	// // Okta Groups
+	OktaGroup []OktaGroup `json:"oktaGroup,omitempty"`
 }
 
 // CloudflareAccessGroupStatus defines the observed state of CloudflareAccessGroup.
@@ -181,10 +187,18 @@ func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCF
 				}
 			}
 
+			for _, loginMethod := range field.LoginMethod {
+				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupLoginMethod(loginMethod))
+			}
+
 			for _, googleGroup := range field.GoogleGroups {
 				if googleGroup.Email != "" && googleGroup.IdentityProviderID != "" {
 					*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupGSuite(googleGroup.Email, googleGroup.IdentityProviderID))
 				}
+			}
+
+			for _, oktaGroup := range field.OktaGroup {
+				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupOktaGroup(oktaGroup.Name, oktaGroup.IdentityProviderID))
 			}
 		}
 	}
