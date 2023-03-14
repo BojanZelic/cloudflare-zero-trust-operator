@@ -1,8 +1,5 @@
 # Cloudflare Zero-Trust Operator
 
-This is very early alpha project and not finalized yet & is therefore still a work in progess. 
-Expect breaking changes
-
 Cloudflare Zero-Trust operator allow you to manage your zero-trust configuration directly from kubernetes
 
 <!-- Version_Placeholder -->
@@ -96,7 +93,6 @@ type: Opaque
 stringData:
   CLOUDFLARE_ACCOUNT_ID: <id>
   # Either EMAIL+KEY or TOKEN must be supplied
-  # note: keys must still be defined even if they are empty
   CLOUDFLARE_API_EMAIL: <email>
   CLOUDFLARE_API_KEY: <api_key>
   CLOUDFLARE_API_TOKEN: <api_token>
