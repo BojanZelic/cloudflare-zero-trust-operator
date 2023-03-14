@@ -39,5 +39,5 @@ roleRef:
   name: '{{ include "cloudflare-zero-trust-operator.fullname" . }}-f-zero-trust-operator-proxy-role'
 subjects:
 - kind: ServiceAccount
-  name: '{{ include "cloudflare-zero-trust-operator.fullname" . }}-f-zero-trust-operator-controller-manager'
+  name: '{{ include "cloudflare-zero-trust-operator.serviceAccountName" . }}'
   namespace: '{{ .Release.Namespace }}'
