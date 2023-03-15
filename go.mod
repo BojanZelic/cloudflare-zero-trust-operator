@@ -3,7 +3,7 @@ module github.com/bojanzelic/cloudflare-zero-trust-operator
 go 1.19
 
 require (
-	github.com/cloudflare/cloudflare-go v0.62.0
+	github.com/cloudflare/cloudflare-go v0.63.0
 	github.com/go-logr/logr v1.2.3
 	github.com/onsi/ginkgo/v2 v2.9.1
 	github.com/onsi/gomega v1.27.3
