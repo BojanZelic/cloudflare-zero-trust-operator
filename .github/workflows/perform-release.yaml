@@ -17,7 +17,7 @@ jobs:
         with:
           app_id: ${{ secrets.AUTOMERGE_APP_ID }}
           private_key: ${{ secrets.AUTOMERGE_PRIVATE_KEY }}
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}
