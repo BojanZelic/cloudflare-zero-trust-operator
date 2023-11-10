@@ -18,9 +18,9 @@ type AccessPolicyService struct {
 func (s *AccessPolicyService) PopulateAccessPolicyReferences(ctx context.Context, policyList *v1alpha1.CloudflareAccessPolicyList) error {
 	for _, policy := range *policyList {
 		managedCRFields := []*[]v1alpha1.CloudFlareAccessGroupRule{
-			&policy.Include,
-			&policy.Exclude,
-			&policy.Require,
+			&policy.Include, //nolint: gosec
+			&policy.Exclude, //nolint: gosec
+			&policy.Require, //nolint: gosec
 		}
 
 		for _, fields := range managedCRFields {
