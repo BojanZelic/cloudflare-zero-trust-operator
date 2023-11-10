@@ -72,3 +72,5 @@ linters:
     - exhaustruct
     - varnamelen
     - nolintlint
+    - depguard
+    
