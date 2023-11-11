@@ -402,16 +402,16 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 		It("should be able to set a LogoURL for CloudflareAccessApplication", func() {
 			By("Creating the custom resource for the Kind CloudflareAccessApplication")
-			typeNamespaceName := types.NamespacedName{Name: "cloudflare-app-five", Namespace: cloudflareName}
+			typeNamespaceName := types.NamespacedName{Name: "cloudflare-app-six", Namespace: cloudflareName}
 
 			apps := &v1alpha1.CloudflareAccessApplication{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      cloudflareName,
-					Namespace: namespace.Name,
+					Name:      typeNamespaceName.Name,
+					Namespace: typeNamespaceName.Namespace,
 				},
 				Spec: v1alpha1.CloudflareAccessApplicationSpec{
-					Name:    "integration test",
-					Domain:  "integration.cf-operator-tests.uk",
+					Name:    "integration test logo",
+					Domain:  "integration-logo-test.cf-operator-tests.uk",
 					LogoURL: "https://www.cloudflare.com/img/logo-web-badges/cf-logo-on-white-bg.svg",
 				},
 			}

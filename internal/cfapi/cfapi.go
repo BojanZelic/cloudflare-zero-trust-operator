@@ -162,6 +162,7 @@ func (a *API) UpdateAccessApplication(ctx context.Context, ag cloudflare.AccessA
 	account := cloudflare.AccountIdentifier(a.CFAccountID)
 
 	params := cloudflare.UpdateAccessApplicationParams{
+		ID:                             ag.ID,
 		AllowedIdps:                    ag.AllowedIdps,
 		AppLauncherVisible:             ag.AppLauncherVisible,
 		AUD:                            ag.AUD,

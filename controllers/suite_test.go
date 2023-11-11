@@ -103,10 +103,13 @@ var _ = BeforeSuite(func() {
 	logOutput = NewTestLogger(logr.RuntimeInfo{CallDepth: 1})
 
 	By("bootstrapping managers")
+	logger := logr.New(logOutput)
+	ctrl.SetLogger(logger)
+
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:  scheme.Scheme,
 		Metrics: metricsserver.Options{BindAddress: "0"},
-		Logger:  logr.New(logOutput),
+		Logger:  logger,
 	})
 	Expect(err).ToNot(HaveOccurred())
 
