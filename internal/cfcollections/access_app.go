@@ -15,6 +15,7 @@ func AccessAppEqual(first cloudflare.AccessApplication, second cloudflare.Access
 		reflect.DeepEqual(first.AutoRedirectToIdentity, second.AutoRedirectToIdentity) &&
 		reflect.DeepEqual(first.EnableBindingCookie, second.EnableBindingCookie) &&
 		reflect.DeepEqual(first.HttpOnlyCookieAttribute, second.HttpOnlyCookieAttribute) &&
+		reflect.DeepEqual(first.LogoURL, second.LogoURL) &&
 		strings.TrimSpace(first.SessionDuration) == strings.TrimSpace(second.SessionDuration) &&
 		reflect.DeepEqual(first.AllowedIdps, second.AllowedIdps)
 }

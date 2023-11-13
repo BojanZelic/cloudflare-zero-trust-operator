@@ -75,6 +75,10 @@ type CloudflareAccessApplicationSpec struct {
 	// +optional
 	// +kubebuilder:default=true
 	HTTPOnlyCookieAttribute *bool `json:"httpOnlyCookieAttribute,omitempty"`
+
+	// The image URL for the logo shown in the App Launcher dashboard
+	// +optional
+	LogoURL string `json:"logoUrl,omitempty"`
 }
 
 type CloudflareAccessPolicy struct {
@@ -190,6 +194,7 @@ func (c *CloudflareAccessApplication) ToCloudflare() cloudflare.AccessApplicatio
 		SessionDuration:         c.Spec.SessionDuration,
 		EnableBindingCookie:     c.Spec.EnableBindingCookie,
 		HttpOnlyCookieAttribute: c.Spec.HTTPOnlyCookieAttribute,
+		LogoURL:                 c.Spec.LogoURL,
 	}
 
 	return app

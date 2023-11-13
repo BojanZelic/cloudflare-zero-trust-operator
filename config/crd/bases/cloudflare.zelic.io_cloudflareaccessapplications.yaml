@@ -67,6 +67,10 @@ spec:
                 description: Enables the HttpOnly cookie attribute, which increases
                   security against XSS attacks.
                 type: boolean
+              logoUrl:
+                description: The image URL for the logo shown in the App Launcher
+                  dashboard
+                type: string
               name:
                 description: Name of the Cloudflare Access Application
                 type: string

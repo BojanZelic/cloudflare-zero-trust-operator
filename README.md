@@ -59,6 +59,48 @@ Currently in Project scope
 - [x] Manage Cloudflare Access Applications
 - [x] Manage Cloudflare Access Tokens
 
+
+## Complete Example
+
+```yaml
+apiVersion: cloudflare.zelic.io/v1alpha1
+kind: CloudflareAccessApplication
+metadata:
+  name: domain-example
+  annotations:
+    cloudflare.zelic.io/prevent-destroy: "false"
+spec:
+  name: my application
+  domain: domain.example.com
+  autoRedirectToIdentity: true
+  appLauncherVisible: true
+  type: self_hosted
+  allowedIdps:
+    - "699d98642c564d2e855e9661899b7252"
+  sessionDuration: 24h
+  enableBindingCookie: false
+  httpOnlyCookieAttribute: true
+  logoUrl: "https://www.cloudflare.com/img/logo-web-badges/cf-logo-on-white-bg.svg"
+  policies: 
+    - name: Allow my rules
+      decision: allow
+      include:
+        - emails:
+          - testemail1@domain.com
+        - emailDomains:
+          - my-domain.com
+        - ipRanges:
+          - "11.22.33.44/32"
+        - accessGroups:
+          - value: "my-access-group-id"
+        - googleGroups:
+          - email: my-google-group@domain.com
+            identityProviderId: 00000000-0000-0000-0000-00000000000000
+        - oktaGroup:
+          - name: my-okta-group
+            identityProviderId: 10000000-0000-0000-0000-00000000000000
+```
+
 ## Advanced Usage
 
 See some more examples of how to use the [cloudflare zero-trust operator here](./docs/Advanced_Usage.md) 
