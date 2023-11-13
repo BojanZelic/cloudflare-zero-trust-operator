@@ -92,11 +92,13 @@ spec:
         - ipRanges:
           - "11.22.33.44/32"
         - accessGroups:
-          - "my-access-group"
+          - value: "my-access-group-id"
         - googleGroups:
-          - "my-google-group"
+          - email: my-google-group@domain.com
+            identityProviderId: 00000000-0000-0000-0000-00000000000000
         - oktaGroup:
-          - "my-okta-group"
+          - name: my-okta-group
+            identityProviderId: 10000000-0000-0000-0000-00000000000000
 ```
 
 ## Advanced Usage
