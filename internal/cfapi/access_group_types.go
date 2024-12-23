@@ -111,3 +111,28 @@ func NewAccessGroupOktaGroup(name string, identityProviderID string) cloudflare.
 		},
 	}
 }
+
+func NewAccessGroupOIDCClaim(name string, value string, identityProviderID string) AccessGroupOIDCClaim {
+	return AccessGroupOIDCClaim{
+		OIDC: struct {
+			Name               string `json:"claim_name"`
+			Value              string `json:"claim_value"`
+			IdentityProviderID string `json:"identity_provider_id"`
+		}{
+			Name:               name,
+			Value:              value,
+			IdentityProviderID: identityProviderID,
+		},
+	}
+}
+
+// AccessGroupOIDCClaim is used to configure access based on an OIDC claim.
+// This type lives here because it is not supported by cloudflare-go, but
+// is supported by the Cloudflare API.
+type AccessGroupOIDCClaim struct {
+	OIDC struct {
+		Name               string `json:"claim_name"`
+		Value              string `json:"claim_value"`
+		IdentityProviderID string `json:"identity_provider_id"`
+	} `json:"oidc"`
+}

@@ -118,8 +118,27 @@ spec:
                       items:
                         type: string
                       type: array
+                    oidcClaims:
+                      description: OIDC Claims
+                      items:
+                        properties:
+                          identityProviderId:
+                            description: Identity Provider Id
+                            type: string
+                          name:
+                            description: Name of the OIDC claim
+                            type: string
+                          value:
+                            description: Value of the OIDC claim
+                            type: string
+                        required:
+                        - identityProviderId
+                        - name
+                        - value
+                        type: object
+                      type: array
                     oktaGroup:
-                      description: // Okta Groups
+                      description: Okta Groups
                       items:
                         properties:
                           identityProviderId:
@@ -246,8 +265,27 @@ spec:
                       items:
                         type: string
                       type: array
+                    oidcClaims:
+                      description: OIDC Claims
+                      items:
+                        properties:
+                          identityProviderId:
+                            description: Identity Provider Id
+                            type: string
+                          name:
+                            description: Name of the OIDC claim
+                            type: string
+                          value:
+                            description: Value of the OIDC claim
+                            type: string
+                        required:
+                        - identityProviderId
+                        - name
+                        - value
+                        type: object
+                      type: array
                     oktaGroup:
-                      description: // Okta Groups
+                      description: Okta Groups
                       items:
                         properties:
                           identityProviderId:
@@ -377,8 +415,27 @@ spec:
                       items:
                         type: string
                       type: array
+                    oidcClaims:
+                      description: OIDC Claims
+                      items:
+                        properties:
+                          identityProviderId:
+                            description: Identity Provider Id
+                            type: string
+                          name:
+                            description: Name of the OIDC claim
+                            type: string
+                          value:
+                            description: Value of the OIDC claim
+                            type: string
+                        required:
+                        - identityProviderId
+                        - name
+                        - value
+                        type: object
+                      type: array
                     oktaGroup:
-                      description: // Okta Groups
+                      description: Okta Groups
                       items:
                         properties:
                           identityProviderId:
