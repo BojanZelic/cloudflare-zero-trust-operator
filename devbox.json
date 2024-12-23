@@ -1,0 +1,18 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetpack-io/devbox/0.10.1-ens001/.schema/devbox.schema.json",
+  "packages": [
+    "gnumake@4.4.1",
+    "go@1.21.13",
+    "helm-docs@1.11.0"
+  ],
+  "shell": {
+    "init_hook": [
+      "echo 'Welcome to devbox!' > /dev/null"
+    ],
+    "scripts": {
+      "test": [
+        "echo \"Error: no test specified\" && exit 1"
+      ]
+    }
+  }
+}

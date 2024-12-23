@@ -5,9 +5,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
-  name: cloudflareservicetokens.cloudflare.zelic.io
+  name: cloudflareservicetokens.cloudflare.kadaan.info
 spec:
-  group: cloudflare.zelic.io
+  group: cloudflare.kadaan.info
   names:
     kind: CloudflareServiceToken
     listKind: CloudflareServiceTokenList

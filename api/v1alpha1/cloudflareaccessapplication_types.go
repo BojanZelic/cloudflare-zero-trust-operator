@@ -17,8 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	cloudflare "github.com/cloudflare/cloudflare-go"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/cfcollections"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

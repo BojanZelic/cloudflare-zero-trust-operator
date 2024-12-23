@@ -19,13 +19,13 @@ package controllers
 import (
 	"context"
 
-	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/services"
 	cloudflare "github.com/cloudflare/cloudflare-go"
+	v1alpha1 "github.com/kadaan/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/cfapi"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/cfcollections"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/config"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/ctrlhelper"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/services"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -53,9 +53,9 @@ const (
 	statusDegrated = "Degraded"
 )
 
-//+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications/finalizers,verbs=update
+//+kubebuilder:rbac:groups=cloudflare.kadaan.info,resources=cloudflareaccessapplications,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=cloudflare.kadaan.info,resources=cloudflareaccessapplications/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=cloudflare.kadaan.info,resources=cloudflareaccessapplications/finalizers,verbs=update
 
 //nolint:cyclop,gocognit
 func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {

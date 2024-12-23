@@ -1,10 +1,11 @@
 package v1alpha1_test
 
 import (
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/cfapi"
 	"testing"
 
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	cloudflare "github.com/cloudflare/cloudflare-go"
+	"github.com/kadaan/cloudflare-zero-trust-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	//+kubebuilder:scaffold:imports
@@ -122,6 +123,36 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 						IdentityProviderID string "json:\"identity_provider_id\""
 					}{
 						Name:               group.Name,
+						IdentityProviderID: group.IdentityProviderID,
+					},
+				}))
+			}
+		})
+
+		It("can export oidcClaims to the cloudflare object", func() {
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+				OIDCClaims: []v1alpha1.OIDCClaim{
+					{
+						Name:               "myOidcClaimName1",
+						Value:              "myOidcClaimValue1",
+						IdentityProviderID: "00000000-0000-0000-0000-00000000000000",
+					},
+					{
+						Name:               "myOidcClaimName2",
+						Value:              "myOidcClaimValue2",
+						IdentityProviderID: "11111111-1111-1111-1111-111111111111",
+					},
+				}},
+			}
+			for i, group := range accessRule.Spec.Include[0].OIDCClaims {
+				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(cfapi.AccessGroupOIDCClaim{
+					OIDC: struct {
+						Name               string "json:\"claim_name\""
+						Value              string "json:\"claim_value\""
+						IdentityProviderID string "json:\"identity_provider_id\""
+					}{
+						Name:               group.Name,
+						Value:              group.Value,
 						IdentityProviderID: group.IdentityProviderID,
 					},
 				}))

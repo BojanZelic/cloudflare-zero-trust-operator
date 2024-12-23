@@ -1,4 +1,4 @@
-module github.com/bojanzelic/cloudflare-zero-trust-operator
+module github.com/kadaan/cloudflare-zero-trust-operator
 
 go 1.21
 

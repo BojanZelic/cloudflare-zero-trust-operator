@@ -40,10 +40,10 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	cloudflarev1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
+	cloudflarev1alpha1 "github.com/kadaan/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/cfapi"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/config"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	//+kubebuilder:scaffold:imports
 )

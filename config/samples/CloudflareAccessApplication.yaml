@@ -1,9 +1,9 @@
-apiVersion: cloudflare.zelic.io/v1alpha1
+apiVersion: cloudflare.kadaan.info/v1alpha1
 kind: CloudflareAccessApplication
 metadata:
   name: domain-example
   annotations:
-    cloudflare.zelic.io/prevent-destroy: "true"
+    cloudflare.kadaan.info/prevent-destroy: "true"
 spec:
   name: my application
   domain: example.cf-operator-tests.uk

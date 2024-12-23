@@ -17,8 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	cloudflare "github.com/cloudflare/cloudflare-go"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/cfapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -77,8 +77,11 @@ type CloudFlareAccessGroupRule struct {
 	// Matches Google Group
 	GoogleGroups []GoogleGroup `json:"googleGroups,omitempty"`
 
-	// // Okta Groups
+	// Okta Groups
 	OktaGroup []OktaGroup `json:"oktaGroup,omitempty"`
+
+	// OIDC Claims
+	OIDCClaims []OIDCClaim `json:"oidcClaims,omitempty"`
 }
 
 // CloudflareAccessGroupStatus defines the observed state of CloudflareAccessGroup.
@@ -199,6 +202,10 @@ func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCF
 
 			for _, oktaGroup := range field.OktaGroup {
 				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupOktaGroup(oktaGroup.Name, oktaGroup.IdentityProviderID))
+			}
+
+			for _, oidcClaim := range field.OIDCClaims {
+				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupOIDCClaim(oidcClaim.Name, oidcClaim.Value, oidcClaim.IdentityProviderID))
 			}
 		}
 	}

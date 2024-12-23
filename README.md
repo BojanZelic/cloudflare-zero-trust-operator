@@ -4,24 +4,24 @@ Cloudflare Zero-Trust operator allow you to manage your zero-trust configuration
 
 <!-- Version_Placeholder -->
 ![Version: 0.4.0](https://img.shields.io/badge/Version-0.4.0-informational?style=flat-square)
-[![CRD - reference](https://img.shields.io/badge/CRD-reference-2ea44f)](https://doc.crds.dev/github.com/BojanZelic/cloudflare-zero-trust-operator)
-![Unit Tests](https://github.com/BojanZelic/cloudflare-zero-trust-operator/actions/workflows/unit.yaml/badge.svg)
-[![Go Report Card](https://goreportcard.com/badge/github.com/bojanzelic/cloudflare-zero-trust-operator)](https://goreportcard.com/report/github.com/bojanzelic/cloudflare-zero-trust-operator)
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/bojanzelic/cloudflare-zero-trust-operator)](https://pkg.go.dev/github.com/bojanzelic/cloudflare-zero-trust-operator)
-[![codecov](https://codecov.io/gh/BojanZelic/cloudflare-zero-trust-operator/branch/main/graph/badge.svg?token=BRSGWWVA2W)](https://codecov.io/gh/BojanZelic/cloudflare-zero-trust-operator)
+[![CRD - reference](https://img.shields.io/badge/CRD-reference-2ea44f)](https://doc.crds.dev/github.com/kadaan/cloudflare-zero-trust-operator)
+![Unit Tests](https://github.com/kadaan/cloudflare-zero-trust-operator/actions/workflows/unit.yaml/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kadaan/cloudflare-zero-trust-operator)](https://goreportcard.com/report/github.com/kadaan/cloudflare-zero-trust-operator)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/kadaan/cloudflare-zero-trust-operator)](https://pkg.go.dev/github.com/kadaan/cloudflare-zero-trust-operator)
+[![codecov](https://codecov.io/gh/kadaan/cloudflare-zero-trust-operator/branch/main/graph/badge.svg?token=BRSGWWVA2W)](https://codecov.io/gh/kadaan/cloudflare-zero-trust-operator)
 
 ## Example Usage
 
 Cloudflare Access Group
 ```yaml
-apiVersion: cloudflare.zelic.io/v1alpha1
+apiVersion: cloudflare.kadaan.info/v1alpha1
 kind: CloudflareAccessGroup
 metadata:
   name: accessgroup-example
   annotations:
     # (optional) default: "false"
     #   ensures that the resource isn't removed from cloudflare if the CR is deleted
-    cloudflare.zelic.io/prevent-destroy: "true"
+    cloudflare.kadaan.info/prevent-destroy: "true"
 spec:
   name: my access group
   include:
@@ -31,14 +31,14 @@ spec:
 ```
 
 ```yaml
-apiVersion: cloudflare.zelic.io/v1alpha1
+apiVersion: cloudflare.kadaan.info/v1alpha1
 kind: CloudflareAccessApplication
 metadata:
   name: domain-example
   annotations:
     # (optional) default: "false"
     #   ensures that the resource isn't removed from cloudflare if the CR is deleted
-    cloudflare.zelic.io/prevent-destroy: "true"
+    cloudflare.kadaan.info/prevent-destroy: "true"
 spec:
   name: my application
   domain: domain.example.com
@@ -63,12 +63,12 @@ Currently in Project scope
 ## Complete Example
 
 ```yaml
-apiVersion: cloudflare.zelic.io/v1alpha1
+apiVersion: cloudflare.kadaan.info/v1alpha1
 kind: CloudflareAccessApplication
 metadata:
   name: domain-example
   annotations:
-    cloudflare.zelic.io/prevent-destroy: "false"
+    cloudflare.kadaan.info/prevent-destroy: "false"
 spec:
   name: my application
   domain: domain.example.com
@@ -142,9 +142,9 @@ stringData:
 
 3) Install the helm repo
 ```bash
-helm repo add zelic-io https://zelic-io.github.io/charts
+helm repo add kadaan-info https://kadaan-info.github.io/charts
  
-helm install --namespace=zero-trust-system --set secretRef=cloudflare-creds cloudflare-zero-trust-operator zelic-io/cloudflare-zero-trust-operator
+helm install --namespace=zero-trust-system --set secretRef=cloudflare-creds cloudflare-zero-trust-operator kadaan-info/cloudflare-zero-trust-operator
 ```
 
 ## Install with Kustomize
@@ -155,7 +155,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - https://github.com/BojanZelic/cloudflare-zero-trust-operator//config/default?ref=main
+  - https://github.com/kadaan/cloudflare-zero-trust-operator//config/default?ref=main
 
 secretGenerator:
 - name: cloudflare-creds

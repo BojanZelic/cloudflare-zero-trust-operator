@@ -19,12 +19,12 @@ package controllers
 import (
 	"context"
 
-	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	cloudflare "github.com/cloudflare/cloudflare-go"
+	v1alpha1 "github.com/kadaan/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/cfapi"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/cfcollections"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/config"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -45,9 +45,9 @@ type CloudflareAccessGroupReconciler struct {
 	Helper *ctrlhelper.ControllerHelper
 }
 
-//+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups/finalizers,verbs=update
+//+kubebuilder:rbac:groups=cloudflare.kadaan.info,resources=cloudflareaccessgroups,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=cloudflare.kadaan.info,resources=cloudflareaccessgroups/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=cloudflare.kadaan.info,resources=cloudflareaccessgroups/finalizers,verbs=update
 
 //nolint:cyclop,gocognit
 func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {

@@ -6,9 +6,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/kadaan/cloudflare-zero-trust-operator/api/v1alpha1"
 
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/cftypes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"

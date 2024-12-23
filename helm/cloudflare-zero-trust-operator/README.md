@@ -6,7 +6,7 @@ Operator for managing Cloudflare Zero Trust settings
 
 Cloudflare Zero-Trust operator allow you to manage your zero-trust configuration directly from kubernetes.
 
-**Homepage:** <https://github.com/bojanzelic/cloudflare-zero-trust-operator>
+**Homepage:** <https://github.com/kadaan/cloudflare-zero-trust-operator>
 
 ## Values
 
@@ -18,7 +18,7 @@ Cloudflare Zero-Trust operator allow you to manage your zero-trust configuration
 | cloudflare_api_token | string | `""` | Cloudflare API Token - required (one of cloudflare_api_token or cloudflare_api_key + cloudflare_api_email) (or set secretRef) |
 | fullnameOverride | string | `""` | override name for helm chart |
 | image.pullPolicy | string | `"IfNotPresent"` | manager pullPolicy |
-| image.repository | string | `"ghcr.io/bojanzelic/cloudflare-zero-trust-operator"` | manager image repo |
+| image.repository | string | `"ghcr.io/kadaan/cloudflare-zero-trust-operator"` | manager image repo |
 | image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
 | imagePullSecrets | list | `[]` | config reference for pulling containers |
 | manager.resources | object | `{}` | limits & requests(cpu & memory) to apply to the manager container |
@@ -63,9 +63,9 @@ stringData:
 3) Install the helm repo
 
 ```bash
-helm repo add zelic-io https://zelic-io.github.io/charts
+helm repo add kadaan-info https://kadaan-info.github.io/charts
 
-helm install --namespace=zero-trust-system --set secretRef=cloudflare-creds cloudflare-zero-trust-operator zelic-io/cloudflare-zero-trust-operator
+helm install --namespace=zero-trust-system --set secretRef=cloudflare-creds cloudflare-zero-trust-operator kadaan-info/cloudflare-zero-trust-operator
 ```
 
 ---

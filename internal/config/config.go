@@ -37,7 +37,7 @@ func ParseCloudflareConfig(obj metav1.Object) ZeroTrustConfig {
 	cloudflareConfig.APIToken = viper.GetString("cloudflare_api_token")
 	cloudflareConfig.APIKey = viper.GetString("cloudflare_api_key")
 
-	if val, ok := annotations["cloudflare.zero-trust.zelic.io/account_id"]; ok {
+	if val, ok := annotations["cloudflare.zero-trust.kadaan.info/account_id"]; ok {
 		cloudflareConfig.AccountID = val
 	} else {
 		cloudflareConfig.AccountID = viper.GetString("cloudflare_account_id")

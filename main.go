@@ -20,10 +20,10 @@ import (
 	"flag"
 	"os"
 
-	cloudflarev1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/controllers"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
+	cloudflarev1alpha1 "github.com/kadaan/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/kadaan/cloudflare-zero-trust-operator/controllers"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/config"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -74,7 +74,7 @@ func main() {
 		WebhookServer:          &webhook.DefaultServer{},
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "8cdce734.zelic.io",
+		LeaderElectionID:       "8cdce734.kadaan.info",
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
 		// when the Manager ends. This requires the binary to immediately end when the
 		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly

@@ -16,7 +16,7 @@ limitations under the License.
 
 // Package v1alpha1 contains API Schema definitions for the cloudflare v1alpha1 API group
 // +kubebuilder:object:generate=true
-// +groupName=cloudflare.zelic.io
+// +groupName=cloudflare.kadaan.info
 package v1alpha1
 
 import (
@@ -26,7 +26,7 @@ import (
 
 var (
 	// GroupVersion is group version used to register these objects.
-	GroupVersion = schema.GroupVersion{Group: "cloudflare.zelic.io", Version: "v1alpha1"} //nolint
+	GroupVersion = schema.GroupVersion{Group: "cloudflare.kadaan.info", Version: "v1alpha1"} //nolint
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme.
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion} //nolint

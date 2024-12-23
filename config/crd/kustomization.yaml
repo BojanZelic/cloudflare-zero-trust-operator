@@ -2,9 +2,9 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/cloudflare.zelic.io_cloudflareaccessgroups.yaml
-- bases/cloudflare.zelic.io_cloudflareaccessapplications.yaml
-- bases/cloudflare.zelic.io_cloudflareservicetokens.yaml
+- bases/cloudflare.kadaan.info_cloudflareaccessgroups.yaml
+- bases/cloudflare.kadaan.info_cloudflareaccessapplications.yaml
+- bases/cloudflare.kadaan.info_cloudflareservicetokens.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

@@ -29,3 +29,6 @@ Dockerfile.cross
 .env.secret
 .env.integration
 *.secret.yaml
+
+.devbox/
+.DS_Store

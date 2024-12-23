@@ -1,4 +1,4 @@
-apiVersion: cloudflare.zelic.io/v1alpha1
+apiVersion: cloudflare.kadaan.info/v1alpha1
 kind: CloudflareServiceToken
 metadata:
   annotation: 

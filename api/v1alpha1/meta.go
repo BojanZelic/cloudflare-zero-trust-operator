@@ -2,10 +2,10 @@ package v1alpha1
 
 // nolint: gosec
 const (
-	AnnotationClientIDKey     = "cloudflare.zelic.io/client-id-key"
-	AnnotationClientSecretKey = "cloudflare.zelic.io/client-secret-key"
-	AnnotationTokenIDKey      = "cloudflare.zelic.io/token-id-key"
-	LabelOwnedBy              = "cloudflare.zelic.io/owned-by"
-	FinalizerDeletion         = "cloudflare.zelic.io/finalizer"
-	AnnotationPreventDestroy  = "cloudflare.zelic.io/prevent-destroy"
+	AnnotationClientIDKey     = "cloudflare.kadaan.info/client-id-key"
+	AnnotationClientSecretKey = "cloudflare.kadaan.info/client-secret-key"
+	AnnotationTokenIDKey      = "cloudflare.kadaan.info/token-id-key"
+	LabelOwnedBy              = "cloudflare.kadaan.info/owned-by"
+	FinalizerDeletion         = "cloudflare.kadaan.info/finalizer"
+	AnnotationPreventDestroy  = "cloudflare.kadaan.info/prevent-destroy"
 )

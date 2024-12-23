@@ -4,13 +4,13 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: cloudflareaccessapplications.cloudflare.zelic.io
+  name: cloudflareaccessapplications.cloudflare.kadaan.info
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   labels:
   {{- include "cloudflare-zero-trust-operator.labels" . | nindent 4 }}
 spec:
-  group: cloudflare.zelic.io
+  group: cloudflare.kadaan.info
   names:
     kind: CloudflareAccessApplication
     listKind: CloudflareAccessApplicationList
@@ -167,8 +167,27 @@ spec:
                             items:
                               type: string
                             type: array
+                          oidcClaims:
+                            description: OIDC Claims
+                            items:
+                              properties:
+                                identityProviderId:
+                                  description: Identity Provider Id
+                                  type: string
+                                name:
+                                  description: Name of the OIDC claim
+                                  type: string
+                                value:
+                                  description: Value of the OIDC claim
+                                  type: string
+                              required:
+                              - identityProviderId
+                              - name
+                              - value
+                              type: object
+                            type: array
                           oktaGroup:
-                            description: // Okta Groups
+                            description: Okta Groups
                             items:
                               properties:
                                 identityProviderId:
@@ -295,8 +314,27 @@ spec:
                             items:
                               type: string
                             type: array
+                          oidcClaims:
+                            description: OIDC Claims
+                            items:
+                              properties:
+                                identityProviderId:
+                                  description: Identity Provider Id
+                                  type: string
+                                name:
+                                  description: Name of the OIDC claim
+                                  type: string
+                                value:
+                                  description: Value of the OIDC claim
+                                  type: string
+                              required:
+                              - identityProviderId
+                              - name
+                              - value
+                              type: object
+                            type: array
                           oktaGroup:
-                            description: // Okta Groups
+                            description: Okta Groups
                             items:
                               properties:
                                 identityProviderId:
@@ -426,8 +464,27 @@ spec:
                             items:
                               type: string
                             type: array
+                          oidcClaims:
+                            description: OIDC Claims
+                            items:
+                              properties:
+                                identityProviderId:
+                                  description: Identity Provider Id
+                                  type: string
+                                name:
+                                  description: Name of the OIDC claim
+                                  type: string
+                                value:
+                                  description: Value of the OIDC claim
+                                  type: string
+                              required:
+                              - identityProviderId
+                              - name
+                              - value
+                              type: object
+                            type: array
                           oktaGroup:
-                            description: // Okta Groups
+                            description: Okta Groups
                             items:
                               properties:
                                 identityProviderId:

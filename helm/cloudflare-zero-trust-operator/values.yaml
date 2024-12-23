@@ -5,7 +5,7 @@ replicaCount: 1
 
 image:
   # image.repository -- manager image repo
-  repository: ghcr.io/bojanzelic/cloudflare-zero-trust-operator
+  repository: ghcr.io/kadaan/cloudflare-zero-trust-operator
   # image.pullPolicy -- manager pullPolicy
   pullPolicy: IfNotPresent
   # image.tag -- Overrides the image tag whose default is the chart appVersion.

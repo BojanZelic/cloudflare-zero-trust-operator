@@ -49,7 +49,7 @@ jobs:
       - name: Build cloudflare-zero-trust-operator
         uses: docker/build-push-action@v5
         with:
-          tags: ghcr.io/bojanzelic/cloudflare-zero-trust-operator:${{ steps.imagetag.outputs.value }}
+          tags: ghcr.io/kadaan/cloudflare-zero-trust-operator:${{ steps.imagetag.outputs.value }}
           file: Dockerfile
           platforms: ${{ env.PLATFORMS }}
           push: true

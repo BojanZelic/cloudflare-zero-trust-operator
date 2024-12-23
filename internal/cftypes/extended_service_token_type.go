@@ -27,20 +27,20 @@ type ExtendedServiceToken struct {
 }
 
 func (s *ExtendedServiceToken) SetSecretValues(secret corev1.Secret) error {
-	if _, ok := secret.Annotations["cloudflare.zelic.io/client-id-key"]; !ok {
+	if _, ok := secret.Annotations["cloudflare.kadaan.info/client-id-key"]; !ok {
 		return ErrMissingAnnotationClientIDKey
 	}
 
-	if _, ok := secret.Annotations["cloudflare.zelic.io/client-secret-key"]; !ok {
+	if _, ok := secret.Annotations["cloudflare.kadaan.info/client-secret-key"]; !ok {
 		return ErrMissingAnnotationClientSecretKey
 	}
 
-	if _, ok := secret.Annotations["cloudflare.zelic.io/token-id-key"]; !ok {
+	if _, ok := secret.Annotations["cloudflare.kadaan.info/token-id-key"]; !ok {
 		return ErrMissingAnnotationTokenIDKey
 	}
 
-	clientIDKey := secret.Annotations["cloudflare.zelic.io/client-id-key"]
-	clientSecretKey := secret.Annotations["cloudflare.zelic.io/client-secret-key"]
+	clientIDKey := secret.Annotations["cloudflare.kadaan.info/client-id-key"]
+	clientSecretKey := secret.Annotations["cloudflare.kadaan.info/client-secret-key"]
 
 	if _, ok := secret.Data[clientIDKey]; !ok {
 		return ErrMissingClientIDKey

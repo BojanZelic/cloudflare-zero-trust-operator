@@ -5,8 +5,8 @@ metadata:
     app.kubernetes.io/name: clusterrolebinding
     app.kubernetes.io/instance: manager-rolebinding
     app.kubernetes.io/component: rbac
-    app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
-    app.kubernetes.io/part-of: bojanzelic-cloudflare-zero-trust-operator
+    app.kubernetes.io/created-by: kadaan-cloudflare-zero-trust-operator
+    app.kubernetes.io/part-of: kadaan-cloudflare-zero-trust-operator
     app.kubernetes.io/managed-by: kustomize
   name: manager-rolebinding
 roleRef:

@@ -19,11 +19,11 @@ package controllers
 import (
 	"context"
 
-	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
+	v1alpha1 "github.com/kadaan/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/cfapi"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/cftypes"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/config"
+	"github.com/kadaan/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -47,9 +47,9 @@ type CloudflareServiceTokenReconciler struct {
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/finalizers,verbs=update
+// +kubebuilder:rbac:groups=cloudflare.kadaan.info,resources=cloudflareservicetokens,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cloudflare.kadaan.info,resources=cloudflareservicetokens/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=cloudflare.kadaan.info,resources=cloudflareservicetokens/finalizers,verbs=update
 
 // nolint: gocognit,cyclop,gocyclo,maintidx
 func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {

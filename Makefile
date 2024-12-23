@@ -28,8 +28,8 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 # This variable is used to construct full image tags for bundle and catalog images.
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
-# zelic.io/bojanzelic-cloudflare-zero-trust-operator-bundle:$VERSION and zelic.io/bojanzelic-cloudflare-zero-trust-operator-catalog:$VERSION.
-IMAGE_TAG_BASE ?= ghcr.io/bojanzelic/cloudflare-zero-trust-operator
+# kadaan.info/kadaan-cloudflare-zero-trust-operator-bundle:$VERSION and kadaan.info/kadaan-cloudflare-zero-trust-operator-catalog:$VERSION.
+IMAGE_TAG_BASE ?= ghcr.io/kadaan/cloudflare-zero-trust-operator
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
@@ -206,11 +206,12 @@ HELMIFY = $(LOCALBIN)/helmify
 helmify:
 	test -s $(LOCALBIN)/helmify || GOBIN=$(LOCALBIN) go install github.com/arttor/helmify/cmd/helmify@v0.3.7
 
-HELM_DOCS = $(LOCALBIN)/helm-docs
-helm-docs:
-	test -s $(LOCALBIN)/helm-docs || GOBIN=$(LOCALBIN) go install github.com/norwoodj/helm-docs/cmd/helm-docs@v1.11.0
+HELM_DOCS = helm-docs
+#HELM_DOCS = $(LOCALBIN)/helm-docs
+#helm-docs:
+#	test -s $(LOCALBIN)/helm-docs || GOBIN=$(LOCALBIN) go install github.com/norwoodj/helm-docs/cmd/helm-docs@v1.11.0
 
-helm: manifests kustomize helmify helm-docs
+helm: manifests kustomize helmify # helm-docs
 	$(KUSTOMIZE) build config/operator-bundle | $(HELMIFY) cloudflare-zero-trust-operator
 	rm -rf helm/cloudflare-zero-trust-operator/templates/*-crd.yaml
 	cp cloudflare-zero-trust-operator/templates/*-crd.yaml helm/cloudflare-zero-trust-operator/templates

@@ -8,7 +8,7 @@ ex:
 
 Cloudflare Access Group
 ```yaml
-apiVersion: cloudflare.zelic.io/v1alpha1
+apiVersion: cloudflare.kadaan.info/v1alpha1
 kind: CloudflareAccessGroup
 metadata:
   name: accessgroup-example
@@ -23,7 +23,7 @@ spec:
 
 Cloudflare Application
 ```yaml
-apiVersion: cloudflare.zelic.io/v1alpha1
+apiVersion: cloudflare.kadaan.info/v1alpha1
 kind: CloudflareAccessApplication
 metadata:
   name: domain-example
