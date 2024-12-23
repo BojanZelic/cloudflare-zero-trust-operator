@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/cloudflare/cloudflare-go v0.82.0
-	github.com/go-logr/logr v1.4.1
+	github.com/go-logr/logr v1.4.2
 	github.com/onsi/ginkgo/v2 v2.13.1
 	github.com/onsi/gomega v1.29.0
 	github.com/pkg/errors v0.9.1
