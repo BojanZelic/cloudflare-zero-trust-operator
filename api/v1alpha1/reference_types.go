@@ -36,6 +36,15 @@ type OktaGroup struct {
 	IdentityProviderID string `json:"identityProviderId"`
 }
 
+type OIDCClaim struct {
+	// Name of the OIDC claim
+	Name string `json:"name"`
+	// Value of the OIDC claim
+	Value string `json:"value"`
+	// Identity Provider Id
+	IdentityProviderID string `json:"identityProviderId"`
+}
+
 type AccessGroupReference struct {
 	// `namespace` is the namespace of the AccessGroup.
 	// Required
