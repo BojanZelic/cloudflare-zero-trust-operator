@@ -3,4 +3,4 @@ resources:
 images:
   - name: controller
     newName: ghcr.io/bojanzelic/cloudflare-zero-trust-operator
-    newTag: 0.4.0
+    newTag: 0.5.0
