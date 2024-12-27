@@ -150,5 +150,62 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 
 			}, time.Minute, time.Second).Should(Equal(found.Spec.Name))
 		})
+
+		It("should successfully reconcile CloudflareAccessApplication policies with references", func() {
+
+			typeNamespaceName := types.NamespacedName{Name: "cloudflare-app-three", Namespace: cloudflareName}
+
+			By("pre-create a service token")
+			token := &v1alpha1.CloudflareServiceToken{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      typeNamespaceName.Name,
+					Namespace: typeNamespaceName.Namespace,
+				},
+				Spec: v1alpha1.CloudflareServiceTokenSpec{
+					Name: "reference test group",
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, token)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Get(ctx, typeNamespaceName, token)).To(Not(HaveOccurred()))
+
+			By("Make sure the token exists on cloudflare")
+			Eventually(func(g Gomega) {
+				k8sClient.Get(ctx, typeNamespaceName, token)
+				g.Expect(token.Status.ServiceTokenID).ToNot(BeEmpty())
+			}, time.Second*10, time.Second).Should(Succeed())
+
+			group := &v1alpha1.CloudflareAccessGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      typeNamespaceName.Name,
+					Namespace: typeNamespaceName.Namespace,
+				},
+				Spec: v1alpha1.CloudflareAccessGroupSpec{
+					Name: "reference test group",
+					Include: []v1alpha1.CloudFlareAccessGroupRule{
+						{
+							ServiceToken: []v1alpha1.ServiceToken{
+								{
+									ValueFrom: &v1alpha1.ServiceTokenReference{
+										Name:      token.Name,
+										Namespace: token.Namespace,
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, group)).To(Not(HaveOccurred()))
+
+			By("Checking the Status")
+			Eventually(func(g Gomega) {
+				err := k8sClient.Get(ctx, typeNamespaceName, group)
+				g.Expect(err).To(Not(HaveOccurred()))
+				g.Expect(group.Status.Conditions).ToNot(BeEmpty())
+				g.Expect(group.Status.Conditions[0].Status).To(Equal(metav1.ConditionTrue))
+			}, time.Second*10, time.Second).Should(Succeed())
+		})
 	})
 })

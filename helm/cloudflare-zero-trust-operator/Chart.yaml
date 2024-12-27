@@ -13,6 +13,6 @@ type: application
 home: https://github.com/bojanzelic/cloudflare-zero-trust-operator
 # Version numbers are automatically updated during releases
 # helm version == appVersion
-version: "0.5.0"
+version: "0.5.1"
 # Version numbers are automatically updated during releases
-appVersion: "0.5.0"
+appVersion: "0.5.1"

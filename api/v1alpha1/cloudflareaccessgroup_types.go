@@ -40,6 +40,18 @@ type CloudflareAccessGroupSpec struct {
 	Exclude []CloudFlareAccessGroupRule `json:"exclude,omitempty"`
 }
 
+func (c CloudflareAccessGroupSpec) GetInclude() []CloudFlareAccessGroupRule {
+	return c.Include
+}
+
+func (c CloudflareAccessGroupSpec) GetExclude() []CloudFlareAccessGroupRule {
+	return c.Exclude
+}
+
+func (c CloudflareAccessGroupSpec) GetRequire() []CloudFlareAccessGroupRule {
+	return c.Require
+}
+
 type CloudFlareAccessGroupRule struct {
 	// Matches a Specific email
 	Emails []string `json:"emails,omitempty"`

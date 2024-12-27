@@ -167,7 +167,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, errors.Wrap(err, "unable get access policies")
 	}
 
-	if err := apService.PopulateAccessPolicyReferences(ctx, &app.Spec.Policies); err != nil {
+	if err := apService.PopulateAccessPolicyReferences(ctx, services.ToAccessPolicyList(app.Spec.Policies)); err != nil {
 		_, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
 			meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusDegrated, Status: metav1.ConditionFalse, Reason: "InvalidReference", Message: err.Error()})
 
@@ -212,15 +212,21 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Cont
 		return nil
 	}
 
-	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, k8sApp, func() error {
-		k8sApp.Status.AccessApplicationID = cfApp.ID
-		k8sApp.Status.CreatedAt = metav1.NewTime(*cfApp.CreatedAt)
-		k8sApp.Status.UpdatedAt = metav1.NewTime(*cfApp.UpdatedAt)
+	app := k8sApp.DeepCopy()
+
+	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
+		app.Status.AccessApplicationID = cfApp.ID
+		app.Status.CreatedAt = metav1.NewTime(*cfApp.CreatedAt)
+		app.Status.UpdatedAt = metav1.NewTime(*cfApp.UpdatedAt)
 
 		return nil
 	}); err != nil {
 		return errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
 	}
+
+	// CreateOrPatch re-fetches the object from k8s which removes any changes we've made that override them
+	// so thats why we re-apply these settings again on the original object;
+	k8sApp.Status = app.Status
 
 	return nil
 }

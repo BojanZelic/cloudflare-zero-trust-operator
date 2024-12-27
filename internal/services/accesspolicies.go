@@ -14,13 +14,32 @@ type AccessPolicyService struct {
 	Log    logr.Logger
 }
 
+type AccessPolicyList interface {
+	GetInclude() []v1alpha1.CloudFlareAccessGroupRule
+	GetExclude() []v1alpha1.CloudFlareAccessGroupRule
+	GetRequire() []v1alpha1.CloudFlareAccessGroupRule
+}
+
+func ToAccessPolicyList(abs v1alpha1.CloudflareAccessPolicyList) []AccessPolicyList {
+	result := make([]AccessPolicyList, 0, len(abs))
+	for _, policy := range abs {
+		result = append(result, policy)
+	}
+
+	return result
+}
+
 // nolint: gocognit
-func (s *AccessPolicyService) PopulateAccessPolicyReferences(ctx context.Context, policyList *v1alpha1.CloudflareAccessPolicyList) error {
-	for _, policy := range *policyList {
+func (s *AccessPolicyService) PopulateAccessPolicyReferences(ctx context.Context, policyList []AccessPolicyList) error {
+	for _, policy := range policyList {
+		include := policy.GetInclude()
+		exclude := policy.GetExclude()
+		require := policy.GetRequire()
+
 		managedCRFields := []*[]v1alpha1.CloudFlareAccessGroupRule{
-			&policy.Include, //nolint: gosec
-			&policy.Exclude, //nolint: gosec
-			&policy.Require, //nolint: gosec
+			&include,
+			&exclude,
+			&require,
 		}
 
 		for _, fields := range managedCRFields {
@@ -42,6 +61,7 @@ func (s *AccessPolicyService) PopulateAccessPolicyReferences(ctx context.Context
 						if err := s.Client.Get(ctx, token.ValueFrom.ToNamespacedName(), serviceToken); err != nil {
 							return errors.Wrapf(err, "unable to reference CloudflareServiceToken %s - %s", token.ValueFrom.Name, token.ValueFrom.Namespace)
 						}
+
 						(*fields)[j].ServiceToken[k].Value = serviceToken.Status.ServiceTokenID
 					}
 				}
