@@ -2,7 +2,7 @@
 # - Docker
 builds:
     -   id: cloudflare-zero-trust-operator
-        main: ./main.go
+        main: ./cmd/main.go
         binary: cloudflare-zero-trust-operator
         env:
             - CGO_ENABLED=0
@@ -24,6 +24,3 @@ archives:
 
 checksum:
     name_template: "checksum.txt"
-
-changelog:
-    skip: false

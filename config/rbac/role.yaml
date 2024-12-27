@@ -2,7 +2,6 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
   name: manager-role
 rules:
 - apiGroups:
@@ -21,57 +20,7 @@ rules:
   - cloudflare.zelic.io
   resources:
   - cloudflareaccessapplications
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - cloudflare.zelic.io
-  resources:
-  - cloudflareaccessapplications/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - cloudflare.zelic.io
-  resources:
-  - cloudflareaccessapplications/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - cloudflare.zelic.io
-  resources:
   - cloudflareaccessgroups
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - cloudflare.zelic.io
-  resources:
-  - cloudflareaccessgroups/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - cloudflare.zelic.io
-  resources:
-  - cloudflareaccessgroups/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - cloudflare.zelic.io
-  resources:
   - cloudflareservicetokens
   verbs:
   - create
@@ -84,12 +33,16 @@ rules:
 - apiGroups:
   - cloudflare.zelic.io
   resources:
+  - cloudflareaccessapplications/finalizers
+  - cloudflareaccessgroups/finalizers
   - cloudflareservicetokens/finalizers
   verbs:
   - update
 - apiGroups:
   - cloudflare.zelic.io
   resources:
+  - cloudflareaccessapplications/status
+  - cloudflareaccessgroups/status
   - cloudflareservicetokens/status
   verbs:
   - get

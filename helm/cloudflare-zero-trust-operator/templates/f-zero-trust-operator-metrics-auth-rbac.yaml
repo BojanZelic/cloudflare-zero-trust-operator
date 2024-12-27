@@ -4,11 +4,8 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-f-zero-trust-operator-proxy-role
+  name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-f-zero-trust-operator-metrics-auth-role
   labels:
-    app.kubernetes.io/component: kube-rbac-proxy
-    app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
-    app.kubernetes.io/part-of: bojanzelic-cloudflare-zero-trust-operator
   {{- include "cloudflare-zero-trust-operator.labels" . | nindent 4 }}
 rules:
 - apiGroups:
@@ -27,16 +24,13 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-f-zero-trust-operator-proxy-rolebinding
+  name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-f-zero-trust-operator-metrics-auth-rolebinding
   labels:
-    app.kubernetes.io/component: kube-rbac-proxy
-    app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
-    app.kubernetes.io/part-of: bojanzelic-cloudflare-zero-trust-operator
   {{- include "cloudflare-zero-trust-operator.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: '{{ include "cloudflare-zero-trust-operator.fullname" . }}-f-zero-trust-operator-proxy-role'
+  name: '{{ include "cloudflare-zero-trust-operator.fullname" . }}-f-zero-trust-operator-metrics-auth-role'
 subjects:
 - kind: ServiceAccount
   name: '{{ include "cloudflare-zero-trust-operator.serviceAccountName" . }}'
