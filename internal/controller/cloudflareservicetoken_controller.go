@@ -184,15 +184,35 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		},
 	}
 
+	secretAnnotations := map[string]string{
+		v1alpha1.AnnotationClientIDKey:     serviceToken.Spec.Template.ClientIDKey,
+		v1alpha1.AnnotationClientSecretKey: serviceToken.Spec.Template.ClientSecretKey,
+		v1alpha1.AnnotationTokenIDKey:      "serviceTokenID",
+	}
+
+	if serviceToken.Spec.Template.Annotations != nil {
+		for annotationKey, annotationValue := range serviceToken.Spec.Template.Annotations {
+			if _, exists := secretAnnotations[annotationKey]; !exists {
+				secretAnnotations[annotationKey] = annotationValue
+			}
+		}
+	}
+
+	secretLabels := map[string]string{
+		v1alpha1.LabelOwnedBy: serviceToken.Name,
+	}
+
+	if serviceToken.Spec.Template.Labels != nil {
+		for labelKey, labelValue := range serviceToken.Spec.Template.Labels {
+			if _, exists := secretLabels[labelKey]; !exists {
+				secretLabels[labelKey] = labelValue
+			}
+		}
+	}
+
 	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
-		secret.SetLabels(map[string]string{
-			v1alpha1.LabelOwnedBy: serviceToken.Name,
-		})
-		secret.SetAnnotations(map[string]string{
-			v1alpha1.AnnotationClientIDKey:     serviceToken.Spec.Template.ClientIDKey,
-			v1alpha1.AnnotationClientSecretKey: serviceToken.Spec.Template.ClientSecretKey,
-			v1alpha1.AnnotationTokenIDKey:      "serviceTokenID",
-		})
+		secret.SetLabels(secretLabels)
+		secret.SetAnnotations(secretAnnotations)
 
 		secret.Data = map[string][]byte{}
 		secret.Data[serviceToken.Spec.Template.ClientSecretKey] = []byte(existingServiceToken.ClientSecret)
