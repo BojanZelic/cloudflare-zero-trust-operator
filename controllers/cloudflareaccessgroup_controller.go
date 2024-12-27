@@ -24,6 +24,7 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/services"
 	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -131,6 +132,28 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		}
 	}
 
+	apService := &services.AccessPolicyService{
+		Client: r.Client,
+		Log:    log,
+	}
+
+	if err := apService.PopulateAccessPolicyReferences(ctx, []services.AccessPolicyList{accessGroup.Spec}); err != nil {
+		_, err = controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
+			meta.SetStatusCondition(&accessGroup.Status.Conditions, metav1.Condition{Type: statusDegrated, Status: metav1.ConditionFalse, Reason: "InvalidReference", Message: err.Error()})
+
+			return nil
+		})
+
+		log.Info("failed to update access policies")
+
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessGroup status")
+		}
+
+		// don't requeue
+		return ctrl.Result{}, nil
+	}
+
 	if existingCfAG == nil {
 		//nolint:varnamelen
 		ag, err := api.CreateAccessGroup(ctx, accessGroup.ToCloudflare())
@@ -178,13 +201,20 @@ func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, c
 		return nil
 	}
 
-	_, err := controllerutil.CreateOrPatch(ctx, r.Client, k8sGroup, func() error {
-		k8sGroup.Status.AccessGroupID = cfGroup.ID
-		k8sGroup.Status.CreatedAt = metav1.NewTime(*cfGroup.CreatedAt)
-		k8sGroup.Status.UpdatedAt = metav1.NewTime(*cfGroup.UpdatedAt)
+	group := k8sGroup.DeepCopy()
+
+	_, err := controllerutil.CreateOrPatch(ctx, r.Client, group, func() error {
+		group.Status.AccessGroupID = cfGroup.ID
+		group.Status.CreatedAt = metav1.NewTime(*cfGroup.CreatedAt)
+		group.Status.UpdatedAt = metav1.NewTime(*cfGroup.UpdatedAt)
 
 		return nil
 	})
+
+	// CreateOrPatch re-fetches the object from k8s which removes any changes we've made that override them
+	// so thats why we re-apply these settings again on the original object;
+	k8sGroup.Status = group.Status
+
 	if err != nil {
 		return errors.Wrap(err, "Failed to update CloudflareAccessGroup status")
 	}
