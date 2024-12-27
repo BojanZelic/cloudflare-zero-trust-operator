@@ -253,12 +253,14 @@ func (r *CloudflareServiceTokenReconciler) ReconcileStatus(ctx context.Context, 
 		return nil
 	}
 
-	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, k8sToken, func() error {
-		k8sToken.Status.ServiceTokenID = cfToken.ID
-		k8sToken.Status.CreatedAt = metav1.NewTime(*cfToken.CreatedAt)
-		k8sToken.Status.UpdatedAt = metav1.NewTime(*cfToken.UpdatedAt)
-		k8sToken.Status.ExpiresAt = metav1.NewTime(*cfToken.ExpiresAt)
-		k8sToken.Status.SecretRef = &v1alpha1.SecretRef{
+	token := k8sToken.DeepCopy()
+
+	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, token, func() error {
+		token.Status.ServiceTokenID = cfToken.ID
+		token.Status.CreatedAt = metav1.NewTime(*cfToken.CreatedAt)
+		token.Status.UpdatedAt = metav1.NewTime(*cfToken.UpdatedAt)
+		token.Status.ExpiresAt = metav1.NewTime(*cfToken.ExpiresAt)
+		token.Status.SecretRef = &v1alpha1.SecretRef{
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: cfToken.K8sSecretRef.SecretName,
 			},
@@ -270,6 +272,10 @@ func (r *CloudflareServiceTokenReconciler) ReconcileStatus(ctx context.Context, 
 	}); err != nil {
 		return errors.Wrap(err, "Failed to update CloudflareServiceToken")
 	}
+
+	// CreateOrPatch re-fetches the object from k8s which removes any changes we've made that override them
+	// so thats why we re-apply these settings again on the original object;
+	k8sToken.Status = token.Status
 
 	return nil
 }

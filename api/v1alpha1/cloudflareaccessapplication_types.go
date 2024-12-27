@@ -105,6 +105,18 @@ type CloudflareAccessPolicy struct {
 	// ApprovalGroups               []cloudflare.AccessApprovalGroup `json:"approval_groups"`
 }
 
+func (c CloudflareAccessPolicy) GetInclude() []CloudFlareAccessGroupRule {
+	return c.Include
+}
+
+func (c CloudflareAccessPolicy) GetExclude() []CloudFlareAccessGroupRule {
+	return c.Exclude
+}
+
+func (c CloudflareAccessPolicy) GetRequire() []CloudFlareAccessGroupRule {
+	return c.Require
+}
+
 type CloudflareAccessPolicyList []CloudflareAccessPolicy
 
 func (aps CloudflareAccessPolicyList) ToCloudflare() cfcollections.AccessPolicyCollection {
