@@ -112,8 +112,8 @@ type CloudflareAccessGroupStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchMergeKey:"type" patchStrategy:"merge" protobuf:"bytes,1,rep,name=conditions"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // CloudflareAccessGroup is the Schema for the cloudflareaccessgroups API.
 type CloudflareAccessGroup struct {
@@ -223,7 +223,7 @@ func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCF
 	}
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // CloudflareAccessGroupList contains a list of CloudflareAccessGroup.
 type CloudflareAccessGroupList struct {

@@ -1,14 +1,15 @@
 package v1alpha1_test
 
 import (
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"testing"
+
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	cloudflare "github.com/cloudflare/cloudflare-go"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	//+kubebuilder:scaffold:imports
+	// +kubebuilder:scaffold:imports
 )
 
 func TestBooks(t *testing.T) {

@@ -163,8 +163,8 @@ type CloudflareAccessApplicationStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchMergeKey:"type" patchStrategy:"merge" protobuf:"bytes,1,rep,name=conditions"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // CloudflareAccessApplication is the Schema for the cloudflareaccessapplications API.
 type CloudflareAccessApplication struct {
@@ -212,7 +212,7 @@ func (c *CloudflareAccessApplication) ToCloudflare() cloudflare.AccessApplicatio
 	return app
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // CloudflareAccessApplicationList contains a list of CloudflareAccessApplication.
 type CloudflareAccessApplicationList struct {

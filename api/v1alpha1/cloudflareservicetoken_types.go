@@ -103,8 +103,8 @@ type SecretRef struct {
 	ClientIDKey string `json:"clientIdKey,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // CloudflareServiceToken is the Schema for the cloudflareservicetokens API.
 type CloudflareServiceToken struct {
@@ -139,7 +139,7 @@ func (c CloudflareServiceToken) ToExtendedToken() cftypes.ExtendedServiceToken {
 	}
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // CloudflareServiceTokenList contains a list of CloudflareServiceToken.
 type CloudflareServiceTokenList struct {

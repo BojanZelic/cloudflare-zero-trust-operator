@@ -46,9 +46,9 @@ type CloudflareAccessGroupReconciler struct {
 	Helper *ctrlhelper.ControllerHelper
 }
 
-//+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups/finalizers,verbs=update
+// +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups/finalizers,verbs=update
 
 //nolint:cyclop,gocognit
 func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -92,7 +92,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	_, err = controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
-		if accessGroup.Status.Conditions == nil || len(accessGroup.Status.Conditions) == 0 {
+		if len(accessGroup.Status.Conditions) == 0 {
 			meta.SetStatusCondition(&accessGroup.Status.Conditions, metav1.Condition{
 				Type:    statusAvailable,
 				Status:  metav1.ConditionUnknown,
