@@ -92,18 +92,18 @@ jobs:
 
       - name: Create and push manifest list
         run: |
-          # Get the tag without the registry prefix
-          TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
-
-          MANIFEST_IMAGES=""
-          for CACHE in "amd64" "arm64"; do
-            MANIFEST_IMAGES="$MANIFEST_IMAGES ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}-$CACHE"
+          # Process each tag
+          echo "${{ steps.meta.outputs.tags }}" | while read -r FULL_TAG; do            
+            MANIFEST_IMAGES=""
+            for CACHE in "amd64" "arm64"; do
+              MANIFEST_IMAGES="$MANIFEST_IMAGES ${FULL_TAG}-$CACHE"
+            done
+            
+            # Trim leading space from MANIFEST_IMAGES
+            MANIFEST_IMAGES="${MANIFEST_IMAGES# }"
+            
+            docker buildx imagetools create -t ${FULL_TAG} ${MANIFEST_IMAGES}
           done
-          
-          # Trim leading space from MANIFEST_IMAGES
-          MANIFEST_IMAGES="${MANIFEST_IMAGES# }"
-          
-          docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG} ${MANIFEST_IMAGES}
 
   tag-release:
     needs: build
