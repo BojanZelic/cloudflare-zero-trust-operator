@@ -101,6 +101,8 @@ jobs:
           
           # Trim leading space from MANIFEST_IMAGES
           MANIFEST_IMAGES="${MANIFEST_IMAGES# }"
+
+          echo $MANIFEST_IMAGES
           
           docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG} ${MANIFEST_IMAGES}
 
