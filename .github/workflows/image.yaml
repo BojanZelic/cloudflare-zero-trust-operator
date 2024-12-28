@@ -1,57 +1,138 @@
 name: Build Image
 on:
+  pull_request:
+    branches: [ main ]
   push:
-    # branches:
-    #   - main
     tags:
       - "[0-9]+.[0-9]+.[0-9]+"
 env:
-  PLATFORMS: linux/amd64,linux/arm64
+  REGISTRY: ghcr.io
+  IMAGE_NAME: bojanzelic/cloudflare-zero-trust-operator
+
 jobs:
-  docker:
-    name: Docker
+  build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build: [
+          {platform: linux/amd64, cache: amd64},
+          {platform: linux/arm64, cache: arm64},
+        ]
+    permissions:
+      contents: read
+      packages: write
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Cache Docker layers
-        uses: actions/cache@v3
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.ref }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
-      - name: Determine tag or commit
-        uses: haya14busa/action-cond@v1
-        id: refortag
-        with:
-          cond: ${{ startsWith(github.ref, 'refs/tags/') }}
-          if_true: ${{ github.ref }}
-          if_false: latest
-      - name: Determine image tag
-        id: imagetag
-        run: echo "::set-output name=value::${TAG_OR_BRANCH##*/}"
-        env:
-          TAG_OR_BRANCH: ${{ steps.refortag.outputs.value }}
+          platforms: ${{ matrix.build.platform }}
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build cloudflare-zero-trust-operator
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=tag
+
+      # For pull requests, build and push platform-specific images
+      - name: Build and push Docker image
+        if: github.event_name == 'pull_request'
         uses: docker/build-push-action@v5
         with:
-          tags: ghcr.io/bojanzelic/cloudflare-zero-trust-operator:${{ steps.imagetag.outputs.value }}
-          file: Dockerfile
-          platforms: ${{ env.PLATFORMS }}
+          context: .
+          platforms: ${{ matrix.build.platform }}
           push: true
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
+          tags: ${{ steps.meta.outputs.tags }}-${{ matrix.build.cache }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.build.cache }}
+          cache-to: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.build.cache }},mode=max
+
+  merge-manifests:
+    needs: build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=tag
+
+      - name: Create and push manifest list
+        run: |
+          # Get the tag without the registry prefix
+          TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
+          
+          MANIFEST_IMAGES=""
+          for CACHE in "amd64" "arm64"; do
+            MANIFEST_IMAGES="$MANIFEST_IMAGES ${TAG}-$CACHE"
+          done
+          
+          # Trim leading space from MANIFEST_IMAGES
+          MANIFEST_IMAGES="${MANIFEST_IMAGES# }"
+
+          echo $MANIFEST_IMAGES
+          
+          docker buildx imagetools create -t ${TAG} ${MANIFEST_IMAGES}
+
+  tag-release:
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract commit SHA
+        id: sha
+        run: echo "sha=$(echo ${{ github.sha }})" >> $GITHUB_OUTPUT
+
+      - name: Create release manifest lists
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          
+          # Create manifest lists for both version tag and latest
+          for TAG in "$VERSION" "latest"; do
+            MANIFEST_IMAGES=""
+            for CACHE in "amd64" "arm64"; do
+              MANIFEST_IMAGES="$MANIFEST_IMAGES ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ steps.sha.outputs.sha }}-$CACHE"
+            done
+            
+            docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$TAG $MANIFEST_IMAGES
+          done
