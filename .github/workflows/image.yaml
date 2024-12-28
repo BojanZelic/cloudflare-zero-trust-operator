@@ -93,7 +93,7 @@ jobs:
       - name: Create and push manifest list
         run: |
           MANIFEST_IMAGES=""
-          for CACHE in "cache-amd64" "cache-armv7" "cache-arm64"; do
+          for CACHE in "amd64" "arm64"; do
             MANIFEST_IMAGES="$MANIFEST_IMAGES ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tags }}-$CACHE"
           done
           
@@ -124,7 +124,7 @@ jobs:
           # Create manifest lists for both version tag and latest
           for TAG in "$VERSION" "latest"; do
             MANIFEST_IMAGES=""
-            for CACHE in "cache-amd64" "cache-armv7" "cache-arm64"; do
+            for CACHE in "amd64" "arm64"; do
               MANIFEST_IMAGES="$MANIFEST_IMAGES ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ steps.sha.outputs.sha }}-$CACHE"
             done
             
