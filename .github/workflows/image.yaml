@@ -15,8 +15,8 @@ jobs:
     strategy:
       matrix:
         build: [
-          {platform: linux/amd64, cache: cache-amd64},
-          {platform: linux/arm64, cache: cache-arm64},
+          {platform: linux/amd64, cache: amd64},
+          {platform: linux/arm64, cache: arm64},
         ]
     permissions:
       contents: read
