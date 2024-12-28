@@ -48,7 +48,6 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=sha,prefix=sha-
-            type=ref,event=pr
             type=ref,event=tag
 
       # For pull requests, build and push platform-specific images
