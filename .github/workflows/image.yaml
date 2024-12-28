@@ -7,7 +7,7 @@ on:
       - "[0-9]+.[0-9]+.[0-9]+"
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: bojanzelic/cloudflare-zero-trust-operator
 
 jobs:
   build:
