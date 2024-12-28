@@ -16,8 +16,6 @@ jobs:
       matrix:
         build: [
           {platform: linux/amd64, cache: cache-amd64},
-          {platform: linux/arm/v7, cache: cache-armv7},
-          {platform: linux/arm/v8, cache: cache-armv7},
           {platform: linux/arm64, cache: cache-arm64},
         ]
     permissions:
