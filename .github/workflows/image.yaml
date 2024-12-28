@@ -12,6 +12,14 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build: [
+          {platform: linux/amd64, cache: cache-amd64},
+          {platform: linux/arm/v7, cache: cache-armv7},
+          {platform: linux/arm/v8, cache: cache-armv7},
+          {platform: linux/arm64, cache: cache-arm64},
+        ]
     permissions:
       contents: read
       packages: write
@@ -25,6 +33,8 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          platforms: ${{ matrix.build.platform }}
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
@@ -43,31 +53,82 @@ jobs:
             type=ref,event=pr
             type=ref,event=tag
 
-      # For pull requests and non-tag pushes, build and push the image
+      # For pull requests, build and push platform-specific images
       - name: Build and push Docker image
         if: github.event_name == 'pull_request'
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.build.platform }}
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}-${{ matrix.build.cache }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.build.cache }}
+          cache-to: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.build.cache }},mode=max
 
-      # For tag events, create manifest list and retag for all architectures
-      - name: Retag existing images for release
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+  merge-manifests:
+    needs: build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=pr
+            type=ref,event=tag
+
+      - name: Create and push manifest list
         run: |
-          # Extract the commit SHA from the tag
-          COMMIT_SHA=$(git rev-parse HEAD)
+          MANIFEST_IMAGES=""
+          for CACHE in "cache-amd64" "cache-armv7" "cache-arm64"; do
+            MANIFEST_IMAGES="$MANIFEST_IMAGES ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tags }}-$CACHE"
+          done
+          
+          docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tags }} $MANIFEST_IMAGES
+
+  tag-release:
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract commit SHA
+        id: sha
+        run: echo "sha=$(echo ${{ github.sha }})" >> $GITHUB_OUTPUT
+
+      - name: Create release manifest lists
+        run: |
           VERSION=${GITHUB_REF#refs/tags/}
           
-          # Create manifest list for the version tag
-          docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION} \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${COMMIT_SHA}
-          
-          # Create manifest list for latest tag
-          docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${COMMIT_SHA}
+          # Create manifest lists for both version tag and latest
+          for TAG in "$VERSION" "latest"; do
+            MANIFEST_IMAGES=""
+            for CACHE in "cache-amd64" "cache-armv7" "cache-arm64"; do
+              MANIFEST_IMAGES="$MANIFEST_IMAGES ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ steps.sha.outputs.sha }}-$CACHE"
+            done
+            
+            docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$TAG $MANIFEST_IMAGES
+          done
