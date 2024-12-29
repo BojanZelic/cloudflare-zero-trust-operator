@@ -36,7 +36,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	cloudflarev1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/controller"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -142,9 +144,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	config.SetConfigDefaults()
+
+	controllerHelper := &ctrlhelper.ControllerHelper{
+		R: mgr.GetClient(),
+	}
+
 	if err = (&controller.CloudflareAccessGroupReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Helper: controllerHelper,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudflareAccessGroup")
 		os.Exit(1)
@@ -152,6 +161,7 @@ func main() {
 	if err = (&controller.CloudflareServiceTokenReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Helper: controllerHelper,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudflareServiceToken")
 		os.Exit(1)
@@ -159,6 +169,7 @@ func main() {
 	if err = (&controller.CloudflareAccessApplicationReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Helper: controllerHelper,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudflareAccessApplication")
 		os.Exit(1)
