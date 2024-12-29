@@ -49,6 +49,9 @@ jobs:
           tags: |
             type=sha,prefix=sha-
             type=ref,event=tag
+          flavor: | 
+            latest=false
+            suffix=${{ matrix.build.cache }}
 
       # For pull requests, build and push platform-specific images
       - name: Build and push Docker image
@@ -57,7 +60,7 @@ jobs:
           context: .
           platforms: ${{ matrix.build.platform }}
           push: true
-          tags: ${{ steps.meta.outputs.tags }}-${{ matrix.build.cache }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
             type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.build.cache }}
@@ -83,22 +86,23 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=sha,prefix=sha-
             type=ref,event=tag
+            type=sha,prefix=sha-
 
-      - name: Create and push manifest list
+      - name: Create and push manifest lists
         run: |
-          # Get the tag without the registry prefix
-          TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
+          # Read all tags into an array
+          readarray -t TAGS <<< "${{ steps.meta.outputs.tags }}"
           
-          MANIFEST_IMAGES=""
-          for CACHE in "amd64" "arm64"; do
-            MANIFEST_IMAGES="$MANIFEST_IMAGES ${TAG}-$CACHE"
-          done
-          
-          # Trim leading space from MANIFEST_IMAGES
-          MANIFEST_IMAGES="${MANIFEST_IMAGES# }"
+          for TAG in "${TAGS[@]}"; do
+            MANIFEST_IMAGES=""
+            for CACHE in "amd64" "arm64"; do
+              MANIFEST_IMAGES="$MANIFEST_IMAGES ${TAG}-$CACHE"
+            done
+            
+            # Trim leading space from MANIFEST_IMAGES
+            MANIFEST_IMAGES="${MANIFEST_IMAGES# }"
 
-          echo $MANIFEST_IMAGES
-          
-          docker buildx imagetools create -t ${TAG} ${MANIFEST_IMAGES}
+            echo "Creating manifest list for ${TAG} with images: ${MANIFEST_IMAGES}"
+            docker buildx imagetools create -t ${TAG} ${MANIFEST_IMAGES}
+          done
