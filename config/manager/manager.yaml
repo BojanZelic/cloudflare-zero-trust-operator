@@ -3,11 +3,7 @@ kind: Namespace
 metadata:
   labels:
     control-plane: controller-manager
-    app.kubernetes.io/name: namespace
-    app.kubernetes.io/instance: system
-    app.kubernetes.io/component: manager
-    app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
-    app.kubernetes.io/part-of: bojanzelic-cloudflare-zero-trust-operator
+    app.kubernetes.io/name: bojanzelic-cloudflare-zero-trust-operator
     app.kubernetes.io/managed-by: kustomize
   name: system
 ---
@@ -18,11 +14,7 @@ metadata:
   namespace: system
   labels:
     control-plane: controller-manager
-    app.kubernetes.io/name: deployment
-    app.kubernetes.io/instance: controller-manager
-    app.kubernetes.io/component: manager
-    app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
-    app.kubernetes.io/part-of: bojanzelic-cloudflare-zero-trust-operator
+    app.kubernetes.io/name: bojanzelic-cloudflare-zero-trust-operator
     app.kubernetes.io/managed-by: kustomize
 spec:
   selector:
@@ -37,7 +29,7 @@ spec:
         control-plane: controller-manager
     spec:
       # TODO(user): Uncomment the following code to configure the nodeAffinity expression
-      # according to the platforms which are supported by your solution. 
+      # according to the platforms which are supported by your solution.
       # It is considered best practice to support multiple architectures. You can
       # build your manager image using the makefile target docker-buildx.
       # affinity:
@@ -69,38 +61,15 @@ spec:
       - command:
         - /manager
         args:
-        - --leader-elect
+          - --leader-elect
+          - --health-probe-bind-address=:8081
         image: controller:latest
         name: manager
-        env:
-          - name: CLOUDFLARE_ACCOUNT_ID
-            valueFrom:
-              secretKeyRef:
-                name: cloudflare-creds
-                key: CLOUDFLARE_ACCOUNT_ID
-          - name: CLOUDFLARE_API_KEY
-            valueFrom:
-              secretKeyRef:
-                name: cloudflare-creds
-                key: CLOUDFLARE_API_KEY
-                optional: true
-          - name: CLOUDFLARE_API_EMAIL
-            valueFrom:
-              secretKeyRef:
-                name: cloudflare-creds
-                key: CLOUDFLARE_API_EMAIL
-                optional: true
-          - name: CLOUDFLARE_API_TOKEN
-            valueFrom:
-              secretKeyRef:
-                name: cloudflare-creds
-                key: CLOUDFLARE_API_TOKEN
-                optional: true
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
             drop:
-              - "ALL"
+            - "ALL"
         livenessProbe:
           httpGet:
             path: /healthz

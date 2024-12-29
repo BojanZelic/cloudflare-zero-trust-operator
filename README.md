@@ -170,9 +170,9 @@ secretGenerator:
 
 This provider's versions are able to install and manage the following versions of Kubernetes:
 
-|                                                | v1.22 | v1.23 | v1.24 | v1.25 | v1.26 |
-| ---------------------------------------------- | ----- | ----- | ----- | ----- | ----- |
-| Cloudflare Zero Trust Operator v0.0.1-current  | ✓     | ✓     | ✓     | ✓     | ✓     |
+|                                                | v1.22 - v1.31 | 
+| ---------------------------------------------- | ----- | 
+| Cloudflare Zero Trust Operator v0.0.1-current  | ✓     |
 
 
 ## Local Development

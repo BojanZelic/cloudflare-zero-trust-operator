@@ -6,9 +6,6 @@ kind: Role
 metadata:
   name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-f-zero-trust-operator-leader-election-role
   labels:
-    app.kubernetes.io/component: rbac
-    app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
-    app.kubernetes.io/part-of: bojanzelic-cloudflare-zero-trust-operator
   {{- include "cloudflare-zero-trust-operator.labels" . | nindent 4 }}
 rules:
 - apiGroups:
@@ -48,9 +45,6 @@ kind: RoleBinding
 metadata:
   name: {{ include "cloudflare-zero-trust-operator.fullname" . }}-f-zero-trust-operator-leader-election-rolebinding
   labels:
-    app.kubernetes.io/component: rbac
-    app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
-    app.kubernetes.io/part-of: bojanzelic-cloudflare-zero-trust-operator
   {{- include "cloudflare-zero-trust-operator.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io

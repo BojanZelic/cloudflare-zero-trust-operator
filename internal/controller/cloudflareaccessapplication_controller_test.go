@@ -1,6 +1,6 @@
 //go:build integration
 
-package controllers
+package controller
 
 import (
 	"context"

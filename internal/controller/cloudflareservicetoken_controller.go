@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package controller
 
 import (
 	"context"
@@ -95,7 +95,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	}
 
 	_, err = controllerutil.CreateOrPatch(ctx, r.Client, serviceToken, func() error {
-		if serviceToken.Status.Conditions == nil || len(serviceToken.Status.Conditions) == 0 {
+		if len(serviceToken.Status.Conditions) == 0 {
 			meta.SetStatusCondition(&serviceToken.Status.Conditions, metav1.Condition{
 				Type:    statusAvailable,
 				Status:  metav1.ConditionUnknown,

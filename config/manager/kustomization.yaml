@@ -1,5 +1,5 @@
 resources:
-  - manager.yaml
+- manager.yaml
 images:
   - name: controller
     newName: ghcr.io/bojanzelic/cloudflare-zero-trust-operator
