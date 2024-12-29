@@ -52,7 +52,6 @@ jobs:
 
       # For pull requests, build and push platform-specific images
       - name: Build and push Docker image
-        if: github.event_name == 'pull_request'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -67,7 +66,6 @@ jobs:
 
   merge-manifests:
     needs: build
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -104,35 +102,3 @@ jobs:
           echo $MANIFEST_IMAGES
           
           docker buildx imagetools create -t ${TAG} ${MANIFEST_IMAGES}
-
-  tag-release:
-    needs: build
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    permissions:
-      packages: write
-    steps:
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract commit SHA
-        id: sha
-        run: echo "sha=$(echo ${{ github.sha }})" >> $GITHUB_OUTPUT
-
-      - name: Create release manifest lists
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-          
-          # Create manifest lists for both version tag and latest
-          for TAG in "$VERSION" "latest"; do
-            MANIFEST_IMAGES=""
-            for CACHE in "amd64" "arm64"; do
-              MANIFEST_IMAGES="$MANIFEST_IMAGES ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ steps.sha.outputs.sha }}-$CACHE"
-            done
-            
-            docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$TAG $MANIFEST_IMAGES
-          done
