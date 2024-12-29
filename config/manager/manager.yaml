@@ -63,6 +63,30 @@ spec:
         args:
           - --leader-elect
           - --health-probe-bind-address=:8081
+        env:
+          - name: CLOUDFLARE_ACCOUNT_ID
+            valueFrom:
+              secretKeyRef:
+                name: cloudflare-creds
+                key: CLOUDFLARE_ACCOUNT_ID
+          - name: CLOUDFLARE_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: cloudflare-creds
+                key: CLOUDFLARE_API_KEY
+                optional: true
+          - name: CLOUDFLARE_API_EMAIL
+            valueFrom:
+              secretKeyRef:
+                name: cloudflare-creds
+                key: CLOUDFLARE_API_EMAIL
+                optional: true
+          - name: CLOUDFLARE_API_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: cloudflare-creds
+                key: CLOUDFLARE_API_TOKEN
+                optional: true
         image: controller:latest
         name: manager
         securityContext:
