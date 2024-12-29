@@ -37,13 +37,13 @@ jobs:
         CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     - name: Upload coverage to Codecov
       if: github.event_name == 'pull_request_target'
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         override_pr: ${{ github.event.number }}
         override_commit: ${{ github.event.pull_request.head.sha }}
     - name: Upload coverage to Codecov
       if: github.event_name != 'pull_request_target'
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
