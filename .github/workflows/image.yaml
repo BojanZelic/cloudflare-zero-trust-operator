@@ -51,7 +51,7 @@ jobs:
             type=ref,event=tag
           flavor: | 
             latest=false
-            suffix=${{ matrix.build.cache }}
+            suffix=-${{ matrix.build.cache }}
 
       # For pull requests, build and push platform-specific images
       - name: Build and push Docker image
