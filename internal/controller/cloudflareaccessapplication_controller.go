@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
@@ -130,10 +131,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 			var apiErr *cloudflare.NotFoundError
 			if errors.As(err, &apiErr) {
 				log.Info("access application not found - recreating...", "accessApplicationID", app.Status.AccessApplicationID)
-				err := r.ClearStatus(ctx, app)
-				if err != nil {
-					return ctrl.Result{}, errors.Wrap(err, "failed to clear access application status")
-				}
+				app.Status.AccessApplicationID = ""
 			} else {
 				return ctrl.Result{}, errors.Wrap(err, "unable to get access application")
 			}
@@ -211,38 +209,6 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	return ctrl.Result{}, nil
 }
 
-type statusReconcileFunction func(cfApp *cloudflare.AccessApplication, k8sApp *v1alpha1.CloudflareAccessApplication) error
-
-// nolint:dupl
-func (r *CloudflareAccessApplicationReconciler) reconcileStatus(ctx context.Context, cfApp *cloudflare.AccessApplication, k8sApp *v1alpha1.CloudflareAccessApplication, reconcileFunction statusReconcileFunction) error {
-	app := k8sApp.DeepCopy()
-
-	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
-		return reconcileFunction(cfApp, app)
-	}); err != nil {
-		return errors.Wrap(err, "Failed to reconcile CloudflareAccessApplication status")
-	}
-
-	// CreateOrPatch re-fetches the object from k8s which removes any changes we've made that override them
-	// so that's why we re-apply these settings again on the original object;
-	k8sApp.Status = app.Status
-
-	return nil
-}
-
-// nolint:dupl
-func (r *CloudflareAccessApplicationReconciler) ClearStatus(ctx context.Context, k8sApp *v1alpha1.CloudflareAccessApplication) error {
-	if k8sApp.Status.AccessApplicationID == "" {
-		return nil
-	}
-
-	return r.reconcileStatus(ctx, nil, k8sApp, func(_ *cloudflare.AccessApplication, app *v1alpha1.CloudflareAccessApplication) error {
-		app.Status.AccessApplicationID = ""
-
-		return nil
-	})
-}
-
 // nolint:dupl
 func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Context, cfApp *cloudflare.AccessApplication, k8sApp *v1alpha1.CloudflareAccessApplication) error {
 	if k8sApp.Status.AccessApplicationID != "" {
@@ -253,13 +219,23 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Cont
 		return nil
 	}
 
-	return r.reconcileStatus(ctx, cfApp, k8sApp, func(cfApp *cloudflare.AccessApplication, app *v1alpha1.CloudflareAccessApplication) error {
+	app := k8sApp.DeepCopy()
+
+	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
 		app.Status.AccessApplicationID = cfApp.ID
 		app.Status.CreatedAt = metav1.NewTime(*cfApp.CreatedAt)
 		app.Status.UpdatedAt = metav1.NewTime(*cfApp.UpdatedAt)
 
 		return nil
-	})
+	}); err != nil {
+		return errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
+	}
+
+	// CreateOrPatch re-fetches the object from k8s which removes any changes we've made that override them
+	// so thats why we re-apply these settings again on the original object;
+	k8sApp.Status = app.Status
+
+	return nil
 }
 
 //nolint:gocognit,cyclop
