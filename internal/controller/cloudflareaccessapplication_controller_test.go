@@ -450,8 +450,8 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 					Namespace: namespace.Name,
 				},
 				Spec: v1alpha1.CloudflareAccessApplicationSpec{
-					Name:   "integration test",
-					Domain: "integration.cf-operator-tests.uk",
+					Name:   "missing application",
+					Domain: "recreate-application.cf-operator-tests.uk",
 				},
 				Status: v1alpha1.CloudflareAccessApplicationStatus{
 					// This ID does not exist
