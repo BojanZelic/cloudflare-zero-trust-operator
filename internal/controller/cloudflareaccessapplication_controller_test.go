@@ -446,7 +446,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			previousCreatedAndUpdatedDate := metav1.NewTime(time.Now().Add(-time.Hour * 24))
 			apps := &v1alpha1.CloudflareAccessApplication{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      cloudflareName,
+					Name:      typeNamespaceName.Name,
 					Namespace: namespace.Name,
 				},
 				Spec: v1alpha1.CloudflareAccessApplicationSpec{
