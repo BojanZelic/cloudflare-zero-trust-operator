@@ -127,9 +127,16 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		}
 	} else {
 		accessApp, err := api.AccessApplication(ctx, app.Status.AccessApplicationID)
-		existingaccessApp = &accessApp
 		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "unable to get access application")
+			var apiErr *cloudflare.NotFoundError
+			if errors.As(err, &apiErr) {
+				log.Info("access application not found - recreating...", "accessApplicationID", app.Status.AccessApplicationID)
+				app.Status.AccessApplicationID = ""
+			} else {
+				return ctrl.Result{}, errors.Wrap(err, "unable to get access application")
+			}
+		} else {
+			existingaccessApp = &accessApp
 		}
 	}
 
