@@ -1,7 +1,11 @@
 name: Build Image
 on:
-  pull_request:
-    branches: [ main ]
+  pull_request_target:
+    types:
+      - labeled
+      - synchronize
+    branches:
+      - main
   push:
     tags:
       - "[0-9]+.[0-9]+.[0-9]+"
@@ -55,6 +59,7 @@ jobs:
 
       # For pull requests, build and push platform-specific images
       - name: Build and push Docker image
+        if: github.event_name == 'push' || (github.event_name == 'pull_request_target' && contains(github.event.pull_request.labels.*.name, 'safe to test'))
         uses: docker/build-push-action@v5
         with:
           context: .
