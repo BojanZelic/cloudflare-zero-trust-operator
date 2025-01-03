@@ -453,15 +453,19 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 					Name:   "missing application",
 					Domain: "recreate-application.cf-operator-tests.uk",
 				},
-				Status: v1alpha1.CloudflareAccessApplicationStatus{
-					// This ID does not exist
-					AccessApplicationID: "463e6cd2-07f4-430d-823f-d3e1c1035f95",
-					CreatedAt:           previousCreatedAndUpdatedDate,
-					UpdatedAt:           previousCreatedAndUpdatedDate,
-				},
 			}
 
 			err := k8sClient.Create(ctx, apps)
+			Expect(err).To(Not(HaveOccurred()))
+
+			apps.Status = v1alpha1.CloudflareAccessApplicationStatus{
+				// This ID does not exist
+				AccessApplicationID: "463e6cd2-07f4-430d-823f-d3e1c1035f95",
+				CreatedAt:           previousCreatedAndUpdatedDate,
+				UpdatedAt:           previousCreatedAndUpdatedDate,
+			}
+
+			err = k8sClient.Status().Update(ctx, apps)
 			Expect(err).To(Not(HaveOccurred()))
 
 			By("Checking if the custom resource was successfully created")
