@@ -1,7 +1,11 @@
 name: Integration Tests
 on:
   pull_request_target:
-    types: [labeled]
+    types:
+      - labeled
+      - synchronize
+    branches:
+      - main
   push:
     branches:
       - 'main'
