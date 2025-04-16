@@ -77,10 +77,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, errors.Wrap(err, "invalid config")
 	}
 
-	api, err = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "unable to initialize cloudflare object")
-	}
+	api = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
 
 	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, accessGroup)
 	if !continueReconcilliation || err != nil {

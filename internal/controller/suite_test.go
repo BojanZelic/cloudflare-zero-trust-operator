@@ -97,8 +97,7 @@ var _ = BeforeSuite(func() {
 	By("bootstrapping cloudflare api client")
 	config.SetConfigDefaults()
 	cfConfig := config.ParseCloudflareConfig(&v1.ObjectMeta{})
-	api, err = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
-	Expect(err).NotTo(HaveOccurred())
+	api = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
 
 	logOutput = NewTestLogger(logr.RuntimeInfo{CallDepth: 1})
 

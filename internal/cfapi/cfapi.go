@@ -6,28 +6,28 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	cloudflare "github.com/cloudflare/cloudflare-go/v4"
+	"github.com/cloudflare/cloudflare-go/v4/option"
 	"github.com/pkg/errors"
 )
 
 type API struct {
 	CFAccountID string
-	client      *cloudflare.API
+	client      *cloudflare.Client
 }
 
-func New(cfAPIToken string, cfAPIKey string, cfAPIEmail string, cfAccountID string) (*API, error) {
-	var err error
-	var api *cloudflare.API
+func New(cfAPIToken string, cfAPIKey string, cfAPIEmail string, cfAccountID string) *API {
+	var api *cloudflare.Client
 
 	if cfAPIToken != "" {
-		api, err = cloudflare.NewWithAPIToken(cfAPIToken)
+		api = cloudflare.NewClient(option.WithAPIToken(cfAPIToken))
 	} else {
-		api, err = cloudflare.New(cfAPIKey, cfAPIEmail)
+		api = cloudflare.NewClient(option.WithAPIKey(cfAPIKey), option.WithAPIEmail(cfAPIEmail))
 	}
 
 	return &API{
 		CFAccountID: cfAccountID,
 		client:      api,
-	}, errors.Wrap(err, "error initializing Cloudflare API")
+	}
 }
 
 func (a *API) AccessGroups(ctx context.Context) (cfcollections.AccessGroupCollection, error) {
