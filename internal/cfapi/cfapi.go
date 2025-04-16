@@ -107,13 +107,15 @@ func (a *API) AccessApplications(ctx context.Context) ([]zero_trust.AccessApplic
 	return apps, errors.Wrap(iter.Err(), "unable to get access applications")
 }
 
-func (a *API) FindAccessApplicationByDomain(ctx context.Context, domain string) (zero_trust.AccessApplicationListResponse, error) {
+func (a *API) FindAccessApplicationByDomain(ctx context.Context, domain string) (zero_trust.AccessApplicationGetResponse, error) {
 	iter := a.client.ZeroTrust.Access.Applications.ListAutoPaging(ctx, zero_trust.AccessApplicationListParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 		Domain:    cloudflare.F(domain),
 	})
 
 	iter.Next()
+
+	found := iter.Current()
 
 	return iter.Current(), errors.Wrap(iter.Err(), "unable to get access applications")
 }

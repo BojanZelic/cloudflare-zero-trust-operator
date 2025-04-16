@@ -82,8 +82,8 @@ func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 			}
 
 			if err != nil {
-				var notFound *cloudflare.NotFoundError
-				if errors.As(err, &notFound) {
+				var cfErr *cloudflare.Error
+				if errors.As(err, &cfErr) && cfErr.StatusCode == 404 {
 					log.Info("unable to remove resource from cloudflare - appears to be already deleted")
 				} else {
 					log.Error(err, "unable to delete")

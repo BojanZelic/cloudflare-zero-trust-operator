@@ -26,6 +26,7 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/services"
 	cloudflare "github.com/cloudflare/cloudflare-go/v4"
+	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -60,7 +61,7 @@ const (
 //nolint:cyclop,gocognit
 func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
-	var existingaccessApp *cloudflare.AccessApplication
+	var existingaccessApp *zero_trust.AccessApplicationGetResponse
 	var api *cfapi.API
 
 	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::Reconcile")
@@ -124,15 +125,15 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	} else {
 		accessApp, err := api.AccessApplication(ctx, app.Status.AccessApplicationID)
 		if err != nil {
-			var apiErr *cloudflare.NotFoundError
-			if errors.As(err, &apiErr) {
+			var cfErr *cloudflare.Error
+			if errors.As(err, &cfErr) && cfErr.StatusCode == 404 {
 				log.Info("access application not found - recreating...", "accessApplicationID", app.Status.AccessApplicationID)
 				app.Status.AccessApplicationID = ""
 			} else {
 				return ctrl.Result{}, errors.Wrap(err, "unable to get access application")
 			}
 		} else {
-			existingaccessApp = &accessApp
+			existingaccessApp = accessApp
 		}
 	}
 
@@ -206,7 +207,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 }
 
 // nolint:dupl
-func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Context, cfApp *cloudflare.AccessApplication, k8sApp *v1alpha1.CloudflareAccessApplication) error {
+func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Context, cfApp *zero_trust.AccessApplicationGetResponse, k8sApp *v1alpha1.CloudflareAccessApplication) error {
 	if k8sApp.Status.AccessApplicationID != "" {
 		return nil
 	}

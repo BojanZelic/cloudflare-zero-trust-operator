@@ -18,7 +18,7 @@ package v1alpha1
 
 import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
-	cloudflare "github.com/cloudflare/cloudflare-go/v4"
+	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -123,10 +123,12 @@ func (aps CloudflareLegacyAccessPolicyList) ToCloudflare() cfcollections.LegacyA
 	ret := cfcollections.LegacyAccessPolicyCollection{}
 
 	for i, policy := range aps {
-		transformed := cloudflare.AccessPolicy{
-			Name:       policy.Name,
-			Precedence: i + 1,
-			Decision:   policy.Decision,
+		transformed := zero_trust.AccessApplicationPolicyListResponse{
+			ApplicationPolicy: zero_trust.ApplicationPolicy{
+				Name:     policy.Name,
+				Decision: zero_trust.Decision(policy.Decision),
+			},
+			Precedence: int64(i + 1),
 		}
 
 		managedCRFields := CloudFlareAccessGroupRuleGroups{
@@ -135,7 +137,7 @@ func (aps CloudflareLegacyAccessPolicyList) ToCloudflare() cfcollections.LegacyA
 			policy.Require,
 		}
 
-		managedCFFields := []*[]interface{}{
+		managedCFFields := []*[]zero_trust.AccessRule{
 			&transformed.Include,
 			&transformed.Exclude,
 			&transformed.Require,
@@ -187,25 +189,25 @@ func (c *CloudflareAccessApplication) UnderDeletion() bool {
 	return !c.ObjectMeta.DeletionTimestamp.IsZero()
 }
 
-func (c *CloudflareAccessApplication) ToCloudflare() cloudflare.AccessApplication {
+func (c *CloudflareAccessApplication) ToCloudflare() zero_trust.AccessApplicationGetResponse {
 	allowedIdps := []string{}
 	if c.Spec.AllowedIdps != nil {
 		allowedIdps = c.Spec.AllowedIdps
 	}
 
-	app := cloudflare.AccessApplication{
+	app := zero_trust.AccessApplicationGetResponse{
 		Name:                    c.Spec.Name,
 		ID:                      c.Status.AccessApplicationID,
-		CreatedAt:               &c.Status.CreatedAt.Time,
-		UpdatedAt:               &c.Status.UpdatedAt.Time,
+		CreatedAt:               c.Status.CreatedAt.Time,
+		UpdatedAt:               c.Status.UpdatedAt.Time,
 		Domain:                  c.Spec.Domain,
 		Type:                    c.Spec.Type,
-		AppLauncherVisible:      c.Spec.AppLauncherVisible,
-		AllowedIdps:             allowedIdps,
-		AutoRedirectToIdentity:  c.Spec.AutoRedirectToIdentity,
+		AppLauncherVisible:      *c.Spec.AppLauncherVisible,
+		AllowedIdPs:             allowedIdps,
+		AutoRedirectToIdentity:  *c.Spec.AutoRedirectToIdentity,
 		SessionDuration:         c.Spec.SessionDuration,
-		EnableBindingCookie:     c.Spec.EnableBindingCookie,
-		HttpOnlyCookieAttribute: c.Spec.HTTPOnlyCookieAttribute,
+		EnableBindingCookie:     *c.Spec.EnableBindingCookie,
+		HTTPOnlyCookieAttribute: *c.Spec.HTTPOnlyCookieAttribute,
 		LogoURL:                 c.Spec.LogoURL,
 	}
 
