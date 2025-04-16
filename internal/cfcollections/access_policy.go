@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"sort"
 
-	cloudflare "github.com/cloudflare/cloudflare-go"
+	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 )
 
 type AccessPolicyCollection []cloudflare.AccessPolicy

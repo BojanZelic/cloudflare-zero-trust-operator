@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"strings"
 
-	cloudflare "github.com/cloudflare/cloudflare-go"
+	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 )
 
 func AccessAppEqual(first cloudflare.AccessApplication, second cloudflare.AccessApplication) bool {

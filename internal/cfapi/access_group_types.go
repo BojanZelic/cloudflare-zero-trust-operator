@@ -1,7 +1,7 @@
 package cfapi
 
 import (
-	cloudflare "github.com/cloudflare/cloudflare-go"
+	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 )
 
 func NewAccessGroupEmail(email string) cloudflare.AccessGroupEmail {

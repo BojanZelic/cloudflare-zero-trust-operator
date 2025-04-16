@@ -3,7 +3,7 @@ package cftypes
 import (
 	"errors"
 
-	"github.com/cloudflare/cloudflare-go"
+	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 	corev1 "k8s.io/api/core/v1"
 )
 

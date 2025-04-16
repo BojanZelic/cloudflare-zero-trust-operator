@@ -18,7 +18,7 @@ package v1alpha1
 
 import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
-	cloudflare "github.com/cloudflare/cloudflare-go"
+	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"reflect"
 
-	cloudflare "github.com/cloudflare/cloudflare-go"
+	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 )
 
 type AccessGroupCollection []cloudflare.AccessGroup
