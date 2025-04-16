@@ -45,6 +45,16 @@ type OIDCClaim struct {
 	IdentityProviderID string `json:"identityProviderId"`
 }
 
+type GithubOrganisation struct {
+	// The name of the organization.
+	Name string `json:"name"`
+	// The ID of your Github identity provider.
+	IdentityProviderID string `json:"identityProviderId"`
+	// The name of the team
+	// +optional
+	Team string `json:"team,omitempty"`
+}
+
 type AccessGroupReference struct {
 	// `namespace` is the namespace of the AccessGroup.
 	// Required

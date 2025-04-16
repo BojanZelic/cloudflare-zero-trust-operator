@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -94,6 +93,9 @@ type CloudFlareAccessGroupRule struct {
 
 	// OIDC Claims
 	OIDCClaims []OIDCClaim `json:"oidcClaims,omitempty"`
+
+	// Github Organizations
+	GithubOrganisations []GithubOrganisation `json:"githubOrganizations,omitempty"`
 }
 
 // CloudflareAccessGroupStatus defines the observed state of CloudflareAccessGroup.
@@ -142,9 +144,9 @@ func (c *CloudflareAccessGroup) ToCloudflare() zero_trust.AccessGroupGetResponse
 		ID:        c.Status.AccessGroupID,
 		CreatedAt: c.Status.CreatedAt.Time,
 		UpdatedAt: c.Status.UpdatedAt.Time,
-		Include:   make([]interface{}, 0),
-		Exclude:   make([]interface{}, 0),
-		Require:   make([]interface{}, 0),
+		Include:   []zero_trust.AccessRule{},
+		Exclude:   []zero_trust.AccessRule{},
+		Require:   []zero_trust.AccessRule{},
 	}
 
 	managedCRFields := CloudFlareAccessGroupRuleGroups{
@@ -153,7 +155,7 @@ func (c *CloudflareAccessGroup) ToCloudflare() zero_trust.AccessGroupGetResponse
 		c.Spec.Require,
 	}
 
-	managedCFFields := []*[]interface{}{
+	managedCFFields := []*[]zero_trust.AccessRule{
 		&accessGroup.Include,
 		&accessGroup.Exclude,
 		&accessGroup.Require,
@@ -167,57 +169,124 @@ func (c *CloudflareAccessGroup) ToCloudflare() zero_trust.AccessGroupGetResponse
 type CloudFlareAccessGroupRuleGroups [][]CloudFlareAccessGroupRule
 
 // nolint: gocognit,cyclop
-func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCFFields []*[]interface{}) {
+func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCFFields []*[]zero_trust.AccessRule) {
 	for i, managedField := range c {
 		for _, field := range managedField {
 			for _, email := range field.Emails {
-				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupEmail(email))
+				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
+					Email: zero_trust.EmailRuleEmail{
+						Email: email,
+					},
+				})
 			}
 			for _, domain := range field.EmailDomains {
-				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupEmailDomains(domain))
+				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
+					EmailDomain: zero_trust.DomainRuleEmailDomain{
+						Domain: domain,
+					},
+				})
 			}
 			for _, ip := range field.IPRanges {
-				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupIP(ip))
+				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
+					IP: zero_trust.IPRuleIP{
+						IP: ip,
+					},
+				})
 			}
 			for _, token := range field.ServiceToken {
 				if token.Value != "" {
-					*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupServiceToken(token.Value))
+					*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
+						ServiceToken: zero_trust.ServiceTokenRuleServiceToken{
+							TokenID: token.Value,
+						},
+					})
 				}
 			}
 			if field.AnyAccessServiceToken != nil && *field.AnyAccessServiceToken {
-				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupAnyValidServiceToken())
+				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
+					AnyValidServiceToken: zero_trust.AnyValidServiceTokenRuleAnyValidServiceToken{},
+				})
 			}
 			if field.Everyone != nil && *field.Everyone {
-				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupEveryone())
+				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
+					Everyone: zero_trust.EveryoneRuleEveryone{},
+				})
 			}
 			if field.ValidCertificate != nil && *field.ValidCertificate {
-				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupCertificate())
+				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
+					Certificate: zero_trust.CertificateRuleCertificate{},
+				})
 			}
 			for _, country := range field.Country {
-				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupGeo(country))
+				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
+					Geo: zero_trust.CountryRuleGeo{
+						CountryCode: country,
+					},
+				})
 			}
 			for _, group := range field.AccessGroups {
 				if group.Value != "" {
-					*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupAccessGroup(group.Value))
+					*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
+						Group: zero_trust.GroupRuleGroup{
+							ID: group.Value,
+						},
+					})
 				}
 			}
 
+			for _, commonName := range field.CommonName {
+				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
+					CommonName: zero_trust.AccessRuleAccessCommonNameRuleCommonName{
+						CommonName: commonName,
+					},
+				})
+			}
+
 			for _, loginMethod := range field.LoginMethod {
-				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupLoginMethod(loginMethod))
+				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
+					LoginMethod: zero_trust.AccessRuleAccessLoginMethodRuleLoginMethod{
+						ID: loginMethod,
+					},
+				})
 			}
 
 			for _, googleGroup := range field.GoogleGroups {
 				if googleGroup.Email != "" && googleGroup.IdentityProviderID != "" {
-					*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupGSuite(googleGroup.Email, googleGroup.IdentityProviderID))
+					*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
+						GSuite: zero_trust.GSuiteGroupRuleGSuite{
+							Email:              googleGroup.Email,
+							IdentityProviderID: googleGroup.IdentityProviderID,
+						},
+					})
 				}
 			}
 
 			for _, oktaGroup := range field.OktaGroup {
-				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupOktaGroup(oktaGroup.Name, oktaGroup.IdentityProviderID))
+				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
+					Okta: zero_trust.OktaGroupRuleOkta{
+						IdentityProviderID: oktaGroup.IdentityProviderID,
+						Name:               oktaGroup.Name,
+					},
+				})
 			}
 
 			for _, oidcClaim := range field.OIDCClaims {
-				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupOIDCClaim(oidcClaim.Name, oidcClaim.Value, oidcClaim.IdentityProviderID))
+				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
+					SAML: zero_trust.SAMLGroupRuleSAML{
+						IdentityProviderID: oidcClaim.IdentityProviderID,
+						AttributeName:      oidcClaim.Name,
+						AttributeValue:     oidcClaim.Value,
+					},
+				})
+			}
+			for _, ghOrgs := range field.GithubOrganisations {
+				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
+					GitHubOrganization: zero_trust.GitHubOrganizationRuleGitHubOrganization{
+						IdentityProviderID: ghOrgs.IdentityProviderID,
+						Name:               ghOrgs.Name,
+						Team:               ghOrgs.Team,
+					},
+				})
 			}
 		}
 	}
