@@ -37,7 +37,7 @@ type CloudflareAccessApplicationSpec struct {
 	// The application type. defaults to "self_hosted"
 	// +optional
 	// +kubebuilder:default=self_hosted
-	Type cloudflare.AccessApplicationType `json:"type,omitempty"`
+	Type string `json:"type,omitempty"`
 
 	// Displays the application in the App Launcher.
 	// +optional
@@ -56,10 +56,10 @@ type CloudflareAccessApplicationSpec struct {
 	// +kubebuilder:default=false
 	AutoRedirectToIdentity *bool `json:"autoRedirectToIdentity,omitempty"`
 
-	// Policies is the ordered set of policies that should be applied to the application
+	// LegacyPolicies is the ordered set of policies that should be applied to the application
 	// Order determines precidence
 	// +optional
-	Policies CloudflareAccessPolicyList `json:"policies,omitempty"`
+	LegacyPolicies CloudflareLegacyAccessPolicyList `json:"policies,omitempty"`
 
 	// SessionDuration is the length of the session duration.
 	// +optional
@@ -81,7 +81,7 @@ type CloudflareAccessApplicationSpec struct {
 	LogoURL string `json:"logoUrl,omitempty"`
 }
 
-type CloudflareAccessPolicy struct {
+type CloudflareLegacyAccessPolicy struct {
 	// Name of the Cloudflare Access Policy
 	Name string `json:"name"`
 
@@ -105,21 +105,21 @@ type CloudflareAccessPolicy struct {
 	// ApprovalGroups               []cloudflare.AccessApprovalGroup `json:"approval_groups"`
 }
 
-func (c CloudflareAccessPolicy) GetInclude() []CloudFlareAccessGroupRule {
+func (c CloudflareLegacyAccessPolicy) GetInclude() []CloudFlareAccessGroupRule {
 	return c.Include
 }
 
-func (c CloudflareAccessPolicy) GetExclude() []CloudFlareAccessGroupRule {
+func (c CloudflareLegacyAccessPolicy) GetExclude() []CloudFlareAccessGroupRule {
 	return c.Exclude
 }
 
-func (c CloudflareAccessPolicy) GetRequire() []CloudFlareAccessGroupRule {
+func (c CloudflareLegacyAccessPolicy) GetRequire() []CloudFlareAccessGroupRule {
 	return c.Require
 }
 
-type CloudflareAccessPolicyList []CloudflareAccessPolicy
+type CloudflareLegacyAccessPolicyList []CloudflareLegacyAccessPolicy
 
-func (aps CloudflareAccessPolicyList) ToCloudflare() cfcollections.LegacyAccessPolicyCollection {
+func (aps CloudflareLegacyAccessPolicyList) ToCloudflare() cfcollections.LegacyAccessPolicyCollection {
 	ret := cfcollections.LegacyAccessPolicyCollection{}
 
 	for i, policy := range aps {

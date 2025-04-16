@@ -20,7 +20,7 @@ type AccessPolicyList interface {
 	GetRequire() []v1alpha1.CloudFlareAccessGroupRule
 }
 
-func ToAccessPolicyList(abs v1alpha1.CloudflareAccessPolicyList) []AccessPolicyList {
+func ToLegacyAccessPolicyList(abs v1alpha1.CloudflareLegacyAccessPolicyList) []AccessPolicyList {
 	result := make([]AccessPolicyList, 0, len(abs))
 	for _, policy := range abs {
 		result = append(result, policy)
@@ -30,7 +30,7 @@ func ToAccessPolicyList(abs v1alpha1.CloudflareAccessPolicyList) []AccessPolicyL
 }
 
 // nolint: gocognit
-func (s *AccessPolicyService) PopulateAccessPolicyReferences(ctx context.Context, policyList []AccessPolicyList) error {
+func (s *AccessPolicyService) PopulateLegacyAccessPolicyReferences(ctx context.Context, policyList []AccessPolicyList) error {
 	for _, policy := range policyList {
 		include := policy.GetInclude()
 		exclude := policy.GetExclude()

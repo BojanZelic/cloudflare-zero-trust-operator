@@ -84,9 +84,9 @@ spec:
               name:
                 description: Name of the Cloudflare Access Application
                 type: string
-              policies:
+              legacyPolicies:
                 description: |-
-                  Policies is the ordered set of policies that should be applied to the application
+                  LegacyPolicies is the ordered set of policies that should be applied to the application
                   Order determines precidence
                 items:
                   properties:

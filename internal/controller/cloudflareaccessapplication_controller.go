@@ -167,17 +167,17 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	currentPolicies, err := api.LegacyAccessPolicies(ctx, app.Status.AccessApplicationID)
 	currentPolicies.SortByPrecidence()
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "unable get access policies")
+		return ctrl.Result{}, errors.Wrap(err, "unable get legacy access policies")
 	}
 
-	if err := apService.PopulateAccessPolicyReferences(ctx, services.ToAccessPolicyList(app.Spec.Policies)); err != nil {
+	if err := apService.PopulateLegacyAccessPolicyReferences(ctx, services.ToLegacyAccessPolicyList(app.Spec.LegacyPolicies)); err != nil {
 		_, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
 			meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusDegrated, Status: metav1.ConditionFalse, Reason: "InvalidReference", Message: err.Error()})
 
 			return nil
 		})
 
-		log.Info("failed to update access policies")
+		log.Info("failed to update legacy access policies")
 
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
@@ -186,12 +186,12 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		// don't requeue
 		return ctrl.Result{}, nil
 	}
-	expectedPolicies := app.Spec.Policies.ToCloudflare()
+	expectedPolicies := app.Spec.LegacyPolicies.ToCloudflare()
 	expectedPolicies.SortByPrecidence()
 
-	err = r.ReconcilePolicies(ctx, api, app, currentPolicies, expectedPolicies)
+	err = r.ReconcileLegacyPolicies(ctx, api, app, currentPolicies, expectedPolicies)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "unable get access policies")
+		return ctrl.Result{}, errors.Wrap(err, "unable get legacy access policies")
 	}
 
 	if _, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
@@ -235,7 +235,7 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Cont
 }
 
 //nolint:gocognit,cyclop
-func (r *CloudflareAccessApplicationReconciler) ReconcilePolicies(ctx context.Context, api *cfapi.API, app *v1alpha1.CloudflareAccessApplication, current, expected cfcollections.LegacyAccessPolicyCollection) error {
+func (r *CloudflareAccessApplicationReconciler) ReconcileLegacyPolicies(ctx context.Context, api *cfapi.API, app *v1alpha1.CloudflareAccessApplication, current, expected cfcollections.LegacyAccessPolicyCollection) error {
 	log := logger.FromContext(ctx)
 
 	for i := 0; i < len(current) || i < len(expected); i++ { //nolint:varnamelen
