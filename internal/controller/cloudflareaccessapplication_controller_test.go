@@ -8,7 +8,6 @@ import (
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
-	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -111,10 +110,10 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				return found.Status.AccessApplicationID
 			}, time.Second*10, time.Second).Should(Not(BeEmpty()))
 
-			var cfResource cfcollections.AccessPolicyCollection
+			var cfResource cfcollections.LegacyAccessPolicyCollection
 			By("Cloudflare resource should equal the spec")
 			Eventually(func(g Gomega) {
-				cfResource, err = api.AccessPolicies(ctx, found.Status.AccessApplicationID)
+				cfResource, err = api.LegacyAccessPolicies(ctx, found.Status.AccessApplicationID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource).ToNot(BeEmpty())
 				g.Expect(found.Spec.Policies).ToNot(BeEmpty())
@@ -133,7 +132,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			By("Cloudflare resource should equal the spec")
 			Eventually(func(g Gomega) {
-				cfResource, err = api.AccessPolicies(ctx, found.Status.AccessApplicationID)
+				cfResource, err = api.LegacyAccessPolicies(ctx, found.Status.AccessApplicationID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource[0].Name).To(Equal(found.Spec.Policies[0].Name))
 				g.Expect(cfResource[0].Include[0].(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[0]))

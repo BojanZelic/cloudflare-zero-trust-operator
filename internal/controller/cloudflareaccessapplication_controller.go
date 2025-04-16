@@ -164,7 +164,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		}
 	}
 
-	currentPolicies, err := api.AccessPolicies(ctx, app.Status.AccessApplicationID)
+	currentPolicies, err := api.LegacyAccessPolicies(ctx, app.Status.AccessApplicationID)
 	currentPolicies.SortByPrecidence()
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "unable get access policies")
@@ -235,7 +235,7 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Cont
 }
 
 //nolint:gocognit,cyclop
-func (r *CloudflareAccessApplicationReconciler) ReconcilePolicies(ctx context.Context, api *cfapi.API, app *v1alpha1.CloudflareAccessApplication, current, expected cfcollections.AccessPolicyCollection) error {
+func (r *CloudflareAccessApplicationReconciler) ReconcilePolicies(ctx context.Context, api *cfapi.API, app *v1alpha1.CloudflareAccessApplication, current, expected cfcollections.LegacyAccessPolicyCollection) error {
 	log := logger.FromContext(ctx)
 
 	for i := 0; i < len(current) || i < len(expected); i++ { //nolint:varnamelen
@@ -254,18 +254,18 @@ func (r *CloudflareAccessApplicationReconciler) ReconcilePolicies(ctx context.Co
 			if cfPolicy == nil && k8sPolicy != nil {
 				action = "create"
 				log.Info("accesspolicy is missing - creating...", "policyName", k8sPolicy.Name, "domain", app.Spec.Domain)
-				_, err = api.CreateAccessPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
+				_, err = api.CreateLegacyAccessPolicies(ctx, app.Status.AccessApplicationID, *k8sPolicy)
 			}
 			if k8sPolicy == nil && cfPolicy != nil {
 				action = "delete"
 				log.Info("accesspolicy is removed - deleting...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
-				err = api.DeleteAccessPolicy(ctx, app.Status.AccessApplicationID, cfPolicy.ID)
+				err = api.DeleteLegacyAccessPolicy(ctx, app.Status.AccessApplicationID, cfPolicy.ID)
 			}
 			if cfPolicy != nil && k8sPolicy != nil {
 				action = "update"
 				k8sPolicy.ID = cfPolicy.ID
 				log.Info("accesspolicy is changed - updating...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
-				_, err = api.UpdateAccessPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
+				_, err = api.UpdateLegacyAccessPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
 			}
 
 			if err != nil {

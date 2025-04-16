@@ -3,7 +3,7 @@ package cftypes
 import (
 	"errors"
 
-	cloudflare "github.com/cloudflare/cloudflare-go/v4"
+	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -17,7 +17,7 @@ var (
 )
 
 type ExtendedServiceToken struct {
-	cloudflare.AccessServiceToken
+	zero_trust.ServiceToken
 	ClientSecret string
 	K8sSecretRef struct {
 		ClientIDKey     string

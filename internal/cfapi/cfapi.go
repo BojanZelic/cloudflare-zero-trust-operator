@@ -31,16 +31,24 @@ func New(cfAPIToken string, cfAPIKey string, cfAPIEmail string, cfAccountID stri
 	}
 }
 
+//
+//
+//
+
 func (a *API) AccessGroups(ctx context.Context) (cfcollections.AccessGroupCollection, error) {
-	cfAccessGroups, err := a.client.ZeroTrust.Access.Groups.List(ctx, zero_trust.AccessGroupListParams{
+	iter := a.client.ZeroTrust.Access.Groups.ListAutoPaging(ctx, zero_trust.AccessGroupListParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
-	cfAccessGroupCollection := cfcollections.AccessGroupCollection(cfAccessGroups)
 
-	return cfAccessGroupCollection, errors.Wrap(err, "unable to get access groups")
+	cfAccessGroupCollection := cfcollections.AccessGroupCollection{}
+	for iter.Next() {
+		cfAccessGroupCollection = append(cfAccessGroupCollection, iter.Current())
+	}
+
+	return cfAccessGroupCollection, errors.Wrap(iter.Err(), "unable to get access groups")
 }
 
-func (a *API) AccessGroup(ctx context.Context, accessGroupID string) (cloudflare.AccessGroup, error) {
+func (a *API) AccessGroup(ctx context.Context, accessGroupID string) (*zero_trust.AccessGroupGetResponse, error) {
 
 	cfAG, err := a.client.ZeroTrust.Access.Groups.Get(ctx, accessGroupID, zero_trust.AccessGroupGetParams{
 		AccountID: cloudflare.F(a.CFAccountID),
@@ -49,19 +57,9 @@ func (a *API) AccessGroup(ctx context.Context, accessGroupID string) (cloudflare
 	return cfAG, errors.Wrap(err, "unable to get access group")
 }
 
-func (a *API) CreateAccessGroup(ctx context.Context, ag cloudflare.AccessGroup) (cloudflare.AccessGroup, error) {
-
-	params := cloudflare.CreateAccessGroupParams{
-		Name:    ag.Name,
-		Include: ag.Include,
-		Exclude: ag.Exclude,
-		Require: ag.Require,
-	}
-
-	cfAG, err := a.client.ZeroTrust.Access.Groups.New(ctx, zero_trust.AccessGroupNewParams{
-		AccountID: cloudflare.F(a.CFAccountID),
-	})
-
+func (a *API) CreateAccessGroup(ctx context.Context, ag zero_trust.AccessGroupNewParams) (*zero_trust.AccessGroupNewResponse, error) {
+	ag.AccountID = cloudflare.F(a.CFAccountID)
+	cfAG, err := a.client.ZeroTrust.Access.Groups.New(ctx, ag)
 	return cfAG, errors.Wrap(err, "unable to create access groups")
 }
 
@@ -91,37 +89,36 @@ func (a *API) DeleteAccessGroup(ctx context.Context, groupID string) error {
 	return errors.Wrap(err, "unable to update access groups")
 }
 
-func (a *API) AccessApplications(ctx context.Context) ([]cloudflare.AccessApplication, error) {
+//
+//
+//
 
-	apps, err := a.client.ZeroTrust.Access.Applications.List(ctx, zero_trust.AccessApplicationListParams{
+func (a *API) AccessApplications(ctx context.Context) ([]zero_trust.AccessApplicationListResponse, error) {
+
+	iter := a.client.ZeroTrust.Access.Applications.ListAutoPaging(ctx, zero_trust.AccessApplicationListParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
-	return apps, errors.Wrap(err, "unable to get access applications")
+	apps := []zero_trust.AccessApplicationListResponse{}
+	for iter.Next() {
+		apps = append(apps, iter.Current())
+	}
+
+	return apps, errors.Wrap(iter.Err(), "unable to get access applications")
 }
 
-func (a *API) FindAccessApplicationByDomain(ctx context.Context, domain string) (*cloudflare.AccessApplication, error) {
-
-	apps, err := a.client.ZeroTrust.Access.Applications.List(ctx, zero_trust.AccessApplicationListParams{
+func (a *API) FindAccessApplicationByDomain(ctx context.Context, domain string) (zero_trust.AccessApplicationListResponse, error) {
+	iter := a.client.ZeroTrust.Access.Applications.ListAutoPaging(ctx, zero_trust.AccessApplicationListParams{
 		AccountID: cloudflare.F(a.CFAccountID),
+		Domain:    cloudflare.F(domain),
 	})
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get access applications")
-	}
 
-	var app *cloudflare.AccessApplication
-	for i, g := range apps {
-		if g.Domain == domain {
-			app = &apps[i]
+	iter.Next()
 
-			break
-		}
-	}
-
-	return app, nil
+	return iter.Current(), errors.Wrap(iter.Err(), "unable to get access applications")
 }
 
-func (a *API) AccessApplication(ctx context.Context, accessApplicationID string) (cloudflare.AccessApplication, error) {
+func (a *API) AccessApplication(ctx context.Context, accessApplicationID string) (*zero_trust.AccessApplicationGetResponse, error) {
 
 	cfAG, err := a.client.ZeroTrust.Access.Applications.Get(ctx, accessApplicationID, zero_trust.AccessApplicationGetParams{
 		AccountID: cloudflare.F(a.CFAccountID),
@@ -215,157 +212,130 @@ func (a *API) DeleteAccessApplication(ctx context.Context, appID string) error {
 	return errors.Wrap(err, "unable to create access applications")
 }
 
-func (a *API) AccessPolicies(ctx context.Context, appID string) (cfcollections.AccessPolicyCollection, error) {
+//
+//
+//
 
-	policies, err := a.client.ZeroTrust.Access.Policies.List(ctx, zero_trust.AccessPolicyListParams{
+func (a *API) LegacyAccessPolicies(ctx context.Context, appID string) (cfcollections.LegacyAccessPolicyCollection, error) {
+
+	iter := a.client.ZeroTrust.Access.Applications.Policies.ListAutoPaging(ctx, appID, zero_trust.AccessApplicationPolicyListParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
-	policiesCollection := cfcollections.AccessPolicyCollection(policies)
+	policiesCollection := cfcollections.LegacyAccessPolicyCollection{}
+	for iter.Next() {
+		policiesCollection = append(policiesCollection, iter.Current())
+	}
 
-	return policiesCollection, errors.Wrap(err, "unable to get access Policies")
+	return policiesCollection, errors.Wrap(iter.Err(), "unable to get access Policies")
 }
 
-func (a *API) CreateAccessPolicy(ctx context.Context, appID string, ag cloudflare.AccessPolicy) (cloudflare.AccessPolicy, error) {
+func (a *API) CreateLegacyAccessPolicies(ctx context.Context, appID string, lap cloudflare.AccessPolicy) (cloudflare.AccessPolicy, error) {
 
 	params := cloudflare.CreateAccessPolicyParams{
 		ApplicationID:                appID,
-		Precedence:                   ag.Precedence,
-		Decision:                     ag.Decision,
-		Name:                         ag.Name,
-		IsolationRequired:            ag.IsolationRequired,
-		SessionDuration:              ag.SessionDuration,
-		PurposeJustificationRequired: ag.PurposeJustificationRequired,
-		PurposeJustificationPrompt:   ag.PurposeJustificationPrompt,
-		ApprovalRequired:             ag.ApprovalRequired,
-		ApprovalGroups:               ag.ApprovalGroups,
-		Include:                      ag.Include,
-		Exclude:                      ag.Exclude,
-		Require:                      ag.Require,
+		Precedence:                   lap.Precedence,
+		Decision:                     lap.Decision,
+		Name:                         lap.Name,
+		IsolationRequired:            lap.IsolationRequired,
+		SessionDuration:              lap.SessionDuration,
+		PurposeJustificationRequired: lap.PurposeJustificationRequired,
+		PurposeJustificationPrompt:   lap.PurposeJustificationPrompt,
+		ApprovalRequired:             lap.ApprovalRequired,
+		ApprovalGroups:               lap.ApprovalGroups,
+		Include:                      lap.Include,
+		Exclude:                      lap.Exclude,
+		Require:                      lap.Require,
 	}
-	cfAG, err := a.client.ZeroTrust.Access.Policies.New(ctx, zero_trust.AccessPolicyNewParams{
+	cfAG, err := a.client.ZeroTrust.Access.Applications.Policies.New(ctx, appID, zero_trust.AccessApplicationPolicyNewParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
 	return cfAG, errors.Wrap(err, "unable to create access Policy")
 }
 
-func (a *API) UpdateAccessPolicy(ctx context.Context, appID string, ag cloudflare.AccessPolicy) (cloudflare.AccessPolicy, error) {
+func (a *API) UpdateLegacyAccessPolicy(ctx context.Context, appID string, lap zero_trust.AccessApplicationPolicyListResponse) (cloudflare.AccessPolicy, error) {
 
 	params := cloudflare.UpdateAccessPolicyParams{
 		ApplicationID:                appID,
-		PolicyID:                     ag.ID,
-		Precedence:                   ag.Precedence,
-		Decision:                     ag.Decision,
-		Name:                         ag.Name,
-		IsolationRequired:            ag.IsolationRequired,
-		SessionDuration:              ag.SessionDuration,
-		PurposeJustificationRequired: ag.PurposeJustificationRequired,
-		PurposeJustificationPrompt:   ag.PurposeJustificationPrompt,
-		ApprovalRequired:             ag.ApprovalRequired,
-		ApprovalGroups:               ag.ApprovalGroups,
-		Include:                      ag.Include,
-		Exclude:                      ag.Exclude,
-		Require:                      ag.Require,
+		PolicyID:                     lap.ID,
+		Precedence:                   lap.Precedence,
+		Decision:                     lap.Decision,
+		Name:                         lap.Name,
+		IsolationRequired:            lap.IsolationRequired,
+		SessionDuration:              lap.SessionDuration,
+		PurposeJustificationRequired: lap.PurposeJustificationRequired,
+		PurposeJustificationPrompt:   lap.PurposeJustificationPrompt,
+		ApprovalRequired:             lap.ApprovalRequired,
+		ApprovalGroups:               lap.ApprovalGroups,
+		Include:                      lap.Include,
+		Exclude:                      lap.Exclude,
+		Require:                      lap.Require,
 	}
-	cfAG, err := a.client.ZeroTrust.Access.Policies.Update(ctx, ag.ID, zero_trust.AccessPolicyUpdateParams{
+	cfAG, err := a.client.ZeroTrust.Access.Applications.Policies.Update(ctx, appID, lap.ID, zero_trust.AccessApplicationPolicyUpdateParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
 	return cfAG, errors.Wrap(err, "unable to update access Policy")
 }
 
-func (a *API) DeleteAccessPolicy(ctx context.Context, appID string, policyID string) error {
+func (a *API) DeleteLegacyAccessPolicy(ctx context.Context, appID string, policyID string) error {
 
-	params := cloudflare.DeleteAccessPolicyParams{
-		ApplicationID: appID,
-		PolicyID:      policyID,
-	}
-	_, err := a.client.ZeroTrust.Access.Policies.Delete(ctx, policyID, zero_trust.AccessPolicyDeleteParams{
+	_, err := a.client.ZeroTrust.Access.Applications.Policies.Delete(ctx, appID, policyID, zero_trust.AccessApplicationPolicyDeleteParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
 	return errors.Wrap(err, "unable to update access Policy")
 }
 
+//
+//
+//
+
 func (a *API) ServiceTokens(ctx context.Context) ([]cftypes.ExtendedServiceToken, error) {
 
-	extendedTokens := []cftypes.ExtendedServiceToken{}
-	tokens, err := a.client.ZeroTrust.Access.ServiceTokens.List(ctx, zero_trust.AccessServiceTokenListParams{
+	iter := a.client.ZeroTrust.Access.ServiceTokens.ListAutoPaging(ctx, zero_trust.AccessServiceTokenListParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
-	for _, token := range tokens {
+
+	extendedTokens := []cftypes.ExtendedServiceToken{}
+	for iter.Next() {
 		extendedTokens = append(extendedTokens, cftypes.ExtendedServiceToken{
-			AccessServiceToken: cloudflare.AccessServiceToken{
-				CreatedAt: token.CreatedAt,
-				UpdatedAt: token.UpdatedAt,
-				ExpiresAt: token.ExpiresAt,
-				ID:        token.ID,
-				Name:      token.Name,
-				ClientID:  token.ClientID,
-			},
+			ServiceToken: iter.Current(),
 		})
 	}
 
-	return extendedTokens, errors.Wrap(err, "unable to get service tokens")
+	return extendedTokens, errors.Wrap(iter.Err(), "unable to get service tokens")
 }
 
 func (a *API) CreateAccessServiceToken(ctx context.Context, token cftypes.ExtendedServiceToken) (cftypes.ExtendedServiceToken, error) {
-
-	params := cloudflare.CreateAccessServiceTokenParams{
-		Name: token.Name,
-	}
-
+	//
 	res, err := a.client.ZeroTrust.Access.ServiceTokens.New(ctx, zero_trust.AccessServiceTokenNewParams{
 		AccountID: cloudflare.F(a.CFAccountID),
+		Name:      cloudflare.F(token.Name),
 	})
+
+	if err != nil {
+		return cftypes.ExtendedServiceToken{}, errors.Wrap(err, "unable to create access service token")
+	}
+
+	sToken, err := a.client.ZeroTrust.Access.ServiceTokens.Get(ctx, res.ID, zero_trust.AccessServiceTokenGetParams{
+		AccountID: cloudflare.F(a.CFAccountID),
+	})
+
 	extendedToken := cftypes.ExtendedServiceToken{
 		ClientSecret: res.ClientSecret,
-		AccessServiceToken: cloudflare.AccessServiceToken{
-			CreatedAt: res.CreatedAt,
-			UpdatedAt: res.UpdatedAt,
-			ExpiresAt: res.ExpiresAt,
-			ID:        res.ID,
-			Name:      res.Name,
-			ClientID:  res.ClientID,
+		ServiceToken: zero_trust.ServiceToken{
+			CreatedAt: sToken.CreatedAt,
+			UpdatedAt: sToken.UpdatedAt,
+			ExpiresAt: sToken.ExpiresAt,
+			ID:        sToken.ID,
+			Name:      sToken.Name,
+			ClientID:  sToken.ClientID,
 		},
 	}
 
 	return extendedToken, errors.Wrap(err, "unable to create access service token")
-}
-
-func (a *API) UpdateAccessServiceToken(ctx context.Context, token cftypes.ExtendedServiceToken) (cftypes.ExtendedServiceToken, error) {
-
-	params := cloudflare.UpdateAccessServiceTokenParams{
-		Name: token.Name,
-		UUID: token.ID,
-	}
-
-	_, err := a.client.ZeroTrust.Access.ServiceTokens.New(ctx, zero_trust.AccessServiceTokenNewParams{
-		AccountID: cloudflare.F(a.CFAccountID),
-	})
-
-	return token, errors.Wrap(err, "unable to update access Policy")
-}
-
-func (a *API) RotateAccessServiceToken(ctx context.Context, token cftypes.ExtendedServiceToken) (cftypes.ExtendedServiceToken, error) {
-	res, err := a.client.ZeroTrust.Access.ServiceTokens.Rotate(ctx, token.ID, zero_trust.AccessServiceTokenRotateParams{
-		AccountID: cloudflare.F(a.CFAccountID),
-	})
-
-	extendedToken := cftypes.ExtendedServiceToken{
-		ClientSecret: res.ClientSecret,
-		AccessServiceToken: cloudflare.AccessServiceToken{
-			CreatedAt: res.CreatedAt,
-			UpdatedAt: res.UpdatedAt,
-			ExpiresAt: res.ExpiresAt,
-			ID:        res.ID,
-			Name:      res.Name,
-			ClientID:  res.ClientID,
-		},
-	}
-
-	return extendedToken, errors.Wrap(err, "unable to update access Policy")
 }
 
 func (a *API) DeleteAccessServiceToken(ctx context.Context, tokenID string) error {

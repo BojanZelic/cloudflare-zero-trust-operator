@@ -119,8 +119,8 @@ func (c CloudflareAccessPolicy) GetRequire() []CloudFlareAccessGroupRule {
 
 type CloudflareAccessPolicyList []CloudflareAccessPolicy
 
-func (aps CloudflareAccessPolicyList) ToCloudflare() cfcollections.AccessPolicyCollection {
-	ret := cfcollections.AccessPolicyCollection{}
+func (aps CloudflareAccessPolicyList) ToCloudflare() cfcollections.LegacyAccessPolicyCollection {
+	ret := cfcollections.LegacyAccessPolicyCollection{}
 
 	for i, policy := range aps {
 		transformed := cloudflare.AccessPolicy{

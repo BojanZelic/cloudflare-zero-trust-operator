@@ -37,9 +37,9 @@ var _ = Describe("AccessPolicy", Label("AccessPolicy"), func() {
 			Expect(cfcollections.AccessPoliciesEqual(&first, &second)).To(BeTrue())
 		})
 	})
-	Context("AccessPolicyCollection test", func() {
+	Context("LegacyAccessPolicyCollection test", func() {
 		It("Should be able to sort by precidence", func() {
-			aps := cfcollections.AccessPolicyCollection{
+			aps := cfcollections.LegacyAccessPolicyCollection{
 				{
 					Name:       "test4",
 					Precedence: 4,

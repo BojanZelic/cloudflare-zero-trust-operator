@@ -5,21 +5,21 @@ import (
 	"reflect"
 	"sort"
 
-	cloudflare "github.com/cloudflare/cloudflare-go/v4"
+	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 )
 
-type AccessPolicyCollection []cloudflare.AccessPolicy
+type LegacyAccessPolicyCollection []zero_trust.AccessApplicationPolicyListResponse
 
-func (c AccessPolicyCollection) Len() int { return len(c) }
+func (c LegacyAccessPolicyCollection) Len() int { return len(c) }
 
-func (c AccessPolicyCollection) SortByPrecidence() {
+func (c LegacyAccessPolicyCollection) SortByPrecidence() {
 	sort.Slice(c, func(i, j int) bool {
 		return c[i].Precedence < c[j].Precedence
 	})
 }
 
 //nolint:cyclop
-func AccessPoliciesEqual(first *cloudflare.AccessPolicy, second *cloudflare.AccessPolicy) bool {
+func AccessPoliciesEqual(first *zero_trust.AccessApplicationPolicyListResponse, second *zero_trust.AccessApplicationPolicyListResponse) bool {
 	if first == nil && second == nil {
 		return true
 	}

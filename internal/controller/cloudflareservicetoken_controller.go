@@ -273,9 +273,9 @@ func (r *CloudflareServiceTokenReconciler) ReconcileStatus(ctx context.Context, 
 
 	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, token, func() error {
 		token.Status.ServiceTokenID = cfToken.ID
-		token.Status.CreatedAt = metav1.NewTime(*cfToken.CreatedAt)
-		token.Status.UpdatedAt = metav1.NewTime(*cfToken.UpdatedAt)
-		token.Status.ExpiresAt = metav1.NewTime(*cfToken.ExpiresAt)
+		token.Status.CreatedAt = metav1.NewTime(cfToken.CreatedAt)
+		token.Status.UpdatedAt = metav1.NewTime(cfToken.UpdatedAt)
+		token.Status.ExpiresAt = metav1.NewTime(cfToken.ExpiresAt)
 		token.Status.SecretRef = &v1alpha1.SecretRef{
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: cfToken.K8sSecretRef.SecretName,

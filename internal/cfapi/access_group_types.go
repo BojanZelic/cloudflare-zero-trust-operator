@@ -2,6 +2,7 @@ package cfapi
 
 import (
 	cloudflare "github.com/cloudflare/cloudflare-go/v4"
+	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 )
 
 func NewAccessGroupEmail(email string) cloudflare.AccessGroupEmail {
@@ -100,15 +101,12 @@ func NewAccessGroupLoginMethod(id string) cloudflare.AccessGroupLoginMethod {
 	}
 }
 
-func NewAccessGroupOktaGroup(name string, identityProviderID string) cloudflare.AccessGroupOkta {
-	return cloudflare.AccessGroupOkta{
-		Okta: struct {
-			Name               string `json:"name"`
-			IdentityProviderID string `json:"identity_provider_id"`
-		}{
-			Name:               name,
-			IdentityProviderID: identityProviderID,
-		},
+func NewAccessGroupOktaGroup(name string, identityProviderID string) zero_trust.OktaGroupRuleParam {
+	return zero_trust.OktaGroupRuleParam{
+		Okta: cloudflare.F(zero_trust.OktaGroupRuleOktaParam{
+			IdentityProviderID: cloudflare.F(identityProviderID),
+			Name:               cloudflare.F(name),
+		}),
 	}
 }
 

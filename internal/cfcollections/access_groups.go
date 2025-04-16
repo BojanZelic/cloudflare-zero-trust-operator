@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"reflect"
 
-	cloudflare "github.com/cloudflare/cloudflare-go/v4"
+	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 )
 
-type AccessGroupCollection []cloudflare.AccessGroup
+type AccessGroupCollection []zero_trust.AccessGroupListResponse
 
 func (c AccessGroupCollection) Len() int { return len(c) }
 
-func (c AccessGroupCollection) GetByName(name string) *cloudflare.AccessGroup {
+func (c AccessGroupCollection) GetByName(name string) *zero_trust.AccessGroupListResponse {
 	for _, policy := range c {
 		if policy.Name == name {
 			return &policy
@@ -21,7 +21,7 @@ func (c AccessGroupCollection) GetByName(name string) *cloudflare.AccessGroup {
 	return nil
 }
 
-func AccessGroupEqual(first cloudflare.AccessGroup, second cloudflare.AccessGroup) bool {
+func AccessGroupEqual(first zero_trust.AccessGroupListResponse, second zero_trust.AccessGroupListResponse) bool {
 	if first.Name != second.Name {
 		return false
 	}

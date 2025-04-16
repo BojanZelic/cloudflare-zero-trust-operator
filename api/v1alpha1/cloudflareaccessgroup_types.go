@@ -18,7 +18,7 @@ package v1alpha1
 
 import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
-	cloudflare "github.com/cloudflare/cloudflare-go/v4"
+	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -136,12 +136,12 @@ func (c *CloudflareAccessGroup) UnderDeletion() bool {
 	return !c.ObjectMeta.DeletionTimestamp.IsZero()
 }
 
-func (c *CloudflareAccessGroup) ToCloudflare() cloudflare.AccessGroup {
-	accessGroup := cloudflare.AccessGroup{
+func (c *CloudflareAccessGroup) ToCloudflare() zero_trust.AccessGroupGetResponse {
+	accessGroup := zero_trust.AccessGroupGetResponse{
 		Name:      c.Spec.Name,
 		ID:        c.Status.AccessGroupID,
-		CreatedAt: &c.Status.CreatedAt.Time,
-		UpdatedAt: &c.Status.UpdatedAt.Time,
+		CreatedAt: c.Status.CreatedAt.Time,
+		UpdatedAt: c.Status.UpdatedAt.Time,
 		Include:   make([]interface{}, 0),
 		Exclude:   make([]interface{}, 0),
 		Require:   make([]interface{}, 0),
