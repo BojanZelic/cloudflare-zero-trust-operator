@@ -21,7 +21,7 @@ func (c AccessGroupCollection) GetByName(name string) *zero_trust.AccessGroupLis
 	return nil
 }
 
-func AccessGroupEqual(first zero_trust.AccessGroupListResponse, second zero_trust.AccessGroupListResponse) bool {
+func AccessGroupEqual(first zero_trust.AccessGroupGetResponse, second zero_trust.AccessGroupGetResponse) bool {
 	if first.Name != second.Name {
 		return false
 	}

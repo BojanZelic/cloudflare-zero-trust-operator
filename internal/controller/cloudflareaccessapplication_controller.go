@@ -142,12 +142,12 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 
 		log.Info("app is missing - creating...", "name", app.Spec.Name, "domain", app.Spec.Domain)
 		accessapp, err := api.CreateAccessApplication(ctx, newApp)
-		existingaccessApp = &accessapp
+		existingaccessApp = accessapp
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
 		}
 
-		if err = r.ReconcileStatus(ctx, &accessapp, app); err != nil {
+		if err = r.ReconcileStatus(ctx, accessapp, app); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "issue updating status")
 		}
 	}
@@ -220,8 +220,8 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Cont
 
 	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
 		app.Status.AccessApplicationID = cfApp.ID
-		app.Status.CreatedAt = metav1.NewTime(*cfApp.CreatedAt)
-		app.Status.UpdatedAt = metav1.NewTime(*cfApp.UpdatedAt)
+		app.Status.CreatedAt = metav1.NewTime(cfApp.CreatedAt)
+		app.Status.UpdatedAt = metav1.NewTime(cfApp.UpdatedAt)
 
 		return nil
 	}); err != nil {
@@ -240,8 +240,8 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileLegacyPolicies(ctx cont
 	log := logger.FromContext(ctx)
 
 	for i := 0; i < len(current) || i < len(expected); i++ { //nolint:varnamelen
-		var k8sPolicy *cloudflare.AccessPolicy
-		var cfPolicy *cloudflare.AccessPolicy
+		var k8sPolicy *zero_trust.AccessApplicationPolicyListResponse
+		var cfPolicy *zero_trust.AccessApplicationPolicyListResponse
 		var err error
 		var action string
 		if i < len(current) {

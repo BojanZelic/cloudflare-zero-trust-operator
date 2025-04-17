@@ -25,7 +25,7 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/services"
-	cloudflare "github.com/cloudflare/cloudflare-go/v4"
+	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -53,7 +53,7 @@ type CloudflareAccessGroupReconciler struct {
 //nolint:cyclop,gocognit
 func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
-	var existingCfAG *cloudflare.AccessGroup
+	var existingCfAG *zero_trust.AccessGroupGetResponse
 	var api *cfapi.API
 
 	log := logger.FromContext(ctx).WithName("CloudflareAccessGroupController")
@@ -123,7 +123,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		}
 	} else {
 		cfAG, err := api.AccessGroup(ctx, accessGroup.Status.AccessGroupID)
-		existingCfAG = &cfAG
+		existingCfAG = cfAG
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to get access groups")
 		}
@@ -157,11 +157,11 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
 		}
-		err = r.ReconcileStatus(ctx, &ag, accessGroup)
+		err = r.ReconcileStatus(ctx, ag, accessGroup)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to set access group status")
 		}
-		existingCfAG = &ag
+		existingCfAG = ag
 	}
 
 	if !cfcollections.AccessGroupEqual(*existingCfAG, accessGroup.ToCloudflare()) {
@@ -189,7 +189,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 }
 
 // nolint:dupl
-func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, cfGroup *cloudflare.AccessGroup, k8sGroup *v1alpha1.CloudflareAccessGroup) error {
+func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, cfGroup *zero_trust.AccessGroupGetResponse, k8sGroup *v1alpha1.CloudflareAccessGroup) error {
 	if k8sGroup.Status.AccessGroupID != "" {
 		return nil
 	}
@@ -202,8 +202,8 @@ func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, c
 
 	_, err := controllerutil.CreateOrPatch(ctx, r.Client, group, func() error {
 		group.Status.AccessGroupID = cfGroup.ID
-		group.Status.CreatedAt = metav1.NewTime(*cfGroup.CreatedAt)
-		group.Status.UpdatedAt = metav1.NewTime(*cfGroup.UpdatedAt)
+		group.Status.CreatedAt = metav1.NewTime(cfGroup.CreatedAt)
+		group.Status.UpdatedAt = metav1.NewTime(cfGroup.UpdatedAt)
 
 		return nil
 	})

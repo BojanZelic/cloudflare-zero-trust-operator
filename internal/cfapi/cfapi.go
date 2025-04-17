@@ -57,13 +57,18 @@ func (a *API) AccessGroup(ctx context.Context, accessGroupID string) (*zero_trus
 	return cfAG, errors.Wrap(err, "unable to get access group")
 }
 
-func (a *API) CreateAccessGroup(ctx context.Context, ag zero_trust.AccessGroupNewParams) (*zero_trust.AccessGroupNewResponse, error) {
+func (a *API) CreateAccessGroup(ctx context.Context, ag zero_trust.AccessGroupNewParams) (*zero_trust.AccessGroupGetResponse, error) {
 	ag.AccountID = cloudflare.F(a.CFAccountID)
-	cfAG, err := a.client.ZeroTrust.Access.Groups.New(ctx, ag)
-	return cfAG, errors.Wrap(err, "unable to create access groups")
+	insert, err := a.client.ZeroTrust.Access.Groups.New(ctx, ag)
+	if err != nil {
+		dummy := zero_trust.AccessGroupGetResponse{}
+		return &dummy, errors.Wrap(err, "unable to create access groups")
+	}
+
+	return a.AccessGroup(ctx, insert.ID)
 }
 
-func (a *API) UpdateAccessGroup(ctx context.Context, ag cloudflare.AccessGroup) (cloudflare.AccessGroup, error) {
+func (a *API) UpdateAccessGroup(ctx context.Context, ag cloudflare.AccessGroup) (*zero_trust.AccessGroupGetResponse, error) {
 
 	params := cloudflare.UpdateAccessGroupParams{
 		ID:      ag.ID,
@@ -77,7 +82,12 @@ func (a *API) UpdateAccessGroup(ctx context.Context, ag cloudflare.AccessGroup) 
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
-	return cfAG, errors.Wrap(err, "unable to update access groups")
+	if err != nil {
+		dummy := zero_trust.AccessGroupGetResponse{}
+		return &dummy, errors.Wrap(err, "unable to update access groups")
+	}
+
+	return a.AccessGroup(ctx, cfAG.ID)
 }
 
 func (a *API) DeleteAccessGroup(ctx context.Context, groupID string) error {
@@ -107,7 +117,7 @@ func (a *API) AccessApplications(ctx context.Context) ([]zero_trust.AccessApplic
 	return apps, errors.Wrap(iter.Err(), "unable to get access applications")
 }
 
-func (a *API) FindAccessApplicationByDomain(ctx context.Context, domain string) (zero_trust.AccessApplicationGetResponse, error) {
+func (a *API) FindAccessApplicationByDomain(ctx context.Context, domain string) (*zero_trust.AccessApplicationGetResponse, error) {
 	iter := a.client.ZeroTrust.Access.Applications.ListAutoPaging(ctx, zero_trust.AccessApplicationListParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 		Domain:    cloudflare.F(domain),
@@ -115,9 +125,12 @@ func (a *API) FindAccessApplicationByDomain(ctx context.Context, domain string) 
 
 	iter.Next()
 
-	found := iter.Current()
+	if iter.Err() != nil {
+		empty := zero_trust.AccessApplicationGetResponse{}
+		return &empty, errors.Wrap(iter.Err(), "unable to get access applications")
+	}
 
-	return iter.Current(), errors.Wrap(iter.Err(), "unable to get access applications")
+	return a.AccessApplication(ctx, iter.Current().ID)
 }
 
 func (a *API) AccessApplication(ctx context.Context, accessApplicationID string) (*zero_trust.AccessApplicationGetResponse, error) {
@@ -129,7 +142,7 @@ func (a *API) AccessApplication(ctx context.Context, accessApplicationID string)
 	return cfAG, errors.Wrap(err, "unable to get access application")
 }
 
-func (a *API) CreateAccessApplication(ctx context.Context, ag cloudflare.AccessApplication) (cloudflare.AccessApplication, error) {
+func (a *API) CreateAccessApplication(ctx context.Context, ag cloudflare.AccessApplication) (*zero_trust.AccessApplicationGetResponse, error) {
 
 	params := cloudflare.CreateAccessApplicationParams{
 		AllowedIdps:                    ag.AllowedIdps,
@@ -164,7 +177,12 @@ func (a *API) CreateAccessApplication(ctx context.Context, ag cloudflare.AccessA
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
-	return cfAG, errors.Wrap(err, "unable to create access applications")
+	if err != nil {
+		dummy := zero_trust.AccessApplicationGetResponse{}
+		return &dummy, errors.Wrap(err, "unable to create access applications")
+	}
+
+	return a.AccessApplication(ctx, cfAG.ID)
 }
 
 func (a *API) UpdateAccessApplication(ctx context.Context, ag cloudflare.AccessApplication) (cloudflare.AccessApplication, error) {
@@ -256,7 +274,7 @@ func (a *API) CreateLegacyAccessPolicies(ctx context.Context, appID string, lap 
 	return cfAG, errors.Wrap(err, "unable to create access Policy")
 }
 
-func (a *API) UpdateLegacyAccessPolicy(ctx context.Context, appID string, lap zero_trust.AccessApplicationPolicyListResponse) (cloudflare.AccessPolicy, error) {
+func (a *API) UpdateLegacyAccessPolicy(ctx context.Context, appID string, lap zero_trust.AccessApplicationPolicyListResponse) (*zero_trust.AccessApplicationPolicyGetResponse, error) {
 
 	params := cloudflare.UpdateAccessPolicyParams{
 		ApplicationID:                appID,
@@ -274,11 +292,20 @@ func (a *API) UpdateLegacyAccessPolicy(ctx context.Context, appID string, lap ze
 		Exclude:                      lap.Exclude,
 		Require:                      lap.Require,
 	}
-	cfAG, err := a.client.ZeroTrust.Access.Applications.Policies.Update(ctx, appID, lap.ID, zero_trust.AccessApplicationPolicyUpdateParams{
+	update, err := a.client.ZeroTrust.Access.Applications.Policies.Update(ctx, appID, lap.ID, zero_trust.AccessApplicationPolicyUpdateParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
-	return cfAG, errors.Wrap(err, "unable to update access Policy")
+	if err != nil {
+		dummy := zero_trust.AccessApplicationPolicyGetResponse{}
+		return &dummy, errors.Wrap(err, "unable to update access Policy")
+	}
+
+	get, err := a.client.ZeroTrust.Access.Applications.Policies.Get(ctx, appID, update.ID, zero_trust.AccessApplicationPolicyGetParams{
+		AccountID: cloudflare.F(a.CFAccountID),
+	})
+
+	return get, errors.Wrap(err, "unable to update access Policy")
 }
 
 func (a *API) DeleteLegacyAccessPolicy(ctx context.Context, appID string, policyID string) error {
