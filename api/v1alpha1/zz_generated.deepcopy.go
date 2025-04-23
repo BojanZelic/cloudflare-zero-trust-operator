@@ -85,8 +85,8 @@ func (in *CloudFlareAccessGroupRule) DeepCopyInto(out *CloudFlareAccessGroupRule
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.Country != nil {
-		in, out := &in.Country, &out.Country
+	if in.Countries != nil {
+		in, out := &in.Countries, &out.Countries
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
@@ -95,8 +95,8 @@ func (in *CloudFlareAccessGroupRule) DeepCopyInto(out *CloudFlareAccessGroupRule
 		*out = new(bool)
 		**out = **in
 	}
-	if in.CommonName != nil {
-		in, out := &in.CommonName, &out.CommonName
+	if in.CommonNames != nil {
+		in, out := &in.CommonNames, &out.CommonNames
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
@@ -117,8 +117,8 @@ func (in *CloudFlareAccessGroupRule) DeepCopyInto(out *CloudFlareAccessGroupRule
 		*out = new(bool)
 		**out = **in
 	}
-	if in.LoginMethod != nil {
-		in, out := &in.LoginMethod, &out.LoginMethod
+	if in.LoginMethods != nil {
+		in, out := &in.LoginMethods, &out.LoginMethods
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
@@ -127,8 +127,8 @@ func (in *CloudFlareAccessGroupRule) DeepCopyInto(out *CloudFlareAccessGroupRule
 		*out = make([]GoogleGroup, len(*in))
 		copy(*out, *in)
 	}
-	if in.OktaGroup != nil {
-		in, out := &in.OktaGroup, &out.OktaGroup
+	if in.OktaGroups != nil {
+		in, out := &in.OktaGroups, &out.OktaGroups
 		*out = make([]OktaGroup, len(*in))
 		copy(*out, *in)
 	}

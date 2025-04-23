@@ -131,13 +131,13 @@ spec:
                           anyAccessServiceToken:
                             description: Matches any valid service token
                             type: boolean
-                          commonName:
-                            description: Certificate CN
+                          commonNames:
+                            description: Certificate CNs
                             items:
                               type: string
                             type: array
-                          country:
-                            description: Country
+                          countries:
+                            description: Countries
                             items:
                               type: string
                             type: array
@@ -174,7 +174,7 @@ spec:
                             items:
                               type: string
                             type: array
-                          loginMethod:
+                          loginMethods:
                             description: ID of the login method
                             items:
                               type: string
@@ -198,7 +198,7 @@ spec:
                               - value
                               type: object
                             type: array
-                          oktaGroup:
+                          oktaGroups:
                             description: Okta Groups
                             items:
                               properties:
@@ -213,7 +213,7 @@ spec:
                               - name
                               type: object
                             type: array
-                          serviceToken:
+                          serviceTokens:
                             description: Matches a service token
                             items:
                               properties:
@@ -284,13 +284,13 @@ spec:
                           anyAccessServiceToken:
                             description: Matches any valid service token
                             type: boolean
-                          commonName:
-                            description: Certificate CN
+                          commonNames:
+                            description: Certificate CNs
                             items:
                               type: string
                             type: array
-                          country:
-                            description: Country
+                          countries:
+                            description: Countries
                             items:
                               type: string
                             type: array
@@ -327,7 +327,7 @@ spec:
                             items:
                               type: string
                             type: array
-                          loginMethod:
+                          loginMethods:
                             description: ID of the login method
                             items:
                               type: string
@@ -351,7 +351,7 @@ spec:
                               - value
                               type: object
                             type: array
-                          oktaGroup:
+                          oktaGroups:
                             description: Okta Groups
                             items:
                               properties:
@@ -366,7 +366,7 @@ spec:
                               - name
                               type: object
                             type: array
-                          serviceToken:
+                          serviceTokens:
                             description: Matches a service token
                             items:
                               properties:
@@ -440,13 +440,13 @@ spec:
                           anyAccessServiceToken:
                             description: Matches any valid service token
                             type: boolean
-                          commonName:
-                            description: Certificate CN
+                          commonNames:
+                            description: Certificate CNs
                             items:
                               type: string
                             type: array
-                          country:
-                            description: Country
+                          countries:
+                            description: Countries
                             items:
                               type: string
                             type: array
@@ -483,7 +483,7 @@ spec:
                             items:
                               type: string
                             type: array
-                          loginMethod:
+                          loginMethods:
                             description: ID of the login method
                             items:
                               type: string
@@ -507,7 +507,7 @@ spec:
                               - value
                               type: object
                             type: array
-                          oktaGroup:
+                          oktaGroups:
                             description: Okta Groups
                             items:
                               properties:
@@ -522,7 +522,7 @@ spec:
                               - name
                               type: object
                             type: array
-                          serviceToken:
+                          serviceTokens:
                             description: Matches a service token
                             items:
                               properties:

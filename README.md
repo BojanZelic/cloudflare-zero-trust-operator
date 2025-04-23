@@ -99,7 +99,7 @@ spec:
         - googleGroups:
           - email: my-google-group@domain.com
             identityProviderId: 00000000-0000-0000-0000-00000000000000
-        - oktaGroup:
+        - oktaGroups:
           - name: my-okta-group
             identityProviderId: 10000000-0000-0000-0000-00000000000000
 ```

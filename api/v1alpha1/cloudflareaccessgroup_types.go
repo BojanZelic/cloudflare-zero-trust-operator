@@ -61,41 +61,41 @@ type CloudFlareAccessGroupRule struct {
 	// Matches an IP CIDR block
 	IPRanges []string `json:"ipRanges,omitempty"`
 
-	// Reference to other access groups
-	AccessGroups []AccessGroup `json:"accessGroups,omitempty"`
+	// Country List
+	Countries []string `json:"countries,omitempty"`
 
-	// Country
-	Country []string `json:"country,omitempty"`
+	// ID of the login methods
+	LoginMethods []string `json:"loginMethods,omitempty"`
+
+	// Certificate CNs
+	CommonNames []string `json:"commonNames,omitempty"`
 
 	// Allow Everyone
 	Everyone *bool `json:"everyone,omitempty"`
 
-	// Certificate CN
-	CommonName []string `json:"commonName,omitempty"`
-
 	// Any valid certificate will be matched
 	ValidCertificate *bool `json:"validCertificate,omitempty"`
-
-	// Matches a service token
-	ServiceToken []ServiceToken `json:"serviceToken,omitempty"`
 
 	// Matches any valid service token
 	AnyAccessServiceToken *bool `json:"anyAccessServiceToken,omitempty"`
 
-	// ID of the login method
-	LoginMethod []string `json:"loginMethod,omitempty"`
+	// Matches a service token
+	ServiceTokens []ServiceToken `json:"serviceTokens,omitempty"`
+
+	// Reference to other access groups
+	AccessGroups []AccessGroup `json:"accessGroups,omitempty"`
 
 	// Matches Google Group
 	GoogleGroups []GoogleGroup `json:"googleGroups,omitempty"`
 
 	// Okta Groups
-	OktaGroup []OktaGroup `json:"oktaGroup,omitempty"`
+	OktaGroups []OktaGroup `json:"oktaGroups,omitempty"`
 
 	// OIDC Claims
 	OIDCClaims []OIDCClaim `json:"oidcClaims,omitempty"`
 
 	// Github Organizations
-	GithubOrganisations []GithubOrganisation `json:"githubOrganizations,omitempty"`
+	GithubOrganizations []GithubOrganization `json:"githubOrganizations,omitempty"`
 }
 
 // CloudflareAccessGroupStatus defines the observed state of CloudflareAccessGroup.
@@ -217,10 +217,10 @@ func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCF
 					Certificate: zero_trust.CertificateRuleCertificate{},
 				})
 			}
-			for _, country := range field.Country {
+			for _, countries := range field.Countries {
 				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
 					Geo: zero_trust.CountryRuleGeo{
-						CountryCode: country,
+						CountryCode: countries,
 					},
 				})
 			}
@@ -234,18 +234,18 @@ func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCF
 				}
 			}
 
-			for _, commonName := range field.CommonName {
+			for _, commonNames := range field.CommonNames {
 				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
-					CommonName: zero_trust.AccessRuleAccessCommonNameRuleCommonName{
-						CommonName: commonName,
+					CommonNames: zero_trust.AccessRuleAccessCommonNameRuleCommonName{
+						CommonNames: commonNames,
 					},
 				})
 			}
 
-			for _, loginMethod := range field.LoginMethod {
+			for _, loginMethods := range field.LoginMethods {
 				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
-					LoginMethod: zero_trust.AccessRuleAccessLoginMethodRuleLoginMethod{
-						ID: loginMethod,
+					LoginMethods: zero_trust.AccessRuleAccessLoginMethodRuleLoginMethod{
+						ID: loginMethods,
 					},
 				})
 			}
@@ -261,11 +261,11 @@ func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCF
 				}
 			}
 
-			for _, oktaGroup := range field.OktaGroup {
+			for _, oktaGroups := range field.OktaGroups {
 				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
 					Okta: zero_trust.OktaGroupRuleOkta{
-						IdentityProviderID: oktaGroup.IdentityProviderID,
-						Name:               oktaGroup.Name,
+						IdentityProviderID: oktaGroups.IdentityProviderID,
+						Name:               oktaGroups.Name,
 					},
 				})
 			}
@@ -279,7 +279,7 @@ func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCF
 					},
 				})
 			}
-			for _, ghOrgs := range field.GithubOrganisations {
+			for _, ghOrgs := range field.GithubOrganizations {
 				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
 					GitHubOrganization: zero_trust.GitHubOrganizationRuleGitHubOrganization{
 						IdentityProviderID: ghOrgs.IdentityProviderID,

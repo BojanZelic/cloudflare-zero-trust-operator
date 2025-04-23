@@ -45,7 +45,7 @@ type OIDCClaim struct {
 	IdentityProviderID string `json:"identityProviderId"`
 }
 
-type GithubOrganisation struct {
+type GithubOrganization struct {
 	// The name of the organization.
 	Name string `json:"name"`
 	// The ID of your Github identity provider.
