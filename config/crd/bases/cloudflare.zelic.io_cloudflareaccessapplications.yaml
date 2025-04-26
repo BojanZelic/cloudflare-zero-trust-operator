@@ -74,13 +74,6 @@ spec:
                 description: Enables the HttpOnly cookie attribute, which increases
                   security against XSS attacks.
                 type: boolean
-              logoUrl:
-                description: The image URL for the logo shown in the App Launcher
-                  dashboard
-                type: string
-              name:
-                description: Name of the Cloudflare Access Application
-                type: string
               legacyPolicies:
                 description: |-
                   LegacyPolicies is the ordered set of policies that should be applied to the application
@@ -134,7 +127,7 @@ spec:
                               type: string
                             type: array
                           countries:
-                            description: Countries
+                            description: Country List
                             items:
                               type: string
                             type: array
@@ -151,6 +144,24 @@ spec:
                           everyone:
                             description: Allow Everyone
                             type: boolean
+                          githubOrganizations:
+                            description: Github Organizations
+                            items:
+                              properties:
+                                identityProviderId:
+                                  description: The ID of your Github identity provider.
+                                  type: string
+                                name:
+                                  description: The name of the organization.
+                                  type: string
+                                team:
+                                  description: The name of the team
+                                  type: string
+                              required:
+                              - identityProviderId
+                              - name
+                              type: object
+                            type: array
                           googleGroups:
                             description: Matches Google Group
                             items:
@@ -172,7 +183,7 @@ spec:
                               type: string
                             type: array
                           loginMethods:
-                            description: ID of the login method
+                            description: ID of the login methods
                             items:
                               type: string
                             type: array
@@ -287,7 +298,7 @@ spec:
                               type: string
                             type: array
                           countries:
-                            description: Countries
+                            description: Country List
                             items:
                               type: string
                             type: array
@@ -304,6 +315,24 @@ spec:
                           everyone:
                             description: Allow Everyone
                             type: boolean
+                          githubOrganizations:
+                            description: Github Organizations
+                            items:
+                              properties:
+                                identityProviderId:
+                                  description: The ID of your Github identity provider.
+                                  type: string
+                                name:
+                                  description: The name of the organization.
+                                  type: string
+                                team:
+                                  description: The name of the team
+                                  type: string
+                              required:
+                              - identityProviderId
+                              - name
+                              type: object
+                            type: array
                           googleGroups:
                             description: Matches Google Group
                             items:
@@ -325,7 +354,7 @@ spec:
                               type: string
                             type: array
                           loginMethods:
-                            description: ID of the login method
+                            description: ID of the login methods
                             items:
                               type: string
                             type: array
@@ -443,7 +472,7 @@ spec:
                               type: string
                             type: array
                           countries:
-                            description: Countries
+                            description: Country List
                             items:
                               type: string
                             type: array
@@ -460,6 +489,24 @@ spec:
                           everyone:
                             description: Allow Everyone
                             type: boolean
+                          githubOrganizations:
+                            description: Github Organizations
+                            items:
+                              properties:
+                                identityProviderId:
+                                  description: The ID of your Github identity provider.
+                                  type: string
+                                name:
+                                  description: The name of the organization.
+                                  type: string
+                                team:
+                                  description: The name of the team
+                                  type: string
+                              required:
+                              - identityProviderId
+                              - name
+                              type: object
+                            type: array
                           googleGroups:
                             description: Matches Google Group
                             items:
@@ -481,7 +528,7 @@ spec:
                               type: string
                             type: array
                           loginMethods:
-                            description: ID of the login method
+                            description: ID of the login methods
                             items:
                               type: string
                             type: array
@@ -558,6 +605,13 @@ spec:
                   - name
                   type: object
                 type: array
+              logoUrl:
+                description: The image URL for the logo shown in the App Launcher
+                  dashboard
+                type: string
+              name:
+                description: Name of the Cloudflare Access Application
+                type: string
               sessionDuration:
                 default: 24h
                 description: SessionDuration is the length of the session duration.

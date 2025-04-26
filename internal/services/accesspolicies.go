@@ -55,14 +55,14 @@ func (s *AccessPolicyService) PopulateLegacyAccessPolicyReferences(ctx context.C
 					}
 				}
 
-				for k, token := range field.ServiceToken {
+				for k, token := range field.ServiceTokens {
 					if token.ValueFrom != nil {
 						serviceToken := &v1alpha1.CloudflareServiceToken{}
 						if err := s.Client.Get(ctx, token.ValueFrom.ToNamespacedName(), serviceToken); err != nil {
 							return errors.Wrapf(err, "unable to reference CloudflareServiceToken %s - %s", token.ValueFrom.Name, token.ValueFrom.Namespace)
 						}
 
-						(*fields)[j].ServiceToken[k].Value = serviceToken.Status.ServiceTokenID
+						(*fields)[j].ServiceTokens[k].Value = serviceToken.Status.ServiceTokenID
 					}
 				}
 			}

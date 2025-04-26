@@ -83,7 +83,7 @@ spec:
                         type: string
                       type: array
                     countries:
-                      description: Countries
+                      description: Country List
                       items:
                         type: string
                       type: array
@@ -100,6 +100,24 @@ spec:
                     everyone:
                       description: Allow Everyone
                       type: boolean
+                    githubOrganizations:
+                      description: Github Organizations
+                      items:
+                        properties:
+                          identityProviderId:
+                            description: The ID of your Github identity provider.
+                            type: string
+                          name:
+                            description: The name of the organization.
+                            type: string
+                          team:
+                            description: The name of the team
+                            type: string
+                        required:
+                        - identityProviderId
+                        - name
+                        type: object
+                      type: array
                     googleGroups:
                       description: Matches Google Group
                       items:
@@ -121,7 +139,7 @@ spec:
                         type: string
                       type: array
                     loginMethods:
-                      description: ID of the login method
+                      description: ID of the login methods
                       items:
                         type: string
                       type: array
@@ -236,7 +254,7 @@ spec:
                         type: string
                       type: array
                     countries:
-                      description: Countries
+                      description: Country List
                       items:
                         type: string
                       type: array
@@ -253,6 +271,24 @@ spec:
                     everyone:
                       description: Allow Everyone
                       type: boolean
+                    githubOrganizations:
+                      description: Github Organizations
+                      items:
+                        properties:
+                          identityProviderId:
+                            description: The ID of your Github identity provider.
+                            type: string
+                          name:
+                            description: The name of the organization.
+                            type: string
+                          team:
+                            description: The name of the team
+                            type: string
+                        required:
+                        - identityProviderId
+                        - name
+                        type: object
+                      type: array
                     googleGroups:
                       description: Matches Google Group
                       items:
@@ -274,7 +310,7 @@ spec:
                         type: string
                       type: array
                     loginMethods:
-                      description: ID of the login method
+                      description: ID of the login methods
                       items:
                         type: string
                       type: array
@@ -392,7 +428,7 @@ spec:
                         type: string
                       type: array
                     countries:
-                      description: Countries
+                      description: Country List
                       items:
                         type: string
                       type: array
@@ -409,6 +445,24 @@ spec:
                     everyone:
                       description: Allow Everyone
                       type: boolean
+                    githubOrganizations:
+                      description: Github Organizations
+                      items:
+                        properties:
+                          identityProviderId:
+                            description: The ID of your Github identity provider.
+                            type: string
+                          name:
+                            description: The name of the organization.
+                            type: string
+                          team:
+                            description: The name of the team
+                            type: string
+                        required:
+                        - identityProviderId
+                        - name
+                        type: object
+                      type: array
                     googleGroups:
                       description: Matches Google Group
                       items:
@@ -430,7 +484,7 @@ spec:
                         type: string
                       type: array
                     loginMethods:
-                      description: ID of the login method
+                      description: ID of the login methods
                       items:
                         type: string
                       type: array

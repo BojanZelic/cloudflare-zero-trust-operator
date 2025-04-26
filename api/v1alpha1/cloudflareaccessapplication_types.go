@@ -59,7 +59,7 @@ type CloudflareAccessApplicationSpec struct {
 	// LegacyPolicies is the ordered set of policies that should be applied to the application
 	// Order determines precidence
 	// +optional
-	LegacyPolicies CloudflareLegacyAccessPolicyList `json:"policies,omitempty"`
+	LegacyPolicies CloudflareLegacyAccessPolicyList `json:"legacyPolicies,omitempty"`
 
 	// SessionDuration is the length of the session duration.
 	// +optional

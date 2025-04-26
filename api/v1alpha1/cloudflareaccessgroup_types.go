@@ -193,7 +193,7 @@ func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCF
 					},
 				})
 			}
-			for _, token := range field.ServiceToken {
+			for _, token := range field.ServiceTokens {
 				if token.Value != "" {
 					*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
 						ServiceToken: zero_trust.ServiceTokenRuleServiceToken{
@@ -234,18 +234,18 @@ func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCF
 				}
 			}
 
-			for _, commonNames := range field.CommonNames {
+			for _, commonName := range field.CommonNames {
 				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
-					CommonNames: zero_trust.AccessRuleAccessCommonNameRuleCommonName{
-						CommonNames: commonNames,
+					CommonName: zero_trust.AccessRuleAccessCommonNameRuleCommonName{
+						CommonName: commonName,
 					},
 				})
 			}
 
-			for _, loginMethods := range field.LoginMethods {
+			for _, loginMethod := range field.LoginMethods {
 				*managedCFFields[i] = append(*managedCFFields[i], zero_trust.AccessRule{
-					LoginMethods: zero_trust.AccessRuleAccessLoginMethodRuleLoginMethod{
-						ID: loginMethods,
+					LoginMethod: zero_trust.AccessRuleAccessLoginMethodRuleLoginMethod{
+						ID: loginMethod,
 					},
 				})
 			}
