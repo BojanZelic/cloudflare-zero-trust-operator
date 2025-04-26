@@ -105,15 +105,13 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessGroup status")
 	}
 
-	cfAccessGroups, err := api.AccessGroups(ctx)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "unable to get access groups")
-	}
-
 	newCfAG := accessGroup.ToCloudflare()
 
 	if accessGroup.Status.AccessGroupID == "" {
-		existingCfAG = cfAccessGroups.GetByName(accessGroup.Spec.Name)
+		existingCfAG, err = api.AccessGroupByName(ctx, accessGroup.Spec.Name)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "unable to get access group")
+		}
 		if existingCfAG != nil {
 			log.Info("access group already exists. importing...", "accessGroup", existingCfAG.Name, "accessGroupID", existingCfAG.ID)
 		}

@@ -48,6 +48,23 @@ func (a *API) AccessGroups(ctx context.Context) (cfcollections.AccessGroupCollec
 	return cfAccessGroupCollection, errors.Wrap(iter.Err(), "unable to get access groups")
 }
 
+func (a *API) AccessGroupByName(ctx context.Context, name string) (*zero_trust.AccessGroupGetResponse, error) {
+
+	iter := a.client.ZeroTrust.Access.Groups.ListAutoPaging(ctx, zero_trust.AccessGroupListParams{
+		AccountID: cloudflare.F(a.CFAccountID),
+		Name:      cloudflare.F(name),
+	})
+
+	iter.Next()
+
+	if iter.Err() != nil {
+		empty := zero_trust.AccessGroupGetResponse{}
+		return &empty, errors.Wrap(iter.Err(), "unable to get access applications")
+	}
+
+	return a.AccessGroup(ctx, iter.Current().ID)
+}
+
 func (a *API) AccessGroup(ctx context.Context, accessGroupID string) (*zero_trust.AccessGroupGetResponse, error) {
 
 	cfAG, err := a.client.ZeroTrust.Access.Groups.Get(ctx, accessGroupID, zero_trust.AccessGroupGetParams{
