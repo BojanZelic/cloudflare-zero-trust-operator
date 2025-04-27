@@ -12,7 +12,7 @@ type LegacyAccessPolicyCollection []zero_trust.AccessApplicationPolicyListRespon
 
 func (c LegacyAccessPolicyCollection) Len() int { return len(c) }
 
-func (c LegacyAccessPolicyCollection) SortByPrecidence() {
+func (c LegacyAccessPolicyCollection) SortByPrecedence() {
 	sort.Slice(c, func(i, j int) bool {
 		return c[i].Precedence < c[j].Precedence
 	})

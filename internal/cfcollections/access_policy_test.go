@@ -62,7 +62,7 @@ var _ = Describe("AccessPolicy", Label("AccessPolicy"), func() {
 				},
 			}
 
-			aps.SortByPrecidence()
+			aps.SortByPrecedence()
 
 			prevAP := cloudflare.AccessPolicy{Precedence: 0}
 			for _, ap := range aps {

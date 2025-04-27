@@ -56,11 +56,11 @@ type CloudflareAccessApplicationSpec struct {
 	// +kubebuilder:default=false
 	AutoRedirectToIdentity *bool `json:"autoRedirectToIdentity,omitempty"`
 
-	// LegacyPolicies is the ordered set of policies (specific to a single application) that should be applied.
+	// Policies is the ordered set of policies (specific to a single application) that should be applied.
 	// Per Cloudflare specifications, prefer reusable policies.
 	// Order determines precidence
 	// +optional
-	LegacyPolicies CloudflareLegacyAccessPolicyList `json:"legacyPolicies,omitempty"`
+	Policies CloudflareLegacyAccessPolicyList `json:"legacyPolicies,omitempty"`
 
 	// SessionDuration is the length of the session duration.
 	// +optional

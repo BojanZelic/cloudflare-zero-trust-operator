@@ -174,10 +174,11 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		existingCfAG = ag
 	}
 
-	if !cfcollections.AccessGroupEqual(*existingCfAG, accessGroup.ToCloudflare()) {
+	castedAccessGroup := accessGroup.ToCloudflare()
+	if !cfcollections.AccessGroupEqual(*existingCfAG, castedAccessGroup) {
 		log.Info(newCfAG.Name + " has changed, updating...")
 
-		_, err := api.UpdateAccessGroup(ctx, accessGroup.ToCloudflare())
+		err := api.UpdateAccessGroup(ctx, castedAccessGroup)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to update access groups")
 		}
