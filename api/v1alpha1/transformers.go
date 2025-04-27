@@ -22,7 +22,7 @@ import (
 )
 
 // nolint: gocognit,cyclop
-func ToAccessRuleParams(rules *[]CloudFlareAccessGroupRule) []zero_trust.AccessRuleUnionParam {
+func ToAccessRuleParams(rules *[]CloudFlareAccessRule) []zero_trust.AccessRuleUnionParam {
 	out := []zero_trust.AccessRuleUnionParam{}
 
 	for _, field := range *rules {
@@ -148,7 +148,7 @@ func ToAccessRuleParams(rules *[]CloudFlareAccessGroupRule) []zero_trust.AccessR
 }
 
 // nolint: gocognit,cyclop
-func toAccessRules(rules *[]CloudFlareAccessGroupRule) []zero_trust.AccessRule {
+func toAccessRules(rules *[]CloudFlareAccessRule) []zero_trust.AccessRule {
 	out := []zero_trust.AccessRule{}
 
 	for _, field := range *rules {

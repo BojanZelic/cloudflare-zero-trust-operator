@@ -30,72 +30,25 @@ type CloudflareAccessGroupSpec struct {
 	Name string `json:"name"`
 
 	// Rules evaluated with an OR logical operator. A user needs to meet only one of the Include rules.
-	Include []CloudFlareAccessGroupRule `json:"include,omitempty"`
+	Include []CloudFlareAccessRule `json:"include,omitempty"`
 
 	// Rules evaluated with an AND logical operator. To match the policy, a user must meet all of the Require rules.
-	Require []CloudFlareAccessGroupRule `json:"require,omitempty"`
+	Require []CloudFlareAccessRule `json:"require,omitempty"`
 
 	// Rules evaluated with a NOT logical operator. To match the policy, a user cannot meet any of the Exclude rules.
-	Exclude []CloudFlareAccessGroupRule `json:"exclude,omitempty"`
+	Exclude []CloudFlareAccessRule `json:"exclude,omitempty"`
 }
 
-func (c CloudflareAccessGroupSpec) GetInclude() []CloudFlareAccessGroupRule {
+func (c CloudflareAccessGroupSpec) GetInclude() []CloudFlareAccessRule {
 	return c.Include
 }
 
-func (c CloudflareAccessGroupSpec) GetExclude() []CloudFlareAccessGroupRule {
+func (c CloudflareAccessGroupSpec) GetExclude() []CloudFlareAccessRule {
 	return c.Exclude
 }
 
-func (c CloudflareAccessGroupSpec) GetRequire() []CloudFlareAccessGroupRule {
+func (c CloudflareAccessGroupSpec) GetRequire() []CloudFlareAccessRule {
 	return c.Require
-}
-
-type CloudFlareAccessGroupRule struct {
-	// Matches a Specific email
-	Emails []string `json:"emails,omitempty"`
-
-	// Matches a specific email Domain
-	EmailDomains []string `json:"emailDomains,omitempty"`
-
-	// Matches an IP CIDR block
-	IPRanges []string `json:"ipRanges,omitempty"`
-
-	// Country List
-	Countries []string `json:"countries,omitempty"`
-
-	// ID of the login methods
-	LoginMethods []string `json:"loginMethods,omitempty"`
-
-	// Certificate CNs
-	CommonNames []string `json:"commonNames,omitempty"`
-
-	// Allow Everyone
-	Everyone *bool `json:"everyone,omitempty"`
-
-	// Any valid certificate will be matched
-	ValidCertificate *bool `json:"validCertificate,omitempty"`
-
-	// Matches any valid service token
-	AnyAccessServiceToken *bool `json:"anyAccessServiceToken,omitempty"`
-
-	// Matches a service token
-	ServiceTokens []ServiceToken `json:"serviceTokens,omitempty"`
-
-	// Reference to other access groups
-	AccessGroups []AccessGroup `json:"accessGroups,omitempty"`
-
-	// Matches Google Group
-	GoogleGroups []GoogleGroup `json:"googleGroups,omitempty"`
-
-	// Okta Groups
-	OktaGroups []OktaGroup `json:"oktaGroups,omitempty"`
-
-	// OIDC Claims
-	OIDCClaims []OIDCClaim `json:"oidcClaims,omitempty"`
-
-	// Github Organizations
-	GithubOrganizations []GithubOrganization `json:"githubOrganizations,omitempty"`
 }
 
 // CloudflareAccessGroupStatus defines the observed state of CloudflareAccessGroup.

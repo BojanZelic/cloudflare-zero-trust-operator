@@ -60,7 +60,7 @@ type CloudflareAccessApplicationSpec struct {
 	// Per Cloudflare specifications, prefer reusable policies.
 	// Order determines precidence
 	// +optional
-	Policies CloudflareLegacyAccessPolicyList `json:"legacyPolicies,omitempty"`
+	LegacyPolicies CloudflareLegacyAccessPolicyList `json:"legacyPolicies,omitempty"`
 
 	// SessionDuration is the length of the session duration.
 	// +optional
@@ -90,15 +90,15 @@ type CloudflareLegacyAccessPolicy struct {
 	Decision string `json:"decision"`
 
 	// Rules evaluated with an OR logical operator. A user needs to meet only one of the Include rules.
-	Include []CloudFlareAccessGroupRule `json:"include,omitempty"`
+	Include []CloudFlareAccessRule `json:"include,omitempty"`
 
 	// Rules evaluated with an AND logical operator. To match the policy, a user must meet all of the Require rules.
 	// +optional
-	Require []CloudFlareAccessGroupRule `json:"require,omitempty"`
+	Require []CloudFlareAccessRule `json:"require,omitempty"`
 
 	// Rules evaluated with a NOT logical operator. To match the policy, a user cannot meet any of the Exclude rules.
 	// +optional
-	Exclude []CloudFlareAccessGroupRule `json:"exclude,omitempty"`
+	Exclude []CloudFlareAccessRule `json:"exclude,omitempty"`
 
 	// PurposeJustificationRequired *bool                 `json:"purpose_justification_required,omitempty"`
 	// PurposeJustificationPrompt   *string               `json:"purpose_justification_prompt,omitempty"`
@@ -106,15 +106,15 @@ type CloudflareLegacyAccessPolicy struct {
 	// ApprovalGroups               []cloudflare.AccessApprovalGroup `json:"approval_groups"`
 }
 
-func (c CloudflareLegacyAccessPolicy) GetInclude() []CloudFlareAccessGroupRule {
+func (c CloudflareLegacyAccessPolicy) GetInclude() []CloudFlareAccessRule {
 	return c.Include
 }
 
-func (c CloudflareLegacyAccessPolicy) GetExclude() []CloudFlareAccessGroupRule {
+func (c CloudflareLegacyAccessPolicy) GetExclude() []CloudFlareAccessRule {
 	return c.Exclude
 }
 
-func (c CloudflareLegacyAccessPolicy) GetRequire() []CloudFlareAccessGroupRule {
+func (c CloudflareLegacyAccessPolicy) GetRequire() []CloudFlareAccessRule {
 	return c.Require
 }
 

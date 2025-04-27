@@ -87,7 +87,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 						{
 							Name:     "integration_test",
 							Decision: "allow",
-							Include: []v1alpha1.CloudFlareAccessGroupRule{
+							Include: []v1alpha1.CloudFlareAccessRule{
 								{
 									Emails: []string{"testemail@cf-operator-tests.uk", "testemail2@cf-operator-tests.uk"},
 								},
@@ -157,7 +157,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 						{
 							Name:     "reference_test",
 							Decision: "allow",
-							Include: []v1alpha1.CloudFlareAccessGroupRule{{
+							Include: []v1alpha1.CloudFlareAccessRule{{
 								AccessGroups: []v1alpha1.AccessGroup{
 									{
 										ValueFrom: &v1alpha1.AccessGroupReference{
@@ -196,7 +196,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				},
 				Spec: v1alpha1.CloudflareAccessGroupSpec{
 					Name: "reference test",
-					Include: []v1alpha1.CloudFlareAccessGroupRule{
+					Include: []v1alpha1.CloudFlareAccessRule{
 						{
 							Emails: []string{"test2@cf-operator-tests.uk"},
 						},
@@ -240,7 +240,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 						{
 							Name:     "reference_test",
 							Decision: "allow",
-							Include: []v1alpha1.CloudFlareAccessGroupRule{{
+							Include: []v1alpha1.CloudFlareAccessRule{{
 								AccessGroups: []v1alpha1.AccessGroup{
 									{
 										ValueFrom: &v1alpha1.AccessGroupReference{

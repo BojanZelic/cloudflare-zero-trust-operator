@@ -27,13 +27,13 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 
 		It("can export Included emails to the cloudflare object", func() {
 			emails := []string{"test@email.com", "test2@email.com"}
-			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessRule{{
 				Emails: emails},
 			}
-			accessRule.Spec.Require = []v1alpha1.CloudFlareAccessGroupRule{{
+			accessRule.Spec.Require = []v1alpha1.CloudFlareAccessRule{{
 				Emails: emails},
 			}
-			accessRule.Spec.Exclude = []v1alpha1.CloudFlareAccessGroupRule{{
+			accessRule.Spec.Exclude = []v1alpha1.CloudFlareAccessRule{{
 				Emails: emails},
 			}
 			for i := range emails {
@@ -63,7 +63,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 
 		It("can export emaildomains to the cloudflare object", func() {
 			domains := []string{"email.com", "email2.com"}
-			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessRule{{
 				EmailDomains: domains},
 			}
 			for i := range domains {
@@ -88,7 +88,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 					IdentityProviderID: "11111111-1111-1111-1111-111111111111",
 				},
 			}
-			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessRule{{
 				GoogleGroups: googleGroups},
 			}
 			for i := range googleGroups {
@@ -105,7 +105,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 		})
 
 		It("can export oktaGroups to the cloudflare object", func() {
-			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessRule{{
 				OktaGroups: []v1alpha1.OktaGroup{
 					{
 						Name:               "myOktaGroup1",
@@ -131,7 +131,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 		})
 
 		It("can export oidcClaims to the cloudflare object", func() {
-			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessRule{{
 				OIDCClaims: []v1alpha1.OIDCClaim{
 					{
 						Name:               "myOidcClaimName1",
@@ -162,7 +162,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 
 		It("can export ipRanges to the cloudflare object", func() {
 			ips := []string{"1.1.1.1/32", "8.8.8.8/32"}
-			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessRule{{
 				IPRanges: ips},
 			}
 			for i := range ips {
@@ -177,7 +177,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 
 		It("can export serviceTokens to the cloudflare object", func() {
 			ids := []v1alpha1.ServiceToken{{Value: "some_service_token"}, {Value: "some_other_service_token"}}
-			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessRule{{
 				ServiceTokens: ids},
 			}
 			for i, id := range ids {
@@ -193,7 +193,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 
 		It("can export any serviceTokens to the cloudflare object", func() {
 			validServiceToken := true
-			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessRule{{
 				AnyAccessServiceToken: &validServiceToken},
 			}
 			Expect(accessRule.ToCloudflare().Include[0]).To(Equal(cloudflare.AccessGroupAnyValidServiceToken{
@@ -203,7 +203,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 
 		It("can export validCertificate to the cloudflare object", func() {
 			validCert := true
-			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessRule{{
 				ValidCertificate: &validCert},
 			}
 			Expect(accessRule.ToCloudflare().Include[0]).To(Equal(cloudflare.AccessGroupCertificate{
@@ -213,7 +213,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 
 		It("can export everyone to the cloudflare object", func() {
 			everyone := true
-			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessRule{{
 				Everyone: &everyone},
 			}
 			Expect(accessRule.ToCloudflare().Include[0]).To(Equal(cloudflare.AccessGroupEveryone{
@@ -222,7 +222,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 		})
 
 		It("can export Country to the cloudflare object", func() {
-			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessRule{{
 				Countries: []string{"US", "UK"}},
 			}
 			for i, country := range accessRule.Spec.Include[0].Countries {
@@ -238,7 +238,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 
 		It("can export accessGroups to the cloudflare object", func() {
 			ids := []v1alpha1.AccessGroup{{Value: "first_access_group_id"}, {Value: "second_access_group_id"}}
-			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessRule{{
 				AccessGroups: ids},
 			}
 			for i, id := range ids {
@@ -253,7 +253,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 		})
 
 		It("can export loginMethods to the cloudflare object", func() {
-			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessGroupRule{{
+			accessRule.Spec.Include = []v1alpha1.CloudFlareAccessRule{{
 				LoginMethods: []string{"00000000-1234-5678-1234-123456789012"}},
 			}
 

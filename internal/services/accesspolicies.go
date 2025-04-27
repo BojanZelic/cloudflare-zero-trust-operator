@@ -15,9 +15,9 @@ type AccessPolicyService struct {
 }
 
 type AccessPolicyList interface {
-	GetInclude() []v1alpha1.CloudFlareAccessGroupRule
-	GetExclude() []v1alpha1.CloudFlareAccessGroupRule
-	GetRequire() []v1alpha1.CloudFlareAccessGroupRule
+	GetInclude() []v1alpha1.CloudFlareAccessRule
+	GetExclude() []v1alpha1.CloudFlareAccessRule
+	GetRequire() []v1alpha1.CloudFlareAccessRule
 }
 
 func ToLegacyAccessPolicyList(abs v1alpha1.CloudflareLegacyAccessPolicyList) []AccessPolicyList {
@@ -36,7 +36,7 @@ func (s *AccessPolicyService) PopulateLegacyAccessPolicyReferences(ctx context.C
 		exclude := policy.GetExclude()
 		require := policy.GetRequire()
 
-		managedCRFields := []*[]v1alpha1.CloudFlareAccessGroupRule{
+		managedCRFields := []*[]v1alpha1.CloudFlareAccessRule{
 			&include,
 			&exclude,
 			&require,

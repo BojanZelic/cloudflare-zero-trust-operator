@@ -79,7 +79,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 				},
 				Spec: v1alpha1.CloudflareAccessGroupSpec{
 					Name: ag.Name,
-					Include: []v1alpha1.CloudFlareAccessGroupRule{
+					Include: []v1alpha1.CloudFlareAccessRule{
 						{
 							Emails: []string{"test2@cf-operator-tests.uk"},
 						},
@@ -108,7 +108,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 				},
 				Spec: v1alpha1.CloudflareAccessGroupSpec{
 					Name: "integration accessgroup test",
-					Include: []v1alpha1.CloudFlareAccessGroupRule{
+					Include: []v1alpha1.CloudFlareAccessRule{
 						{
 							Emails: []string{"test@cf-operator-tests.uk"},
 						},
@@ -182,7 +182,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 				},
 				Spec: v1alpha1.CloudflareAccessGroupSpec{
 					Name: "reference test group",
-					Include: []v1alpha1.CloudFlareAccessGroupRule{
+					Include: []v1alpha1.CloudFlareAccessRule{
 						{
 							ServiceToken: []v1alpha1.ServiceToken{
 								{
