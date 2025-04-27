@@ -134,7 +134,15 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 
 	if err := apService.PopulateLegacyAccessPolicyReferences(ctx, []services.AccessPolicyList{accessGroup.Spec}); err != nil {
 		_, err = controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
-			meta.SetStatusCondition(&accessGroup.Status.Conditions, metav1.Condition{Type: statusDegrated, Status: metav1.ConditionFalse, Reason: "InvalidReference", Message: err.Error()})
+			meta.SetStatusCondition(
+				&accessGroup.Status.Conditions,
+				metav1.Condition{
+					Type:    statusDegrated,
+					Status:  metav1.ConditionFalse,
+					Reason:  "InvalidReference",
+					Message: err.Error(),
+				},
+			)
 
 			return nil
 		})
@@ -151,7 +159,11 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 
 	if existingCfAG == nil {
 		//nolint:varnamelen
-		ag, err := api.CreateAccessGroup(ctx, accessGroup.ToCloudflare())
+		ag, err := api.CreateAccessGroup(ctx, accessGroup.Name,
+			v1alpha1.ToAccessRuleParams(&accessGroup.Spec.Include),
+			v1alpha1.ToAccessRuleParams(&accessGroup.Spec.Exclude),
+			v1alpha1.ToAccessRuleParams(&accessGroup.Spec.Require),
+		)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
 		}

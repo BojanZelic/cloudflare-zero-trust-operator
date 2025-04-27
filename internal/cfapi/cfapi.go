@@ -74,9 +74,20 @@ func (a *API) AccessGroup(ctx context.Context, accessGroupID string) (*zero_trus
 	return cfAG, errors.Wrap(err, "unable to get access group")
 }
 
-func (a *API) CreateAccessGroup(ctx context.Context, ag zero_trust.AccessGroupNewParams) (*zero_trust.AccessGroupGetResponse, error) {
-	ag.AccountID = cloudflare.F(a.CFAccountID)
-	insert, err := a.client.ZeroTrust.Access.Groups.New(ctx, ag)
+func (a *API) CreateAccessGroup(ctx context.Context,
+	name string,
+	include []zero_trust.AccessRuleUnionParam,
+	exclude []zero_trust.AccessRuleUnionParam,
+	require []zero_trust.AccessRuleUnionParam,
+) (*zero_trust.AccessGroupGetResponse, error) {
+	//
+	insert, err := a.client.ZeroTrust.Access.Groups.New(ctx, zero_trust.AccessGroupNewParams{
+		Name:      cloudflare.F(name),
+		AccountID: cloudflare.F(a.CFAccountID),
+		Include:   cloudflare.F(include),
+		Exclude:   cloudflare.F(exclude),
+		Require:   cloudflare.F(require),
+	})
 	if err != nil {
 		dummy := zero_trust.AccessGroupGetResponse{}
 		return &dummy, errors.Wrap(err, "unable to create access groups")

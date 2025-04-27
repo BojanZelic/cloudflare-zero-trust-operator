@@ -56,7 +56,8 @@ type CloudflareAccessApplicationSpec struct {
 	// +kubebuilder:default=false
 	AutoRedirectToIdentity *bool `json:"autoRedirectToIdentity,omitempty"`
 
-	// LegacyPolicies is the ordered set of policies that should be applied to the application
+	// LegacyPolicies is the ordered set of policies (specific to a single application) that should be applied.
+	// Per Cloudflare specifications, prefer reusable policies.
 	// Order determines precidence
 	// +optional
 	LegacyPolicies CloudflareLegacyAccessPolicyList `json:"legacyPolicies,omitempty"`
@@ -127,23 +128,12 @@ func (aps CloudflareLegacyAccessPolicyList) ToCloudflare() cfcollections.LegacyA
 			ApplicationPolicy: zero_trust.ApplicationPolicy{
 				Name:     policy.Name,
 				Decision: zero_trust.Decision(policy.Decision),
+				Include:  toAccessRules(&policy.Include),
+				Exclude:  toAccessRules(&policy.Exclude),
+				Require:  toAccessRules(&policy.Require),
 			},
 			Precedence: int64(i + 1),
 		}
-
-		managedCRFields := CloudFlareAccessGroupRuleGroups{
-			policy.Include,
-			policy.Exclude,
-			policy.Require,
-		}
-
-		managedCFFields := []*[]zero_trust.AccessRule{
-			&transformed.Include,
-			&transformed.Exclude,
-			&transformed.Require,
-		}
-
-		managedCRFields.TransformCloudflareRuleFields(managedCFFields)
 
 		ret = append(ret, transformed)
 	}
