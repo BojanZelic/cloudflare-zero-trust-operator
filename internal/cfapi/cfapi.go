@@ -85,8 +85,8 @@ func (a *API) CreateAccessGroup(ctx context.Context,
 ) (*zero_trust.AccessGroupGetResponse, error) {
 	//
 	insert, err := a.client.ZeroTrust.Access.Groups.New(ctx, zero_trust.AccessGroupNewParams{
-		Name:      cloudflare.F(name),
 		AccountID: cloudflare.F(a.CFAccountID),
+		Name:      cloudflare.F(name),
 		Include:   cloudflare.F(include),
 		Exclude:   cloudflare.F(exclude),
 		Require:   cloudflare.F(require),
@@ -102,14 +102,20 @@ func (a *API) CreateAccessGroup(ctx context.Context,
 	return a.AccessGroup(ctx, insert.ID)
 }
 
-func (a *API) UpdateAccessGroup(ctx context.Context, ag zero_trust.AccessGroupGetResponse) error {
+func (a *API) UpdateAccessGroup(ctx context.Context,
+	groupId string,
+	name string,
+	include []zero_trust.AccessRuleUnionParam,
+	exclude []zero_trust.AccessRuleUnionParam,
+	require []zero_trust.AccessRuleUnionParam,
+) error {
 	//
-	_, err := a.client.ZeroTrust.Access.Groups.Update(ctx, ag.ID, zero_trust.AccessGroupUpdateParams{
+	_, err := a.client.ZeroTrust.Access.Groups.Update(ctx, groupId, zero_trust.AccessGroupUpdateParams{
 		AccountID: cloudflare.F(a.CFAccountID),
-		Name:      cloudflare.F(ag.Name),
-		Include:   cloudflare.F(ag.Include),
-		Exclude:   cloudflare.F(ag.Exclude),
-		Require:   cloudflare.F(ag.Require),
+		Name:      cloudflare.F(name),
+		Include:   cloudflare.F(include),
+		Exclude:   cloudflare.F(exclude),
+		Require:   cloudflare.F(require),
 	})
 
 	return errors.Wrap(err, "unable to update access groups")
