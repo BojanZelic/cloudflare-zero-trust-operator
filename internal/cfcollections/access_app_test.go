@@ -5,23 +5,23 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	cloudflare "github.com/cloudflare/cloudflare-go/v4"
+	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 )
 
 var _ = Describe("AccessApp", Label("AccessApp"), func() {
 	Context("AccessApp test", func() {
 		It("Empty Apps should be equal", func() {
-			first := cloudflare.AccessApplication{}
-			second := cloudflare.AccessApplication{}
+			first := zero_trust.AccessApplicationGetResponse{}
+			second := zero_trust.AccessApplicationGetResponse{}
 
 			Expect(cfcollections.AccessAppEqual(first, second)).To(BeTrue())
 		})
 
 		It("Differences should no be equal", func() {
-			first := cloudflare.AccessApplication{
+			first := zero_trust.AccessApplicationGetResponse{
 				Name: "first",
 			}
-			second := cloudflare.AccessApplication{
+			second := zero_trust.AccessApplicationGetResponse{
 				Name: "second",
 			}
 

@@ -5,93 +5,103 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	cloudflare "github.com/cloudflare/cloudflare-go/v4"
+	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 )
 
 var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 	Context("AccessGroup test", func() {
 		It("should be able able to find non-equality", func() {
-			first := cloudflare.AccessGroup{
+
+			rule := &zero_trust.AccessRule{}
+			rule.UnmarshalJSON([]byte(`{
+				"email": {
+					"email": "good@test.com"
+				}
+			}`))
+
+			first := zero_trust.AccessGroupGetResponse{
 				Name: "test",
-				Include: []interface{}{
-					map[string]interface{}{
-						"email": map[string]interface{}{
-							"email": "good@test.com",
-						},
-					},
+				Include: []zero_trust.AccessRule{
+					*rule,
 				},
 			}
 
-			second := cloudflare.AccessGroup{
+			second := zero_trust.AccessGroupGetResponse{
 				Name: "test",
-				Include: []interface{}{cloudflare.AccessGroupEmail{
-					Email: struct {
-						Email string "json:\"email\""
-					}{
-						Email: "bad@test.com",
+				Include: []zero_trust.AccessRule{
+					{
+						Email: zero_trust.EmailRuleEmail{
+							Email: "bad@test.com",
+						},
 					},
-				}},
+				},
 			}
 
 			Expect(cfcollections.AccessGroupEqual(first, second)).To(BeFalse())
 		})
 		It("should be able able to find equality", func() {
-			first := cloudflare.AccessGroup{
+			rule := &zero_trust.AccessRule{}
+			rule.UnmarshalJSON([]byte(`{
+				"email": {
+					"email": "test@test.com"
+				}
+			}`))
+
+			first := zero_trust.AccessGroupGetResponse{
 				Name: "test",
-				Include: []interface{}{
-					map[string]interface{}{
-						"email": map[string]interface{}{
-							"email": "test@test.com",
-						},
-					},
+				Include: []zero_trust.AccessRule{
+					*rule,
 				},
 			}
 
-			second := cloudflare.AccessGroup{
+			second := zero_trust.AccessGroupGetResponse{
 				Name: "test",
-				Include: []interface{}{cloudflare.AccessGroupEmail{
-					Email: struct {
-						Email string "json:\"email\""
-					}{
-						Email: "test@test.com",
+				Include: []zero_trust.AccessRule{
+					{
+						Email: zero_trust.EmailRuleEmail{
+							Email: "test@test.com",
+						},
 					},
-				}},
+				},
 			}
 
 			Expect(cfcollections.AccessGroupEqual(first, second)).To(BeTrue())
 		})
 
 		It("should be able able to find equality with an array of elements", func() {
-			first := cloudflare.AccessGroup{
+
+			rule1 := &zero_trust.AccessRule{}
+			rule1.UnmarshalJSON([]byte(`{
+				"email": {
+					"email": "test@test.com"
+				}
+			}`))
+
+			rule2 := &zero_trust.AccessRule{}
+			rule2.UnmarshalJSON([]byte(`{
+				"email": {
+					"email": "test2@test.com"
+				}
+			}`))
+
+			first := zero_trust.AccessGroupGetResponse{
 				Name: "test",
-				Include: []interface{}{
-					map[string]interface{}{
-						"email": map[string]interface{}{
-							"email": "test@test.com",
-						},
-					},
-					map[string]interface{}{
-						"email": map[string]interface{}{
-							"email": "test2@test.com",
-						},
-					},
+				Include: []zero_trust.AccessRule{
+					*rule1,
+					*rule2,
 				},
 			}
 
-			second := cloudflare.AccessGroup{
+			second := zero_trust.AccessGroupGetResponse{
 				Name: "test",
-				Include: []interface{}{
-					cloudflare.AccessGroupEmail{
-						Email: struct {
-							Email string "json:\"email\""
-						}{
+				Include: []zero_trust.AccessRule{
+					{
+						Email: zero_trust.EmailRuleEmail{
 							Email: "test@test.com",
 						},
 					},
-					cloudflare.AccessGroupEmail{
-						Email: struct {
-							Email string "json:\"email\""
-						}{
+					{
+						Email: zero_trust.EmailRuleEmail{
 							Email: "test2@test.com",
 						},
 					},
@@ -106,11 +116,9 @@ var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 			groups := cfcollections.AccessGroupCollection{
 				{
 					Name: "first",
-					Include: []interface{}{
-						cloudflare.AccessGroupEmail{
-							Email: struct {
-								Email string "json:\"email\""
-							}{
+					Include: []zero_trust.AccessRule{
+						{
+							Email: zero_trust.EmailRuleEmail{
 								Email: "test@test.com",
 							},
 						},
@@ -118,11 +126,9 @@ var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 				},
 				{
 					Name: "second",
-					Include: []interface{}{
-						cloudflare.AccessGroupEmail{
-							Email: struct {
-								Email string "json:\"email\""
-							}{
+					Include: []zero_trust.AccessRule{
+						{
+							Email: zero_trust.EmailRuleEmail{
 								Email: "test2@test.com",
 							},
 						},

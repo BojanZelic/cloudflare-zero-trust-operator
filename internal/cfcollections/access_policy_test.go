@@ -2,7 +2,7 @@ package cfcollections_test
 
 import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
-	cloudflare "github.com/cloudflare/cloudflare-go/v4"
+	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -10,28 +10,36 @@ import (
 var _ = Describe("AccessPolicy", Label("AccessPolicy"), func() {
 	Context("AccessPolicy test", func() {
 		It("should be able to determine equality", func() {
-			first := cloudflare.AccessPolicy{
-				Name:       "test",
+
+			rule := &zero_trust.AccessRule{}
+			rule.UnmarshalJSON([]byte(`{
+				"email": {
+					"email": "test@test.com"
+				}
+			}`))
+
+			first := zero_trust.AccessApplicationPolicyListResponse{
+				ApplicationPolicy: zero_trust.ApplicationPolicy{
+					Name: "test",
+					Include: []zero_trust.AccessRule{
+						*rule,
+					},
+				},
 				Precedence: 1,
-				Include: []interface{}{
-					map[string]interface{}{
-						"email": map[string]interface{}{
-							"email": "test@test.com",
+			}
+
+			second := zero_trust.AccessApplicationPolicyListResponse{
+				ApplicationPolicy: zero_trust.ApplicationPolicy{
+					Name: "test",
+					Include: []zero_trust.AccessRule{
+						{
+							Email: zero_trust.EmailRuleEmail{
+								Email: "test@test.com",
+							},
 						},
 					},
 				},
-			}
-
-			second := cloudflare.AccessPolicy{
-				Name:       "test",
 				Precedence: 1,
-				Include: []interface{}{cloudflare.AccessGroupEmail{
-					Email: struct {
-						Email string "json:\"email\""
-					}{
-						Email: "test@test.com",
-					},
-				}},
 			}
 
 			Expect(cfcollections.AccessPoliciesEqual(&first, &second)).To(BeTrue())
@@ -41,30 +49,40 @@ var _ = Describe("AccessPolicy", Label("AccessPolicy"), func() {
 		It("Should be able to sort by precidence", func() {
 			aps := cfcollections.LegacyAccessPolicyCollection{
 				{
-					Name:       "test4",
+					ApplicationPolicy: zero_trust.ApplicationPolicy{
+						Name: "test4",
+					},
 					Precedence: 4,
 				},
 				{
-					Name:       "test3",
+					ApplicationPolicy: zero_trust.ApplicationPolicy{
+						Name: "test3",
+					},
 					Precedence: 3,
 				},
 				{
-					Name:       "test2",
+					ApplicationPolicy: zero_trust.ApplicationPolicy{
+						Name: "test2",
+					},
 					Precedence: 2,
 				},
 				{
-					Name:       "test1",
+					ApplicationPolicy: zero_trust.ApplicationPolicy{
+						Name: "test1",
+					},
 					Precedence: 1,
 				},
 				{
-					Name:       "test5",
+					ApplicationPolicy: zero_trust.ApplicationPolicy{
+						Name: "test5",
+					},
 					Precedence: 5,
 				},
 			}
 
 			aps.SortByPrecedence()
 
-			prevAP := cloudflare.AccessPolicy{Precedence: 0}
+			prevAP := zero_trust.AccessApplicationPolicyListResponse{Precedence: 0}
 			for _, ap := range aps {
 				Expect(ap.Precedence > prevAP.Precedence).To(BeTrue())
 				prevAP = ap
