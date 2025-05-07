@@ -125,13 +125,11 @@ func (aps CloudflareAccessPolicyList) ToCloudflare() cfcollections.AccessPolicyC
 
 	for i, policy := range aps {
 		transformed := zero_trust.AccessApplicationPolicyListResponse{
-			ApplicationPolicy: zero_trust.ApplicationPolicy{
-				Name:     policy.Name,
-				Decision: zero_trust.Decision(policy.Decision),
-				Include:  toAccessRules(&policy.Include),
-				Exclude:  toAccessRules(&policy.Exclude),
-				Require:  toAccessRules(&policy.Require),
-			},
+			Name:       policy.Name,
+			Decision:   zero_trust.Decision(policy.Decision),
+			Include:    toAccessRules(&policy.Include),
+			Exclude:    toAccessRules(&policy.Exclude),
+			Require:    toAccessRules(&policy.Require),
 			Precedence: int64(i + 1),
 		}
 

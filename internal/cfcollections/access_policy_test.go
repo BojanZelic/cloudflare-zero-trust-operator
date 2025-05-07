@@ -19,23 +19,19 @@ var _ = Describe("AccessPolicy", Label("AccessPolicy"), func() {
 			}`))
 
 			first := zero_trust.AccessApplicationPolicyListResponse{
-				ApplicationPolicy: zero_trust.ApplicationPolicy{
-					Name: "test",
-					Include: []zero_trust.AccessRule{
-						*rule,
-					},
+				Name: "test",
+				Include: []zero_trust.AccessRule{
+					*rule,
 				},
 				Precedence: 1,
 			}
 
 			second := zero_trust.AccessApplicationPolicyListResponse{
-				ApplicationPolicy: zero_trust.ApplicationPolicy{
-					Name: "test",
-					Include: []zero_trust.AccessRule{
-						{
-							Email: zero_trust.EmailRuleEmail{
-								Email: "test@test.com",
-							},
+				Name: "test",
+				Include: []zero_trust.AccessRule{
+					{
+						Email: zero_trust.EmailRuleEmail{
+							Email: "test@test.com",
 						},
 					},
 				},
@@ -49,33 +45,24 @@ var _ = Describe("AccessPolicy", Label("AccessPolicy"), func() {
 		It("Should be able to sort by precidence", func() {
 			aps := cfcollections.AccessPolicyCollection{
 				{
-					ApplicationPolicy: zero_trust.ApplicationPolicy{
-						Name: "test4",
-					},
+					Name:       "test4",
 					Precedence: 4,
 				},
 				{
-					ApplicationPolicy: zero_trust.ApplicationPolicy{
-						Name: "test3",
-					},
+					Name:       "test3",
 					Precedence: 3,
 				},
 				{
-					ApplicationPolicy: zero_trust.ApplicationPolicy{
-						Name: "test2",
-					},
+					Name:       "test2",
 					Precedence: 2,
 				},
 				{
-					ApplicationPolicy: zero_trust.ApplicationPolicy{
-						Name: "test1",
-					},
+
+					Name:       "test1",
 					Precedence: 1,
 				},
 				{
-					ApplicationPolicy: zero_trust.ApplicationPolicy{
-						Name: "test5",
-					},
+					Name:       "test5",
 					Precedence: 5,
 				},
 			}
