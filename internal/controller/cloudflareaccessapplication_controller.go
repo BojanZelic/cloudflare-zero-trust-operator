@@ -107,7 +107,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
 	}
 
-	apService := &services.AccessPolicyService{
+	apService := &services.AccessApplicationPolicyRefMatcherService{
 		Client: r.Client,
 		Log:    log,
 	}
@@ -164,13 +164,13 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		}
 	}
 
-	currentPolicies, err := api.AccessPolicies(ctx, app.Status.AccessApplicationID)
-	currentPolicies.SortByPrecedence()
+	currentApplicationPolicies, err := api.AccessApplicationPolicies(ctx, app.Status.AccessApplicationID)
+	currentApplicationPolicies.SortByPrecedence()
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "unable get  access policies")
 	}
 
-	if err := apService.PopulateAccessPolicyReferences(ctx, services.ToAccessPolicyList(app.Spec.Policies)); err != nil {
+	if err := apService.PopulateWithCloudflareUUIDs(ctx, app.Spec.Policies.ToGenericPolicyRuler()); err != nil {
 		_, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
 			meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusDegrated, Status: metav1.ConditionFalse, Reason: "InvalidReference", Message: err.Error()})
 
@@ -186,10 +186,10 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		// don't requeue
 		return ctrl.Result{}, nil
 	}
-	expectedPolicies := app.Spec.Policies.ToCloudflare()
-	expectedPolicies.SortByPrecedence()
+	expectedApplicationPolicies := app.Spec.Policies.ToCloudflare()
+	expectedApplicationPolicies.SortByPrecedence()
 
-	err = r.ReconcilePolicies(ctx, api, app, currentPolicies, expectedPolicies)
+	err = r.ReconcileApplicationPolicies(ctx, api, app, currentApplicationPolicies, expectedApplicationPolicies)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "unable get  access policies")
 	}
@@ -235,7 +235,11 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Cont
 }
 
 //nolint:gocognit,cyclop
-func (r *CloudflareAccessApplicationReconciler) ReconcilePolicies(ctx context.Context, api *cfapi.API, app *v1alpha1.CloudflareAccessApplication, current, expected cfcollections.AccessPolicyCollection) error {
+func (r *CloudflareAccessApplicationReconciler) ReconcileApplicationPolicies(
+	ctx context.Context, api *cfapi.API,
+	app *v1alpha1.CloudflareAccessApplication,
+	current, expected cfcollections.AccessApplicationPolicyCollection,
+) error {
 	log := logger.FromContext(ctx)
 
 	for i := 0; i < len(current) || i < len(expected); i++ { //nolint:varnamelen
@@ -250,22 +254,22 @@ func (r *CloudflareAccessApplicationReconciler) ReconcilePolicies(ctx context.Co
 			k8sPolicy = &expected[i]
 		}
 
-		if !cfcollections.AccessPoliciesEqual(cfPolicy, k8sPolicy) {
+		if !cfcollections.AccessApplicationPoliciesEqual(cfPolicy, k8sPolicy) {
 			if cfPolicy == nil && k8sPolicy != nil {
 				action = "create"
 				log.Info("accesspolicy is missing - creating...", "policyName", k8sPolicy.Name, "domain", app.Spec.Domain)
-				err = api.CreateAccessPolicies(ctx, app.Status.AccessApplicationID, *k8sPolicy)
+				err = api.CreateAccessApplicationPolicies(ctx, app.Status.AccessApplicationID, *k8sPolicy)
 			}
 			if k8sPolicy == nil && cfPolicy != nil {
 				action = "delete"
 				log.Info("accesspolicy is removed - deleting...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
-				err = api.DeleteAccessPolicy(ctx, app.Status.AccessApplicationID, cfPolicy.ID)
+				err = api.DeleteAccessApplicationPolicy(ctx, app.Status.AccessApplicationID, cfPolicy.ID)
 			}
 			if cfPolicy != nil && k8sPolicy != nil {
 				action = "update"
 				k8sPolicy.ID = cfPolicy.ID
 				log.Info("accesspolicy is changed - updating...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
-				err = api.UpdateAccessPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
+				err = api.UpdateAccessApplicationPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
 			}
 
 			if err != nil {

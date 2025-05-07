@@ -127,12 +127,12 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		}
 	}
 
-	apService := &services.AccessPolicyService{
+	apService := &services.AccessApplicationPolicyRefMatcherService{
 		Client: r.Client,
 		Log:    log,
 	}
 
-	if err := apService.PopulateAccessPolicyReferences(ctx, []services.AccessPolicyList{accessGroup.Spec}); err != nil {
+	if err := apService.PopulateWithCloudflareUUIDs(ctx, []v1alpha1.GenericAccessPolicyRuler{accessGroup.Spec}); err != nil {
 		_, err = controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
 			meta.SetStatusCondition(
 				&accessGroup.Status.Conditions,

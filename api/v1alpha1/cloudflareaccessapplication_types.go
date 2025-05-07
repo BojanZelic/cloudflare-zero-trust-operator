@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -56,11 +55,11 @@ type CloudflareAccessApplicationSpec struct {
 	// +kubebuilder:default=false
 	AutoRedirectToIdentity *bool `json:"autoRedirectToIdentity,omitempty"`
 
-	// Policies is the ordered set of policies (specific to a single application) that should be applied.
-	// Per Cloudflare specifications, prefer reusable policies.
-	// Order determines precidence
+	// Policies is the ordered set of policies (application specific only, not shareable) that should be applied.
+	// Per Cloudflare specifications, prefer using [ReusablePolicies].
+	// Order determines precedence
 	// +optional
-	Policies CloudflareAccessPolicyList `json:"policies,omitempty"`
+	Policies CloudflareAccessApplicationPolicyList `json:"policies,omitempty"`
 
 	// SessionDuration is the length of the session duration.
 	// +optional
@@ -80,63 +79,6 @@ type CloudflareAccessApplicationSpec struct {
 	// The image URL for the logo shown in the App Launcher dashboard
 	// +optional
 	LogoURL string `json:"logoUrl,omitempty"`
-}
-
-type CloudflareAccessPolicy struct {
-	// Name of the Cloudflare Access Policy
-	Name string `json:"name"`
-
-	// Decision ex: allow, deny, non_identity, bypass - defaults to allow
-	Decision string `json:"decision"`
-
-	// Rules evaluated with an OR logical operator. A user needs to meet only one of the Include rules.
-	Include []CloudFlareAccessRule `json:"include,omitempty"`
-
-	// Rules evaluated with an AND logical operator. To match the policy, a user must meet all of the Require rules.
-	// +optional
-	Require []CloudFlareAccessRule `json:"require,omitempty"`
-
-	// Rules evaluated with a NOT logical operator. To match the policy, a user cannot meet any of the Exclude rules.
-	// +optional
-	Exclude []CloudFlareAccessRule `json:"exclude,omitempty"`
-
-	// PurposeJustificationRequired *bool                 `json:"purpose_justification_required,omitempty"`
-	// PurposeJustificationPrompt   *string               `json:"purpose_justification_prompt,omitempty"`
-	// ApprovalRequired             *bool                 `json:"approval_required,omitempty"`
-	// ApprovalGroups               []cloudflare.AccessApprovalGroup `json:"approval_groups"`
-}
-
-func (c CloudflareAccessPolicy) GetInclude() []CloudFlareAccessRule {
-	return c.Include
-}
-
-func (c CloudflareAccessPolicy) GetExclude() []CloudFlareAccessRule {
-	return c.Exclude
-}
-
-func (c CloudflareAccessPolicy) GetRequire() []CloudFlareAccessRule {
-	return c.Require
-}
-
-type CloudflareAccessPolicyList []CloudflareAccessPolicy
-
-func (aps CloudflareAccessPolicyList) ToCloudflare() cfcollections.AccessPolicyCollection {
-	ret := cfcollections.AccessPolicyCollection{}
-
-	for i, policy := range aps {
-		transformed := zero_trust.AccessApplicationPolicyListResponse{
-			Name:       policy.Name,
-			Decision:   zero_trust.Decision(policy.Decision),
-			Include:    toAccessRules(&policy.Include),
-			Exclude:    toAccessRules(&policy.Exclude),
-			Require:    toAccessRules(&policy.Require),
-			Precedence: int64(i + 1),
-		}
-
-		ret = append(ret, transformed)
-	}
-
-	return ret
 }
 
 // CloudflareAccessApplicationStatus defines the observed state of CloudflareAccessApplication.

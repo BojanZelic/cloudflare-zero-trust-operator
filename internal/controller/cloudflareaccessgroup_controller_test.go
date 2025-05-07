@@ -7,8 +7,8 @@ import (
 	"time"
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	cloudflare "github.com/cloudflare/cloudflare-go/v4"
+	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -63,12 +63,18 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 		It("should successfully reconcile if a CloudflareAccessGroup AlreadyExists", func() {
 			By("Pre-creating a cloudflare access group")
 
-			ag, err := api.CreateAccessGroup(ctx, cloudflare.AccessGroup{
-				Name: "existing-access-group",
-				Include: []interface{}{
-					cfapi.NewAccessGroupEmail("test1@cf-operator-tests.uk"),
+			ag, err := api.CreateAccessGroup(ctx,
+				"existing-access-group",
+				[]zero_trust.AccessRuleUnionParam{
+					zero_trust.EmailRuleParam{
+						Email: cloudflare.F(zero_trust.EmailRuleEmailParam{
+							Email: cloudflare.F("test1@cf-operator-tests.uk"),
+						}),
+					},
 				},
-			})
+				[]zero_trust.AccessRuleUnionParam{},
+				[]zero_trust.AccessRuleUnionParam{},
+			)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Creating the same custom resource for the Kind CloudflareAccessGroup")
@@ -184,7 +190,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 					Name: "reference test group",
 					Include: []v1alpha1.CloudFlareAccessRule{
 						{
-							ServiceToken: []v1alpha1.ServiceToken{
+							ServiceTokens: []v1alpha1.ServiceToken{
 								{
 									ValueFrom: &v1alpha1.ServiceTokenReference{
 										Name:      token.Name,

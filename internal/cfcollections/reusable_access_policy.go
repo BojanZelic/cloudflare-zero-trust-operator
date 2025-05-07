@@ -3,23 +3,16 @@ package cfcollections
 import (
 	"encoding/json"
 	"reflect"
-	"sort"
 
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 )
 
-type AccessPolicyCollection []zero_trust.AccessApplicationPolicyListResponse
+type AccessReusablePolicyCollection []zero_trust.AccessPolicyListResponse
 
-func (c AccessPolicyCollection) Len() int { return len(c) }
-
-func (c AccessPolicyCollection) SortByPrecedence() {
-	sort.Slice(c, func(i, j int) bool {
-		return c[i].Precedence < c[j].Precedence
-	})
-}
+func (c AccessReusablePolicyCollection) Len() int { return len(c) }
 
 //nolint:cyclop
-func AccessPoliciesEqual(first *zero_trust.AccessApplicationPolicyListResponse, second *zero_trust.AccessApplicationPolicyListResponse) bool {
+func AccessReusablePoliciesEqual(first *zero_trust.AccessPolicyListResponse, second *zero_trust.AccessPolicyListResponse) bool {
 	if first == nil && second == nil {
 		return true
 	}
@@ -29,9 +22,6 @@ func AccessPoliciesEqual(first *zero_trust.AccessApplicationPolicyListResponse, 
 	}
 
 	if first.Name != second.Name {
-		return false
-	}
-	if first.Precedence != second.Precedence {
 		return false
 	}
 

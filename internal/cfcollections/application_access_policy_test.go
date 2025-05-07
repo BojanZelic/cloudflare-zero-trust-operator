@@ -7,8 +7,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("AccessPolicy", Label("AccessPolicy"), func() {
-	Context("AccessPolicy test", func() {
+var _ = Describe("AccessApplicationPolicy", Label("AccessApplicationPolicy"), func() {
+	Context("AccessApplicationPolicy test", func() {
 		It("should be able to determine equality", func() {
 
 			rule := &zero_trust.AccessRule{}
@@ -38,12 +38,12 @@ var _ = Describe("AccessPolicy", Label("AccessPolicy"), func() {
 				Precedence: 1,
 			}
 
-			Expect(cfcollections.AccessPoliciesEqual(&first, &second)).To(BeTrue())
+			Expect(cfcollections.AccessApplicationPoliciesEqual(&first, &second)).To(BeTrue())
 		})
 	})
-	Context("AccessPolicyCollection test", func() {
-		It("Should be able to sort by precidence", func() {
-			aps := cfcollections.AccessPolicyCollection{
+	Context("AccessApplicationPolicyCollection test", func() {
+		It("Should be able to sort by precedence", func() {
+			aps := cfcollections.AccessApplicationPolicyCollection{
 				{
 					Name:       "test4",
 					Precedence: 4,

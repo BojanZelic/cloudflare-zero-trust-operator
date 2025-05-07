@@ -4,20 +4,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.16.4
-  name: cloudflareaccessgroups.cloudflare.zelic.io
+  name: cloudflareaccessreusablepolicies.cloudflare.zelic.io
 spec:
   group: cloudflare.zelic.io
   names:
-    kind: CloudflareAccessGroup
-    listKind: CloudflareAccessGroupList
-    plural: cloudflareaccessgroups
-    singular: cloudflareaccessgroup
+    kind: CloudflareAccessReusablePolicy
+    listKind: CloudflareAccessReusablePolicyList
+    plural: cloudflareaccessreusablepolicies
+    singular: cloudflareaccessreusablepolicy
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: CloudflareAccessGroup is the Schema for the cloudflareaccessgroups
+        description: CloudflareAccessReusablePolicy is the Schema for the cloudflareaccessreusablepolicies
           API.
         properties:
           apiVersion:
@@ -38,8 +38,13 @@ spec:
           metadata:
             type: object
           spec:
-            description: CloudflareAccessGroupSpec defines the desired state of CloudflareAccessGroup.
+            description: CloudflareAccessReusablePolicySpec defines the desired state
+              of CloudflareAccessReusablePolicy.
             properties:
+              decision:
+                description: 'Decision ex: allow, deny, non_identity, bypass - defaults
+                  to allow'
+                type: string
               exclude:
                 description: Rules evaluated with a NOT logical operator. To match
                   the policy, a user cannot meet any of the Exclude rules.
@@ -387,7 +392,7 @@ spec:
                   type: object
                 type: array
               name:
-                description: Name of the Cloudflare Access Group
+                description: Name of the Cloudflare Access's reusable Policy
                 type: string
               require:
                 description: Rules evaluated with an AND logical operator. To match
@@ -563,14 +568,16 @@ spec:
                   type: object
                 type: array
             required:
+            - decision
             - name
             type: object
           status:
-            description: CloudflareAccessGroupStatus defines the observed state of
-              CloudflareAccessGroup.
+            description: CloudflareAccessReusablePolicyStatus defines the observed
+              state of CloudflareAccessReusablePolicy.
             properties:
-              accessGroupId:
-                description: AccessGroupID is the ID of the reference in Cloudflare
+              accessReusablePolicyId:
+                description: AccessReusablePolicyID is the ID of the reference in
+                  Cloudflare
                 type: string
               conditions:
                 description: Conditions store the status conditions of the CloudflareAccessApplication

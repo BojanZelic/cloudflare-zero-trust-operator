@@ -16,7 +16,7 @@ limitations under the License.
 
 package v1alpha1
 
-// CloudFlareAccessRule defines the rules used in CloudflareAccessGroup
+// CloudFlareAccessRule defines the rules used in CloudflareAccessGroup / CloudflareAccessApplicationPolicy / CloudflareAccessReusablePolicy
 type CloudFlareAccessRule struct {
 	// Matches a Specific email
 	Emails []string `json:"emails,omitempty"`

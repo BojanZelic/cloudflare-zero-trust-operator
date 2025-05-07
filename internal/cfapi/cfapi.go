@@ -241,13 +241,13 @@ func (a *API) DeleteAccessApplication(ctx context.Context, appID string) error {
 //
 //
 
-func (a *API) AccessPolicies(ctx context.Context, appID string) (cfcollections.AccessPolicyCollection, error) {
+func (a *API) AccessApplicationPolicies(ctx context.Context, appID string) (cfcollections.AccessApplicationPolicyCollection, error) {
 	//
 	iter := a.client.ZeroTrust.Access.Applications.Policies.ListAutoPaging(ctx, appID, zero_trust.AccessApplicationPolicyListParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
-	policiesCollection := cfcollections.AccessPolicyCollection{}
+	policiesCollection := cfcollections.AccessApplicationPolicyCollection{}
 	for iter.Next() {
 		policiesCollection = append(policiesCollection, iter.Current())
 	}
@@ -255,7 +255,7 @@ func (a *API) AccessPolicies(ctx context.Context, appID string) (cfcollections.A
 	return policiesCollection, errors.Wrap(iter.Err(), "unable to get access Policies")
 }
 
-func (a *API) CreateAccessPolicies(ctx context.Context, appID string, lap zero_trust.AccessApplicationPolicyListResponse) error {
+func (a *API) CreateAccessApplicationPolicies(ctx context.Context, appID string, lap zero_trust.AccessApplicationPolicyListResponse) error {
 	//
 	approvalGroups := []zero_trust.ApprovalGroupParam{}
 	for _, r := range lap.ApprovalGroups {
@@ -282,7 +282,7 @@ func (a *API) CreateAccessPolicies(ctx context.Context, appID string, lap zero_t
 	return errors.Wrap(err, "unable to create access Policy")
 }
 
-func (a *API) UpdateAccessPolicy(ctx context.Context, appID string, lap zero_trust.AccessApplicationPolicyListResponse) error {
+func (a *API) UpdateAccessApplicationPolicy(ctx context.Context, appID string, lap zero_trust.AccessApplicationPolicyListResponse) error {
 	//
 	approvalGroups := []zero_trust.ApprovalGroupParam{}
 	for _, r := range lap.ApprovalGroups {
@@ -309,7 +309,7 @@ func (a *API) UpdateAccessPolicy(ctx context.Context, appID string, lap zero_tru
 	return errors.Wrap(err, "unable to update access Policy")
 }
 
-func (a *API) DeleteAccessPolicy(ctx context.Context, appID string, policyID string) error {
+func (a *API) DeleteAccessApplicationPolicy(ctx context.Context, appID string, policyID string) error {
 
 	_, err := a.client.ZeroTrust.Access.Applications.Policies.Delete(ctx, appID, policyID, zero_trust.AccessApplicationPolicyDeleteParams{
 		AccountID: cloudflare.F(a.CFAccountID),

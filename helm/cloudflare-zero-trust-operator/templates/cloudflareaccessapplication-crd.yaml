@@ -87,7 +87,7 @@ spec:
               policies:
                 description: |-
                   Policies is the ordered set of policies that should be applied to the application
-                  Order determines precidence
+                  Order determines precedence
                 items:
                   properties:
                     decision:

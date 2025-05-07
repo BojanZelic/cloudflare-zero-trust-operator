@@ -83,7 +83,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				Spec: v1alpha1.CloudflareAccessApplicationSpec{
 					Name:   "integration policies test",
 					Domain: "integration-policies.cf-operator-tests.uk",
-					Policies: v1alpha1.CloudflareAccessPolicyList{
+					Policies: v1alpha1.CloudflareAccessApplicationPolicyList{
 						{
 							Name:     "integration_test",
 							Decision: "allow",
@@ -110,17 +110,17 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				return found.Status.AccessApplicationID
 			}, time.Second*10, time.Second).Should(Not(BeEmpty()))
 
-			var cfResource cfcollections.AccessPolicyCollection
+			var cfResource cfcollections.AccessApplicationPolicyCollection
 			By("Cloudflare resource should equal the spec")
 			Eventually(func(g Gomega) {
-				cfResource, err = api.AccessPolicies(ctx, found.Status.AccessApplicationID)
+				cfResource, err = api.AccessApplicationPolicies(ctx, found.Status.AccessApplicationID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource).ToNot(BeEmpty())
 				g.Expect(found.Spec.Policies).ToNot(BeEmpty())
 				g.Expect(cfResource[0].Name).To(Equal(found.Spec.Policies[0].Name))
-				g.Expect(cfResource[0].Include[0].(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[0]))
-				g.Expect(cfResource[0].Include[1].(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[1]))
-				g.Expect(cfResource[0].Include[2].(map[string]interface{})["email_domain"].(map[string]interface{})["domain"]).To(Equal(found.Spec.Policies[0].Include[1].EmailDomains[0]))
+				g.Expect(cfResource[0].Include[0].Email.(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[0]))
+				g.Expect(cfResource[0].Include[1].Email.(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[1]))
+				g.Expect(cfResource[0].Include[2].EmailDomain.(map[string]interface{})["email_domain"].(map[string]interface{})["domain"]).To(Equal(found.Spec.Policies[0].Include[1].EmailDomains[0]))
 			}, time.Second*25, time.Second).Should(Succeed())
 
 			By("changing a policy")
@@ -132,12 +132,12 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			By("Cloudflare resource should equal the spec")
 			Eventually(func(g Gomega) {
-				cfResource, err = api.AccessPolicies(ctx, found.Status.AccessApplicationID)
+				cfResource, err = api.AccessApplicationPolicies(ctx, found.Status.AccessApplicationID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource[0].Name).To(Equal(found.Spec.Policies[0].Name))
-				g.Expect(cfResource[0].Include[0].(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[0]))
-				g.Expect(cfResource[0].Include[1].(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[1]))
-				g.Expect(cfResource[0].Include[2].(map[string]interface{})["email_domain"].(map[string]interface{})["domain"]).To(Equal(found.Spec.Policies[0].Include[1].EmailDomains[0]))
+				g.Expect(cfResource[0].Include[0].Email.(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[0]))
+				g.Expect(cfResource[0].Include[1].Email.(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[1]))
+				g.Expect(cfResource[0].Include[2].EmailDomain.(map[string]interface{})["email_domain"].(map[string]interface{})["domain"]).To(Equal(found.Spec.Policies[0].Include[1].EmailDomains[0]))
 			}, time.Second*25, time.Second).Should(Succeed())
 		})
 
@@ -153,7 +153,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				Spec: v1alpha1.CloudflareAccessApplicationSpec{
 					Name:   "bad-reference policies",
 					Domain: "bad-reference-policies.cf-operator-tests.uk",
-					Policies: v1alpha1.CloudflareAccessPolicyList{
+					Policies: v1alpha1.CloudflareAccessApplicationPolicyList{
 						{
 							Name:     "reference_test",
 							Decision: "allow",
@@ -234,9 +234,9 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 					Namespace: namespace.Name,
 				},
 				Spec: v1alpha1.CloudflareAccessApplicationSpec{
-					Name:   "reference policies ",
+					Name:   "reference policies",
 					Domain: "reference-policies.cf-operator-tests.uk",
-					Policies: v1alpha1.CloudflareAccessPolicyList{
+					Policies: v1alpha1.CloudflareAccessApplicationPolicyList{
 						{
 							Name:     "reference_test",
 							Decision: "allow",
@@ -249,7 +249,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 										},
 									},
 								},
-								ServiceToken: []v1alpha1.ServiceToken{
+								ServiceTokens: []v1alpha1.ServiceToken{
 									{
 										ValueFrom: &v1alpha1.ServiceTokenReference{
 											Name:      token.Name,
