@@ -185,7 +185,7 @@ func (a *API) CreateAccessApplication(ctx context.Context, ag *v1alpha1.Cloudfla
 			AppLauncherVisible:     cloudflare.F(*ag.Spec.AppLauncherVisible),
 			AllowedIdPs:            cloudflare.F(interface{}(ag.Spec.AllowedIdps)),
 			AutoRedirectToIdentity: cloudflare.F(*ag.Spec.AutoRedirectToIdentity),
-			// Policies: ,
+			// Policies: , // TODO: maybe handle old legacy policies
 			SessionDuration:         cloudflare.F(ag.Spec.SessionDuration),
 			EnableBindingCookie:     cloudflare.F(*ag.Spec.EnableBindingCookie),
 			HTTPOnlyCookieAttribute: cloudflare.F(*ag.Spec.HTTPOnlyCookieAttribute),
@@ -212,7 +212,7 @@ func (a *API) UpdateAccessApplication(ctx context.Context, ag zero_trust.AccessA
 			AppLauncherVisible:     cloudflare.F(ag.AppLauncherVisible),
 			AllowedIdPs:            cloudflare.F(ag.AllowedIdPs),
 			AutoRedirectToIdentity: cloudflare.F(ag.AutoRedirectToIdentity),
-			// Policies: ,
+			// Policies: , // TODO: maybe handle old legacy policies
 			SessionDuration:         cloudflare.F(ag.SessionDuration),
 			EnableBindingCookie:     cloudflare.F(ag.EnableBindingCookie),
 			HTTPOnlyCookieAttribute: cloudflare.F(ag.HTTPOnlyCookieAttribute),
@@ -241,13 +241,13 @@ func (a *API) DeleteAccessApplication(ctx context.Context, appID string) error {
 //
 //
 
-func (a *API) LegacyAccessPolicies(ctx context.Context, appID string) (cfcollections.LegacyAccessPolicyCollection, error) {
+func (a *API) AccessPolicies(ctx context.Context, appID string) (cfcollections.AccessPolicyCollection, error) {
 	//
 	iter := a.client.ZeroTrust.Access.Applications.Policies.ListAutoPaging(ctx, appID, zero_trust.AccessApplicationPolicyListParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
-	policiesCollection := cfcollections.LegacyAccessPolicyCollection{}
+	policiesCollection := cfcollections.AccessPolicyCollection{}
 	for iter.Next() {
 		policiesCollection = append(policiesCollection, iter.Current())
 	}
@@ -255,7 +255,7 @@ func (a *API) LegacyAccessPolicies(ctx context.Context, appID string) (cfcollect
 	return policiesCollection, errors.Wrap(iter.Err(), "unable to get access Policies")
 }
 
-func (a *API) CreateLegacyAccessPolicies(ctx context.Context, appID string, lap zero_trust.AccessApplicationPolicyListResponse) error {
+func (a *API) CreateAccessPolicies(ctx context.Context, appID string, lap zero_trust.AccessApplicationPolicyListResponse) error {
 	//
 	approvalGroups := []zero_trust.ApprovalGroupParam{}
 	for _, r := range lap.ApprovalGroups {
@@ -282,7 +282,7 @@ func (a *API) CreateLegacyAccessPolicies(ctx context.Context, appID string, lap 
 	return errors.Wrap(err, "unable to create access Policy")
 }
 
-func (a *API) UpdateLegacyAccessPolicy(ctx context.Context, appID string, lap zero_trust.AccessApplicationPolicyListResponse) error {
+func (a *API) UpdateAccessPolicy(ctx context.Context, appID string, lap zero_trust.AccessApplicationPolicyListResponse) error {
 	//
 	approvalGroups := []zero_trust.ApprovalGroupParam{}
 	for _, r := range lap.ApprovalGroups {
@@ -309,7 +309,7 @@ func (a *API) UpdateLegacyAccessPolicy(ctx context.Context, appID string, lap ze
 	return errors.Wrap(err, "unable to update access Policy")
 }
 
-func (a *API) DeleteLegacyAccessPolicy(ctx context.Context, appID string, policyID string) error {
+func (a *API) DeleteAccessPolicy(ctx context.Context, appID string, policyID string) error {
 
 	_, err := a.client.ZeroTrust.Access.Applications.Policies.Delete(ctx, appID, policyID, zero_trust.AccessApplicationPolicyDeleteParams{
 		AccountID: cloudflare.F(a.CFAccountID),

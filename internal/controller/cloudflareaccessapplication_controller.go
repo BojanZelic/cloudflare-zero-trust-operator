@@ -164,20 +164,20 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		}
 	}
 
-	currentPolicies, err := api.LegacyAccessPolicies(ctx, app.Status.AccessApplicationID)
+	currentPolicies, err := api.AccessPolicies(ctx, app.Status.AccessApplicationID)
 	currentPolicies.SortByPrecedence()
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "unable get legacy access policies")
+		return ctrl.Result{}, errors.Wrap(err, "unable get  access policies")
 	}
 
-	if err := apService.PopulateLegacyAccessPolicyReferences(ctx, services.ToLegacyAccessPolicyList(app.Spec.Policies)); err != nil {
+	if err := apService.PopulateAccessPolicyReferences(ctx, services.ToAccessPolicyList(app.Spec.Policies)); err != nil {
 		_, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
 			meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusDegrated, Status: metav1.ConditionFalse, Reason: "InvalidReference", Message: err.Error()})
 
 			return nil
 		})
 
-		log.Info("failed to update legacy access policies")
+		log.Info("failed to update  access policies")
 
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
@@ -189,9 +189,9 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	expectedPolicies := app.Spec.Policies.ToCloudflare()
 	expectedPolicies.SortByPrecedence()
 
-	err = r.ReconcileLegacyPolicies(ctx, api, app, currentPolicies, expectedPolicies)
+	err = r.ReconcilePolicies(ctx, api, app, currentPolicies, expectedPolicies)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "unable get legacy access policies")
+		return ctrl.Result{}, errors.Wrap(err, "unable get  access policies")
 	}
 
 	if _, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
@@ -235,7 +235,7 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Cont
 }
 
 //nolint:gocognit,cyclop
-func (r *CloudflareAccessApplicationReconciler) ReconcileLegacyPolicies(ctx context.Context, api *cfapi.API, app *v1alpha1.CloudflareAccessApplication, current, expected cfcollections.LegacyAccessPolicyCollection) error {
+func (r *CloudflareAccessApplicationReconciler) ReconcilePolicies(ctx context.Context, api *cfapi.API, app *v1alpha1.CloudflareAccessApplication, current, expected cfcollections.AccessPolicyCollection) error {
 	log := logger.FromContext(ctx)
 
 	for i := 0; i < len(current) || i < len(expected); i++ { //nolint:varnamelen
@@ -254,18 +254,18 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileLegacyPolicies(ctx cont
 			if cfPolicy == nil && k8sPolicy != nil {
 				action = "create"
 				log.Info("accesspolicy is missing - creating...", "policyName", k8sPolicy.Name, "domain", app.Spec.Domain)
-				err = api.CreateLegacyAccessPolicies(ctx, app.Status.AccessApplicationID, *k8sPolicy)
+				err = api.CreateAccessPolicies(ctx, app.Status.AccessApplicationID, *k8sPolicy)
 			}
 			if k8sPolicy == nil && cfPolicy != nil {
 				action = "delete"
 				log.Info("accesspolicy is removed - deleting...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
-				err = api.DeleteLegacyAccessPolicy(ctx, app.Status.AccessApplicationID, cfPolicy.ID)
+				err = api.DeleteAccessPolicy(ctx, app.Status.AccessApplicationID, cfPolicy.ID)
 			}
 			if cfPolicy != nil && k8sPolicy != nil {
 				action = "update"
 				k8sPolicy.ID = cfPolicy.ID
 				log.Info("accesspolicy is changed - updating...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
-				err = api.UpdateLegacyAccessPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
+				err = api.UpdateAccessPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
 			}
 
 			if err != nil {

@@ -45,9 +45,9 @@ var _ = Describe("AccessPolicy", Label("AccessPolicy"), func() {
 			Expect(cfcollections.AccessPoliciesEqual(&first, &second)).To(BeTrue())
 		})
 	})
-	Context("LegacyAccessPolicyCollection test", func() {
+	Context("AccessPolicyCollection test", func() {
 		It("Should be able to sort by precidence", func() {
-			aps := cfcollections.LegacyAccessPolicyCollection{
+			aps := cfcollections.AccessPolicyCollection{
 				{
 					ApplicationPolicy: zero_trust.ApplicationPolicy{
 						Name: "test4",

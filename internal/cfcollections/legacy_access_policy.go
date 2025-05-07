@@ -8,11 +8,11 @@ import (
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 )
 
-type LegacyAccessPolicyCollection []zero_trust.AccessApplicationPolicyListResponse
+type AccessPolicyCollection []zero_trust.AccessApplicationPolicyListResponse
 
-func (c LegacyAccessPolicyCollection) Len() int { return len(c) }
+func (c AccessPolicyCollection) Len() int { return len(c) }
 
-func (c LegacyAccessPolicyCollection) SortByPrecedence() {
+func (c AccessPolicyCollection) SortByPrecedence() {
 	sort.Slice(c, func(i, j int) bool {
 		return c[i].Precedence < c[j].Precedence
 	})
