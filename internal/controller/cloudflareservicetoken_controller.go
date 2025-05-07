@@ -51,7 +51,7 @@ type CloudflareServiceTokenReconciler struct {
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/finalizers,verbs=update
 
-// nolint: gocognit,cyclop,gocyclo,maintidx
+//nolint:gocognit,cyclop,gocyclo,maintidx
 func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	var existingServiceToken *cftypes.ExtendedServiceToken
@@ -61,7 +61,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 
 	serviceToken := &v1alpha1.CloudflareServiceToken{}
 
-	err = r.Client.Get(ctx, req.NamespacedName, serviceToken)
+	err = r.Get(ctx, req.NamespacedName, serviceToken)
 
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
@@ -109,7 +109,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 
 	// this is used just for populating existingServiceToken
 	secretList := &corev1.SecretList{}
-	if err := r.Client.List(ctx, secretList,
+	if err := r.List(ctx, secretList,
 		client.MatchingLabels{v1alpha1.LabelOwnedBy: serviceToken.Name},
 		client.InNamespace(serviceToken.Namespace),
 	); err != nil {
@@ -235,7 +235,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	}
 
 	if secretToDelete != nil {
-		if err := r.Client.Delete(ctx, secretToDelete); err != nil {
+		if err := r.Delete(ctx, secretToDelete); err != nil {
 			log.Error(nil, "failed to remove old secret")
 		} else {
 			log.Info("removed old secret")

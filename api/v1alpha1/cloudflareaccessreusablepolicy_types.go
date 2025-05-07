@@ -94,7 +94,7 @@ func (c *CloudflareAccessReusablePolicy) GetID() string {
 }
 
 func (c *CloudflareAccessReusablePolicy) UnderDeletion() bool {
-	return !c.ObjectMeta.DeletionTimestamp.IsZero()
+	return !c.DeletionTimestamp.IsZero()
 }
 
 func (aps CloudflareAccessReusablePolicyList) ToCloudflare() cfcollections.AccessReusablePolicyCollection {

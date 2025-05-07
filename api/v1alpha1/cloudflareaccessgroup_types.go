@@ -32,16 +32,14 @@ type CloudflareAccessGroupSpec struct {
 	// Rules evaluated with an OR logical operator. A user needs to meet only one of the Include rules.
 	Include []CloudFlareAccessRule `json:"include,omitempty"`
 
-	// Rules evaluated with an AND logical operator. To match the policy, a user must meet all of the Require rules.
+	// Rules evaluated with an AND logical operator. To match the policy, a user must meet all the Require rules.
 	Require []CloudFlareAccessRule `json:"require,omitempty"`
 
 	// Rules evaluated with a NOT logical operator. To match the policy, a user cannot meet any of the Exclude rules.
 	Exclude []CloudFlareAccessRule `json:"exclude,omitempty"`
 }
 
-func (c CloudflareAccessGroupSpec) GetInclude() []CloudFlareAccessRule {
-	return c.Include
-}
+func (c CloudflareAccessGroupSpec) GetInclude() []CloudFlareAccessRule { return c.Include }
 
 func (c CloudflareAccessGroupSpec) GetExclude() []CloudFlareAccessRule {
 	return c.Exclude
@@ -79,16 +77,16 @@ type CloudflareAccessGroup struct {
 	Status CloudflareAccessGroupStatus `json:"status,omitempty"`
 }
 
-func (c *CloudflareAccessGroup) GetType() string {
+func (c CloudflareAccessGroup) GetType() string {
 	return "CloudflareAccessGroup"
 }
 
-func (c *CloudflareAccessGroup) GetID() string {
+func (c CloudflareAccessGroup) GetID() string {
 	return c.Status.AccessGroupID
 }
 
-func (c *CloudflareAccessGroup) UnderDeletion() bool {
-	return !c.ObjectMeta.DeletionTimestamp.IsZero()
+func (c CloudflareAccessGroup) UnderDeletion() bool {
+	return !c.DeletionTimestamp.IsZero()
 }
 
 func (c *CloudflareAccessGroup) ToCloudflare() zero_trust.AccessGroupGetResponse {
@@ -113,10 +111,10 @@ type CloudflareAccessGroupList struct {
 	Items           []CloudflareAccessGroup `json:"items"`
 }
 
-func (abs CloudflareAccessGroupList) ToGenericPolicyRuler() []GenericAccessPolicyRuler {
+func (abs* CloudflareAccessGroupList) ToGenericPolicyRuler() []GenericAccessPolicyRuler {
 	result := make([]GenericAccessPolicyRuler, 0, len(abs.Items))
 	for _, ruler := range abs.Items {
-		result = append(result, ruler.Spec)
+		result = append(result, &ruler.Spec)
 	}
 
 	return result

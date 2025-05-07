@@ -21,7 +21,7 @@ import (
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 )
 
-// nolint: gocognit,cyclop
+//nolint:gocognit,cyclop
 func ToAccessRuleParams(rules *[]CloudFlareAccessRule) []zero_trust.AccessRuleUnionParam {
 	out := []zero_trust.AccessRuleUnionParam{}
 
@@ -147,7 +147,7 @@ func ToAccessRuleParams(rules *[]CloudFlareAccessRule) []zero_trust.AccessRuleUn
 	return out
 }
 
-// nolint: gocognit,cyclop
+//nolint:gocognit,cyclop
 func toAccessRules(rules *[]CloudFlareAccessRule) []zero_trust.AccessRule {
 	out := []zero_trust.AccessRule{}
 

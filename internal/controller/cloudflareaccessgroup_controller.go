@@ -60,7 +60,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 
 	accessGroup := &v1alpha1.CloudflareAccessGroup{}
 
-	err = r.Client.Get(ctx, req.NamespacedName, accessGroup)
+	err = r.Get(ctx, req.NamespacedName, accessGroup)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -205,7 +205,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	return ctrl.Result{}, nil
 }
 
-// nolint:dupl
+//nolint:dupl
 func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, cfGroup *zero_trust.AccessGroupGetResponse, k8sGroup *v1alpha1.CloudflareAccessGroup) error {
 	if k8sGroup.Status.AccessGroupID != "" {
 		return nil

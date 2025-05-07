@@ -16,6 +16,8 @@ limitations under the License.
 
 package v1alpha1
 
+// +k8s:deepcopy-gen=false
+
 // must be implemented by [CloudflareAccessReusablePolicySpec] / [CloudflareAccessApplicationPolicySpec] / [CloudflareAccessGroupSpec]
 type GenericAccessPolicyRuler interface {
 	GetInclude() []CloudFlareAccessRule

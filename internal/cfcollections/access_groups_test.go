@@ -13,11 +13,13 @@ var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 		It("should be able able to find non-equality", func() {
 
 			rule := &zero_trust.AccessRule{}
-			rule.UnmarshalJSON([]byte(`{
+			err := rule.UnmarshalJSON([]byte(`{
 				"email": {
 					"email": "good@test.com"
 				}
 			}`))
+
+			Expect(err).NotTo(HaveOccurred())
 
 			first := zero_trust.AccessGroupGetResponse{
 				Name: "test",
@@ -41,11 +43,13 @@ var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 		})
 		It("should be able able to find equality", func() {
 			rule := &zero_trust.AccessRule{}
-			rule.UnmarshalJSON([]byte(`{
+			err := rule.UnmarshalJSON([]byte(`{
 				"email": {
 					"email": "test@test.com"
 				}
 			}`))
+
+			Expect(err).NotTo(HaveOccurred())
 
 			first := zero_trust.AccessGroupGetResponse{
 				Name: "test",
@@ -71,18 +75,22 @@ var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 		It("should be able able to find equality with an array of elements", func() {
 
 			rule1 := &zero_trust.AccessRule{}
-			rule1.UnmarshalJSON([]byte(`{
+			err := rule1.UnmarshalJSON([]byte(`{
 				"email": {
 					"email": "test@test.com"
 				}
 			}`))
 
+			Expect(err).NotTo(HaveOccurred())
+
 			rule2 := &zero_trust.AccessRule{}
-			rule2.UnmarshalJSON([]byte(`{
+			err = rule2.UnmarshalJSON([]byte(`{
 				"email": {
 					"email": "test2@test.com"
 				}
 			}`))
+
+			Expect(err).NotTo(HaveOccurred())
 
 			first := zero_trust.AccessGroupGetResponse{
 				Name: "test",

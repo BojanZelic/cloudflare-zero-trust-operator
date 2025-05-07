@@ -116,7 +116,7 @@ func (c *CloudflareAccessApplication) GetID() string {
 }
 
 func (c *CloudflareAccessApplication) UnderDeletion() bool {
-	return !c.ObjectMeta.DeletionTimestamp.IsZero()
+	return !c.DeletionTimestamp.IsZero()
 }
 
 func (c *CloudflareAccessApplication) ToCloudflare() zero_trust.AccessApplicationGetResponse {

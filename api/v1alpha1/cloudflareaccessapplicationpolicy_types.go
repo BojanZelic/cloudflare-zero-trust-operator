@@ -81,10 +81,10 @@ func (aps CloudflareAccessApplicationPolicyList) ToCloudflare() cfcollections.Ac
 	return ret
 }
 
-func (abs CloudflareAccessApplicationPolicyList) ToGenericPolicyRuler() []GenericAccessPolicyRuler {
-	result := make([]GenericAccessPolicyRuler, 0, len(abs))
-	for _, ruler := range abs {
-		result = append(result, ruler)
+func (aps CloudflareAccessApplicationPolicyList) ToGenericPolicyRuler() []GenericAccessPolicyRuler {
+	result := make([]GenericAccessPolicyRuler, 0, len(aps))
+	for _, ruler := range aps {
+		result = append(result, &ruler)
 	}
 
 	return result

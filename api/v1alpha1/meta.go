@@ -1,6 +1,6 @@
 package v1alpha1
 
-// nolint: gosec
+//nolint:gosec
 const (
 	AnnotationClientIDKey     = "cloudflare.zelic.io/client-id-key"
 	AnnotationClientSecretKey = "cloudflare.zelic.io/client-secret-key"

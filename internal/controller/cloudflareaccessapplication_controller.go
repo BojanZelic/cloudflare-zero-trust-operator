@@ -68,7 +68,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 
 	app := &v1alpha1.CloudflareAccessApplication{}
 
-	if err = r.Client.Get(ctx, req.NamespacedName, app); err != nil {
+	if err = r.Get(ctx, req.NamespacedName, app); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
@@ -112,7 +112,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		Log:    log,
 	}
 
-	if app.Status.AccessApplicationID == "" { // nolint
+	if app.Status.AccessApplicationID == "" { //nolint
 		accessApp, err := api.FindAccessApplicationByDomain(ctx, app.Spec.Domain)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "error querying application app from cloudflare")
@@ -205,7 +205,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	return ctrl.Result{}, nil
 }
 
-// nolint:dupl
+//nolint:dupl
 func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Context, cfApp *zero_trust.AccessApplicationGetResponse, k8sApp *v1alpha1.CloudflareAccessApplication) error {
 	if k8sApp.Status.AccessApplicationID != "" {
 		return nil

@@ -12,11 +12,13 @@ var _ = Describe("AccessApplicationPolicy", Label("AccessApplicationPolicy"), fu
 		It("should be able to determine equality", func() {
 
 			rule := &zero_trust.AccessRule{}
-			rule.UnmarshalJSON([]byte(`{
+			err := rule.UnmarshalJSON([]byte(`{
 				"email": {
 					"email": "test@test.com"
 				}
 			}`))
+
+			Expect(err).NotTo(HaveOccurred())
 
 			first := zero_trust.AccessApplicationPolicyListResponse{
 				Name: "test",
