@@ -35,7 +35,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 				Emails: emails,
 			}}
 
-			for i := range emails {
+			for i := range emails { //nolint:varnamelen
 				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(
 					zero_trust.AccessRule{
 						Email: zero_trust.EmailRuleEmail{

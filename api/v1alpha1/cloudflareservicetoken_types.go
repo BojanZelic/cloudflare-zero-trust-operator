@@ -127,7 +127,7 @@ func (c *CloudflareServiceToken) UnderDeletion() bool {
 	return !c.DeletionTimestamp.IsZero()
 }
 
-func (c* CloudflareServiceToken) ToExtendedToken() cftypes.ExtendedServiceToken {
+func (c *CloudflareServiceToken) ToExtendedToken() cftypes.ExtendedServiceToken {
 	return cftypes.ExtendedServiceToken{
 		ServiceToken: zero_trust.ServiceToken{
 			CreatedAt: c.Status.CreatedAt.Time,

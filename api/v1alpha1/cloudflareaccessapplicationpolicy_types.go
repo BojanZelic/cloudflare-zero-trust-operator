@@ -65,7 +65,7 @@ type CloudflareAccessApplicationPolicyList []CloudflareAccessApplicationPolicy
 func (aps CloudflareAccessApplicationPolicyList) ToCloudflare() cfcollections.AccessApplicationPolicyCollection {
 	ret := cfcollections.AccessApplicationPolicyCollection{}
 
-	for i, policy := range aps {
+	for i, policy := range aps { //nolint:varnamelen
 		transformed := zero_trust.AccessApplicationPolicyListResponse{
 			Name:       policy.Name,
 			Decision:   zero_trust.Decision(policy.Decision),

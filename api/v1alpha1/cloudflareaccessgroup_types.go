@@ -111,7 +111,7 @@ type CloudflareAccessGroupList struct {
 	Items           []CloudflareAccessGroup `json:"items"`
 }
 
-func (abs* CloudflareAccessGroupList) ToGenericPolicyRuler() []GenericAccessPolicyRuler {
+func (abs *CloudflareAccessGroupList) ToGenericPolicyRuler() []GenericAccessPolicyRuler {
 	result := make([]GenericAccessPolicyRuler, 0, len(abs.Items))
 	for _, ruler := range abs.Items {
 		result = append(result, &ruler.Spec)

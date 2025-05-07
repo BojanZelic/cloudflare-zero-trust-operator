@@ -174,7 +174,10 @@ func (a *API) AccessApplication(ctx context.Context, accessApplicationID string)
 	return cfAG, errors.Wrap(err, "unable to get access application")
 }
 
-func (a *API) CreateAccessApplication(ctx context.Context, ag *v1alpha1.CloudflareAccessApplication) (*zero_trust.AccessApplicationGetResponse, error) {
+func (a *API) CreateAccessApplication(
+	ctx context.Context,
+	ag *v1alpha1.CloudflareAccessApplication, //nolint:varnamelen
+) (*zero_trust.AccessApplicationGetResponse, error) {
 	//
 	cfAG, err := a.client.ZeroTrust.Access.Applications.New(ctx, zero_trust.AccessApplicationNewParams{
 		AccountID: cloudflare.F(a.CFAccountID),
@@ -201,7 +204,10 @@ func (a *API) CreateAccessApplication(ctx context.Context, ag *v1alpha1.Cloudfla
 	return a.AccessApplication(ctx, cfAG.ID)
 }
 
-func (a *API) UpdateAccessApplication(ctx context.Context, ag zero_trust.AccessApplicationGetResponse) (*zero_trust.AccessApplicationGetResponse, error) {
+func (a *API) UpdateAccessApplication(
+	ctx context.Context,
+	ag zero_trust.AccessApplicationGetResponse, //nolint:varnamelen
+) (*zero_trust.AccessApplicationGetResponse, error) {
 	//
 	cfAG, err := a.client.ZeroTrust.Access.Applications.Update(ctx, ag.ID, zero_trust.AccessApplicationUpdateParams{
 		AccountID: cloudflare.F(a.CFAccountID),

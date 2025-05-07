@@ -17,7 +17,10 @@ type ControllerHelper struct {
 	R client.Client
 }
 
-func (h *ControllerHelper) EnsureFinalizer(ctx context.Context, c CloudflareCR) error {
+func (h *ControllerHelper) EnsureFinalizer(
+	ctx context.Context,
+	c CloudflareCR, //nolint:varnamelen
+) error {
 	log := logger.FromContext(ctx).WithName("finalizerHelper::CloudflareAccessGroupController")
 
 	annotations := c.GetAnnotations()

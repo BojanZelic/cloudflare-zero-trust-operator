@@ -21,6 +21,13 @@ linters:
     - unconvert
     - unparam
     - unused
+    - cyclop
+    - gocognit
+    - varnamelen
+    - wrapcheck
+    - gosec
+    - maintidx
+    - errchkjson
   settings:
     revive:
       rules:

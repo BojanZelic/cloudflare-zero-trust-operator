@@ -1,16 +1,23 @@
 {
   "go.buildFlags": ["-tags=integration"],
-  "go.lintTool": "golangci-lint",
+  "go.lintTool": "golangci-lint-v2",
   "go.lintFlags": [
-    "--path-mode=abs",
-    "--fast-only"
+    "--path-mode='abs'"
+    // "--fast-only"
   ],
   "go.formatTool": "custom",
   "go.alternateTools": {
-    "customFormatter": "golangci-lint"
+    "customFormatter": "golangci-lint-v2"
   },
-  "go.formatFlags": [
-    "fmt",
-    "--stdin"
-  ]
+  "go.toolsManagement.autoUpdate": true,
+  "go.formatFlags": ["fmt", "--stdin"],
+  "editor.formatOnSave": true,
+  "go.lintOnSave": "workspace",
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "always"
+  },
+  "go.useLanguageServer": true,
+  "gopls": {
+    "ui.semanticTokens": true
+  }
 }

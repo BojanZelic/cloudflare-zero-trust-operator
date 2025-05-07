@@ -206,7 +206,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		}
 	}
 
-	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
+	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error { //nolint:varnamelen
 		secret.SetLabels(secretLabels)
 		secret.SetAnnotations(secretAnnotations)
 
@@ -228,9 +228,10 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "Failed to create/update Secret")
 	}
-	if op == controllerutil.OperationResultCreated {
+	switch op {
+	case controllerutil.OperationResultCreated:
 		log.Info("created secret")
-	} else if op == controllerutil.OperationResultUpdated {
+	case controllerutil.OperationResultUpdated:
 		log.Info("updated secret")
 	}
 
