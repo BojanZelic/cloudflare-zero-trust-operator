@@ -60,7 +60,7 @@ type CloudflareAccessApplicationSpec struct {
 	// Per Cloudflare specifications, prefer reusable policies.
 	// Order determines precidence
 	// +optional
-	LegacyPolicies CloudflareLegacyAccessPolicyList `json:"legacyPolicies,omitempty"`
+	Policies CloudflareAccessPolicyList `json:"policies,omitempty"`
 
 	// SessionDuration is the length of the session duration.
 	// +optional
@@ -82,7 +82,7 @@ type CloudflareAccessApplicationSpec struct {
 	LogoURL string `json:"logoUrl,omitempty"`
 }
 
-type CloudflareLegacyAccessPolicy struct {
+type CloudflareAccessPolicy struct {
 	// Name of the Cloudflare Access Policy
 	Name string `json:"name"`
 
@@ -106,21 +106,21 @@ type CloudflareLegacyAccessPolicy struct {
 	// ApprovalGroups               []cloudflare.AccessApprovalGroup `json:"approval_groups"`
 }
 
-func (c CloudflareLegacyAccessPolicy) GetInclude() []CloudFlareAccessRule {
+func (c CloudflareAccessPolicy) GetInclude() []CloudFlareAccessRule {
 	return c.Include
 }
 
-func (c CloudflareLegacyAccessPolicy) GetExclude() []CloudFlareAccessRule {
+func (c CloudflareAccessPolicy) GetExclude() []CloudFlareAccessRule {
 	return c.Exclude
 }
 
-func (c CloudflareLegacyAccessPolicy) GetRequire() []CloudFlareAccessRule {
+func (c CloudflareAccessPolicy) GetRequire() []CloudFlareAccessRule {
 	return c.Require
 }
 
-type CloudflareLegacyAccessPolicyList []CloudflareLegacyAccessPolicy
+type CloudflareAccessPolicyList []CloudflareAccessPolicy
 
-func (aps CloudflareLegacyAccessPolicyList) ToCloudflare() cfcollections.LegacyAccessPolicyCollection {
+func (aps CloudflareAccessPolicyList) ToCloudflare() cfcollections.LegacyAccessPolicyCollection {
 	ret := cfcollections.LegacyAccessPolicyCollection{}
 
 	for i, policy := range aps {

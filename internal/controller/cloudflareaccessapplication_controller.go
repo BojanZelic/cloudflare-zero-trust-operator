@@ -170,7 +170,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, errors.Wrap(err, "unable get legacy access policies")
 	}
 
-	if err := apService.PopulateLegacyAccessPolicyReferences(ctx, services.ToLegacyAccessPolicyList(app.Spec.LegacyPolicies)); err != nil {
+	if err := apService.PopulateLegacyAccessPolicyReferences(ctx, services.ToLegacyAccessPolicyList(app.Spec.Policies)); err != nil {
 		_, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
 			meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusDegrated, Status: metav1.ConditionFalse, Reason: "InvalidReference", Message: err.Error()})
 
@@ -186,7 +186,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		// don't requeue
 		return ctrl.Result{}, nil
 	}
-	expectedPolicies := app.Spec.LegacyPolicies.ToCloudflare()
+	expectedPolicies := app.Spec.Policies.ToCloudflare()
 	expectedPolicies.SortByPrecedence()
 
 	err = r.ReconcileLegacyPolicies(ctx, api, app, currentPolicies, expectedPolicies)

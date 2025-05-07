@@ -74,7 +74,7 @@ spec:
                 description: Enables the HttpOnly cookie attribute, which increases
                   security against XSS attacks.
                 type: boolean
-              legacyPolicies:
+              policies:
                 description: |-
                   Policies is the ordered set of policies (specific to a single application) that should be applied.
                   Per Cloudflare specifications, prefer reusable policies.
