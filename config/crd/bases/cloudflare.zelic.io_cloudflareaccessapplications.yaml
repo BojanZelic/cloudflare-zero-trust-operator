@@ -74,6 +74,13 @@ spec:
                 description: Enables the HttpOnly cookie attribute, which increases
                   security against XSS attacks.
                 type: boolean
+              logoUrl:
+                description: The image URL for the logo shown in the App Launcher
+                  dashboard
+                type: string
+              name:
+                description: Name of the Cloudflare Access Application
+                type: string
               policies:
                 description: |-
                   Policies is the ordered set of policies (specific to a single application) that should be applied.
@@ -612,13 +619,6 @@ spec:
                   - name
                   type: object
                 type: array
-              logoUrl:
-                description: The image URL for the logo shown in the App Launcher
-                  dashboard
-                type: string
-              name:
-                description: Name of the Cloudflare Access Application
-                type: string
               sessionDuration:
                 default: 24h
                 description: SessionDuration is the length of the session duration.
