@@ -19,7 +19,7 @@ package controller
 import (
 	"context"
 
-	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	v4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
@@ -58,7 +58,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 
 	log := logger.FromContext(ctx).WithName("CloudflareAccessGroupController")
 
-	accessGroup := &v1alpha1.CloudflareAccessGroup{}
+	accessGroup := &v4alpha1.CloudflareAccessGroup{}
 
 	err = r.Get(ctx, req.NamespacedName, accessGroup)
 	if err != nil {
@@ -90,12 +90,14 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 
 	_, err = controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
 		if len(accessGroup.Status.Conditions) == 0 {
-			meta.SetStatusCondition(&accessGroup.Status.Conditions, metav1.Condition{
-				Type:    statusAvailable,
-				Status:  metav1.ConditionUnknown,
-				Reason:  "Reconciling",
-				Message: "AccessGroup is reconciling",
-			})
+			meta.SetStatusCondition(&accessGroup.Status.Conditions,
+				metav1.Condition{
+					Type:    statusAvailable,
+					Status:  metav1.ConditionUnknown,
+					Reason:  "Reconciling",
+					Message: "AccessGroup is reconciling",
+				},
+			)
 		}
 
 		return nil
@@ -132,10 +134,9 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		Log:    log,
 	}
 
-	if err := apService.PopulateWithCloudflareUUIDs(ctx, []v1alpha1.GenericAccessPolicyRuler{accessGroup.Spec}); err != nil {
+	if err := apService.PopulateWithCloudflareUUIDs(ctx, []v4alpha1.GenericAccessPolicyRuler{accessGroup.Spec}); err != nil {
 		_, err = controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
-			meta.SetStatusCondition(
-				&accessGroup.Status.Conditions,
+			meta.SetStatusCondition(&accessGroup.Status.Conditions,
 				metav1.Condition{
 					Type:    statusDegrated,
 					Status:  metav1.ConditionFalse,
@@ -161,9 +162,9 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		//nolint:varnamelen
 		ag, err := api.CreateAccessGroup(ctx,
 			accessGroup.Name,
-			v1alpha1.ToAccessRuleParams(&accessGroup.Spec.Include),
-			v1alpha1.ToAccessRuleParams(&accessGroup.Spec.Exclude),
-			v1alpha1.ToAccessRuleParams(&accessGroup.Spec.Require),
+			v4alpha1.ToAccessRuleParams(&accessGroup.Spec.Include),
+			v4alpha1.ToAccessRuleParams(&accessGroup.Spec.Exclude),
+			v4alpha1.ToAccessRuleParams(&accessGroup.Spec.Require),
 		)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
@@ -176,14 +177,14 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	castedAccessGroup := accessGroup.ToCloudflare()
-	if !cfcollections.AccessGroupEqual(*existingCfAG, castedAccessGroup) {
+	if !cfcollections.AreAccessGroupsEquivalent(*existingCfAG, castedAccessGroup) {
 		log.Info(newCfAG.Name + " has changed, updating...")
 
 		err := api.UpdateAccessGroup(ctx, existingCfAG.ID,
 			accessGroup.Name,
-			v1alpha1.ToAccessRuleParams(&accessGroup.Spec.Include),
-			v1alpha1.ToAccessRuleParams(&accessGroup.Spec.Exclude),
-			v1alpha1.ToAccessRuleParams(&accessGroup.Spec.Require),
+			v4alpha1.ToAccessRuleParams(&accessGroup.Spec.Include),
+			v4alpha1.ToAccessRuleParams(&accessGroup.Spec.Exclude),
+			v4alpha1.ToAccessRuleParams(&accessGroup.Spec.Require),
 		)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to update access groups")
@@ -191,7 +192,14 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	_, err = controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
-		meta.SetStatusCondition(&accessGroup.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionTrue, Reason: "Reconciling", Message: "AccessGroup Reconciled Successfully"})
+		meta.SetStatusCondition(&accessGroup.Status.Conditions,
+			metav1.Condition{
+				Type:    statusAvailable,
+				Status:  metav1.ConditionTrue,
+				Reason:  "Reconciling",
+				Message: "AccessGroup Reconciled Successfully",
+			},
+		)
 
 		return nil
 	})
@@ -206,7 +214,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 }
 
 //nolint:dupl
-func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, cfGroup *zero_trust.AccessGroupGetResponse, k8sGroup *v1alpha1.CloudflareAccessGroup) error {
+func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, cfGroup *zero_trust.AccessGroupGetResponse, k8sGroup *v4alpha1.CloudflareAccessGroup) error {
 	if k8sGroup.Status.AccessGroupID != "" {
 		return nil
 	}
@@ -240,6 +248,6 @@ func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, c
 func (r *CloudflareAccessGroupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	//nolint:wrapcheck
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.CloudflareAccessGroup{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		For(&v4alpha1.CloudflareAccessGroup{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)
 }

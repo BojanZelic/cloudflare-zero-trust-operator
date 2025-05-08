@@ -14,10 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v4alpha1
 
 import (
-	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -55,11 +54,10 @@ type CloudflareAccessApplicationSpec struct {
 	// +kubebuilder:default=false
 	AutoRedirectToIdentity *bool `json:"autoRedirectToIdentity,omitempty"`
 
-	// Policies is the ordered set of policies (application specific only, not shareable) that should be applied.
-	// Per Cloudflare specifications, prefer using [ReusablePolicies].
+	// PolicyKeys is an ordered set of [CloudflareAccessReusablePolicySpec] CRDs names, which should be applied to this app.
 	// Order determines precedence
 	// +optional
-	Policies CloudflareAccessApplicationPolicyList `json:"policies,omitempty"`
+	PolicyKeys []string `json:"policyKeys,omitempty"`
 
 	// SessionDuration is the length of the session duration.
 	// +optional
@@ -87,8 +85,8 @@ type CloudflareAccessApplicationStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	AccessApplicationID string      `json:"accessApplicationId,omitempty"`
-	CreatedAt           metav1.Time `json:"createdAt,omitempty"`
-	UpdatedAt           metav1.Time `json:"updatedAt,omitempty"`
+	CreatedAt           metav1.Time `json:"createdAt"`
+	UpdatedAt           metav1.Time `json:"updatedAt"`
 
 	// Conditions store the status conditions of the CloudflareAccessApplication
 	// +operator-sdk:csv:customresourcedefinitions:type=status
@@ -101,10 +99,10 @@ type CloudflareAccessApplicationStatus struct {
 // CloudflareAccessApplication is the Schema for the cloudflareaccessapplications API.
 type CloudflareAccessApplication struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
-	Spec   CloudflareAccessApplicationSpec   `json:"spec,omitempty"`
-	Status CloudflareAccessApplicationStatus `json:"status,omitempty"`
+	Spec   CloudflareAccessApplicationSpec   `json:"spec"`
+	Status CloudflareAccessApplicationStatus `json:"status"`
 }
 
 func (c *CloudflareAccessApplication) GetType() string {
@@ -119,37 +117,12 @@ func (c *CloudflareAccessApplication) UnderDeletion() bool {
 	return !c.DeletionTimestamp.IsZero()
 }
 
-func (c *CloudflareAccessApplication) ToCloudflare() zero_trust.AccessApplicationGetResponse {
-	allowedIdps := []string{}
-	if c.Spec.AllowedIdps != nil {
-		allowedIdps = c.Spec.AllowedIdps
-	}
-
-	app := zero_trust.AccessApplicationGetResponse{
-		Name:                    c.Spec.Name,
-		ID:                      c.Status.AccessApplicationID,
-		CreatedAt:               c.Status.CreatedAt.Time,
-		UpdatedAt:               c.Status.UpdatedAt.Time,
-		Domain:                  c.Spec.Domain,
-		Type:                    c.Spec.Type,
-		AppLauncherVisible:      *c.Spec.AppLauncherVisible,
-		AllowedIdPs:             allowedIdps,
-		AutoRedirectToIdentity:  *c.Spec.AutoRedirectToIdentity,
-		SessionDuration:         c.Spec.SessionDuration,
-		EnableBindingCookie:     *c.Spec.EnableBindingCookie,
-		HTTPOnlyCookieAttribute: *c.Spec.HTTPOnlyCookieAttribute,
-		LogoURL:                 c.Spec.LogoURL,
-	}
-
-	return app
-}
-
 // +kubebuilder:object:root=true
 
 // CloudflareAccessApplicationList contains a list of CloudflareAccessApplication.
 type CloudflareAccessApplicationList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	Items           []CloudflareAccessApplication `json:"items"`
 }
 

@@ -18,7 +18,7 @@ spec:
     singular: cloudflareaccessgroup
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - name: v4alpha1
     schema:
       openAPIV3Schema:
         description: CloudflareAccessGroup is the Schema for the cloudflareaccessgroups

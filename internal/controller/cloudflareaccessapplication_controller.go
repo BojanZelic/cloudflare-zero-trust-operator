@@ -19,7 +19,7 @@ package controller
 import (
 	"context"
 
-	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	v4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
@@ -60,109 +60,149 @@ const (
 
 //nolint:cyclop,gocognit
 func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var err error
-	var existingaccessApp *zero_trust.AccessApplicationGetResponse
-	var api *cfapi.API
-
 	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::Reconcile")
+	app := &v4alpha1.CloudflareAccessApplication{}
+	var err error
 
-	app := &v1alpha1.CloudflareAccessApplication{}
+	//
+	// Try to get AccessApplication CRD Manifest
+	//
 
+	//
 	if err = r.Get(ctx, req.NamespacedName, app); err != nil {
+		// Not found ? might have been deleted; skip Reconciliation
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
 
+		// Else, return with failure
 		log.Error(err, "Failed to get CloudflareAccessApplication")
-
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessApplication")
 	}
 
+	//
+	// Setup access to CF API
+	//
+
+	// Gather credentials to connect to Cloudflare's API
 	cfConfig := config.ParseCloudflareConfig(app)
 	validConfig, err := cfConfig.IsValid()
 	if !validConfig {
 		return ctrl.Result{}, errors.Wrap(err, "invalid config")
 	}
 
-	api = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
+	// Initialize Cloudflare's API wrapper
+	api := cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
 
+	//
+	// Proceed marked-as pending operations of manifest (if any)
+	//
+
+	// Attempt pending deletions on CRD Manifest
 	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, app)
 	if !continueReconcilliation || err != nil {
 		if err != nil {
 			log.Error(err, "unable to reconcile deletion")
 		}
-
 		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion")
 	}
 
+	//
+	// May mark manifest status state
+	//
+
+	// Try to setup "Conditions" field on CRD Manifest associated status
 	_, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
-		if len(app.Status.Conditions) == 0 {
-			meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "CloudflareAccessApplication is reconciling"})
+		// if already has "Conditions", nothing to do
+		if len(app.Status.Conditions) > 0 {
+			return nil
 		}
 
+		// else, define it as reconciling
+		meta.SetStatusCondition(&app.Status.Conditions,
+			metav1.Condition{
+				Type:    statusAvailable,
+				Status:  metav1.ConditionUnknown,
+				Reason:  "Reconciling",
+				Message: "CloudflareAccessApplication is reconciling",
+			},
+		)
 		return nil
 	})
-
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
 	}
 
-	apService := &services.AccessApplicationPolicyRefMatcherService{
-		Client: r.Client,
-		Log:    log,
-	}
+	var cfAccessApp *zero_trust.AccessApplicationGetResponse
+
+	//
+	// Find CloudFlare AccessApplication UUID associated to this manifest (if missing)
+	//
 
 	if app.Status.AccessApplicationID == "" { //nolint
-		accessApp, err := api.FindAccessApplicationByDomain(ctx, app.Spec.Domain)
-		if err != nil {
+		//
+		cfAccessApp, err = api.FindAccessApplicationByDomain(ctx, app.Spec.Domain)
+		if cfAccessApp == nil || err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "error querying application app from cloudflare")
 		}
 
-		err = r.ReconcileStatus(ctx, accessApp, app)
-		if err != nil {
+		//
+		if err = r.ReconcileStatus(ctx, cfAccessApp, app); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "issue updating status")
 		}
-	} else {
-		accessApp, err := api.AccessApplication(ctx, app.Status.AccessApplicationID)
+	}
+
+	//
+	// Try to get existing application from CloudFlare API (if existing)
+	//
+
+	if cfAccessApp == nil {
+		cfAccessApp, err = api.AccessApplication(ctx, app.Status.AccessApplicationID)
 		if err != nil {
 			var cfErr *cloudflare.Error
-			if errors.As(err, &cfErr) && cfErr.StatusCode == 404 {
-				log.Info("access application not found - recreating...", "accessApplicationID", app.Status.AccessApplicationID)
-				app.Status.AccessApplicationID = ""
-			} else {
+			isNotFound := errors.As(err, &cfErr) && cfErr.StatusCode == 404
+
+			// do not allow to continue if anything other than not found
+			if !isNotFound {
 				return ctrl.Result{}, errors.Wrap(err, "unable to get access application")
 			}
-		} else {
-			existingaccessApp = accessApp
+
+			// well, Application ID we had do not exist anymore; lets recreate the app in CF
+			log.Info("access application ID linked to manifest not found - recreating remote resource...", "accessApplicationID", app.Status.AccessApplicationID)
+			app.Status.AccessApplicationID = ""
 		}
 	}
 
-	if existingaccessApp == nil {
+	//
+	// May create / recreate / update Access Application on CloudFlare API
+	//
+
+	if cfAccessApp == nil {
 		log.Info("app is missing - creating...", "name", app.Spec.Name, "domain", app.Spec.Domain)
-		accessapp, err := api.CreateAccessApplication(ctx, app)
-		existingaccessApp = accessapp
+		cfAccessApp, err = api.CreateAccessApplication(ctx, app)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
+			return ctrl.Result{}, errors.Wrap(err, "unable to create access application")
 		}
 
-		if err = r.ReconcileStatus(ctx, accessapp, app); err != nil {
+		// update status
+		if err = r.ReconcileStatus(ctx, cfAccessApp, app); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "issue updating status")
 		}
-	}
-
-	newApp := app.ToCloudflare()
-	if !cfcollections.AccessAppEqual(*existingaccessApp, newApp) {
+	} else if !cfcollections.AreAccessApplicationsEquivalent(cfAccessApp, app) {
 		log.Info("app has changed - updating...", "name", app.Spec.Name, "domain", app.Spec.Domain)
-		accessapp, err := api.UpdateAccessApplication(ctx, newApp)
+		cfAccessApp, err = api.UpdateAccessApplication(ctx, app)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to update access group")
 		}
 
-		err = r.ReconcileStatus(ctx, accessapp, app)
-		if err != nil {
+		if err = r.ReconcileStatus(ctx, cfAccessApp, app); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "issue updating status")
 		}
 	}
+
+	//
+	// Now, lets have a look at the associated policies
+	//
 
 	currentApplicationPolicies, err := api.AccessApplicationPolicies(ctx, app.Status.AccessApplicationID)
 	currentApplicationPolicies.SortByPrecedence()
@@ -170,9 +210,20 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, errors.Wrap(err, "unable get  access policies")
 	}
 
+	apService := &services.AccessApplicationPolicyRefMatcherService{
+		Client: r.Client,
+		Log:    log,
+	}
 	if err := apService.PopulateWithCloudflareUUIDs(ctx, app.Spec.Policies.ToGenericPolicyRuler()); err != nil {
 		_, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
-			meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusDegrated, Status: metav1.ConditionFalse, Reason: "InvalidReference", Message: err.Error()})
+			meta.SetStatusCondition(&app.Status.Conditions,
+				metav1.Condition{
+					Type:    statusDegrated,
+					Status:  metav1.ConditionFalse,
+					Reason:  "InvalidReference",
+					Message: err.Error(),
+				},
+			)
 
 			return nil
 		})
@@ -195,7 +246,14 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	}
 
 	if _, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
-		meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionTrue, Reason: "Reconciling", Message: "App Reconciled Successfully"})
+		meta.SetStatusCondition(&app.Status.Conditions,
+			metav1.Condition{
+				Type:    statusAvailable,
+				Status:  metav1.ConditionTrue,
+				Reason:  "Reconciling",
+				Message: "App Reconciled Successfully",
+			},
+		)
 
 		return nil
 	}); err != nil {
@@ -206,38 +264,28 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 }
 
 //nolint:dupl
-func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Context, cfApp *zero_trust.AccessApplicationGetResponse, k8sApp *v1alpha1.CloudflareAccessApplication) error {
+func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Context, cfApp *zero_trust.AccessApplicationGetResponse, k8sApp *v4alpha1.CloudflareAccessApplication) error {
 	if k8sApp.Status.AccessApplicationID != "" {
 		return nil
 	}
-
 	if cfApp == nil {
 		return nil
 	}
 
-	app := k8sApp.DeepCopy()
+	k8sApp.Status.AccessApplicationID = cfApp.ID
+	k8sApp.Status.CreatedAt = metav1.NewTime(cfApp.CreatedAt)
+	k8sApp.Status.UpdatedAt = metav1.NewTime(cfApp.UpdatedAt)
 
-	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
-		app.Status.AccessApplicationID = cfApp.ID
-		app.Status.CreatedAt = metav1.NewTime(cfApp.CreatedAt)
-		app.Status.UpdatedAt = metav1.NewTime(cfApp.UpdatedAt)
-
-		return nil
-	}); err != nil {
+	if err := r.Client.Status().Update(ctx, k8sApp); err != nil {
 		return errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
 	}
-
-	// CreateOrPatch re-fetches the object from k8s which removes any changes we've made that override them
-	// so thats why we re-apply these settings again on the original object;
-	k8sApp.Status = app.Status
-
 	return nil
 }
 
 //nolint:gocognit,cyclop
 func (r *CloudflareAccessApplicationReconciler) ReconcileApplicationPolicies(
 	ctx context.Context, api *cfapi.API,
-	app *v1alpha1.CloudflareAccessApplication,
+	app *v4alpha1.CloudflareAccessApplication,
 	current, expected cfcollections.AccessApplicationPolicyCollection,
 ) error {
 	log := logger.FromContext(ctx)
@@ -254,7 +302,7 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileApplicationPolicies(
 			k8sPolicy = &expected[i]
 		}
 
-		if !cfcollections.AccessApplicationPoliciesEqual(cfPolicy, k8sPolicy) {
+		if !cfcollections.AreK8SAccessPoliciesPresent(cfPolicy, k8sPolicy) {
 			if cfPolicy == nil && k8sPolicy != nil {
 				action = "create"
 				log.Info("accesspolicy is missing - creating...", "policyName", k8sPolicy.Name, "domain", app.Spec.Domain)
@@ -285,6 +333,6 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileApplicationPolicies(
 func (r *CloudflareAccessApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	//nolint:wrapcheck
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.CloudflareAccessApplication{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		For(&v4alpha1.CloudflareAccessApplication{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)
 }

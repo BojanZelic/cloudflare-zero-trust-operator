@@ -14,7 +14,7 @@ var _ = Describe("AccessApp", Label("AccessApp"), func() {
 			first := zero_trust.AccessApplicationGetResponse{}
 			second := zero_trust.AccessApplicationGetResponse{}
 
-			Expect(cfcollections.AccessAppEqual(first, second)).To(BeTrue())
+			Expect(cfcollections.AreAccessApplicationsEquivalent(first, second)).To(BeTrue())
 		})
 
 		It("Differences should no be equal", func() {
@@ -25,7 +25,7 @@ var _ = Describe("AccessApp", Label("AccessApp"), func() {
 				Name: "second",
 			}
 
-			Expect(cfcollections.AccessAppEqual(first, second)).To(BeFalse())
+			Expect(cfcollections.AreAccessApplicationsEquivalent(first, second)).To(BeFalse())
 		})
 	})
 })

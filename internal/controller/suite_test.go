@@ -40,7 +40,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	cloudflarev1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	cloudflarev4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
@@ -85,7 +85,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = cloudflarev1alpha1.AddToScheme(scheme.Scheme)
+	err = cloudflarev4alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
@@ -145,21 +145,21 @@ var _ = BeforeSuite(func() {
 
 func NewTestLogger(info logr.RuntimeInfo) *TestLogger {
 	return &TestLogger{
-		Output: []map[string]interface{}{},
+		Output: []map[string]any{},
 		r:      info,
 		mutex:  sync.RWMutex{},
 	}
 }
 
 type TestLogger struct {
-	Output []map[string]interface{}
+	Output []map[string]any
 	r      logr.RuntimeInfo
 	mutex  sync.RWMutex
 }
 
-func (t *TestLogger) doLog(level int, msg string, keysAndValues ...interface{}) {
+func (t *TestLogger) doLog(level int, msg string, keysAndValues ...any) {
 	t.mutex.Lock()
-	m := map[string]interface{}{}
+	m := map[string]any{}
 	m["lvl"] = level
 	m["keys"] = keysAndValues
 	m["msg"] = msg
@@ -170,20 +170,20 @@ func (t *TestLogger) doLog(level int, msg string, keysAndValues ...interface{}) 
 
 func (t *TestLogger) Clear() {
 	t.mutex.Lock()
-	t.Output = []map[string]interface{}{}
+	t.Output = []map[string]any{}
 	t.mutex.Unlock()
 }
 
 func (t *TestLogger) Init(info logr.RuntimeInfo) { t.r = info }
 func (t *TestLogger) Enabled(level int) bool     { return true }
-func (t *TestLogger) Info(level int, msg string, keysAndValues ...interface{}) {
+func (t *TestLogger) Info(level int, msg string, keysAndValues ...any) {
 	t.doLog(level, msg, keysAndValues...)
 }
-func (t *TestLogger) Error(err error, msg string, keysAndValues ...interface{}) {
+func (t *TestLogger) Error(err error, msg string, keysAndValues ...any) {
 	t.doLog(1, msg, append(keysAndValues, err)...)
 }
-func (t *TestLogger) WithValues(keysAndValues ...interface{}) logr.LogSink { return t }
-func (t *TestLogger) WithName(name string) logr.LogSink                    { return t }
+func (t *TestLogger) WithValues(keysAndValues ...any) logr.LogSink { return t }
+func (t *TestLogger) WithName(name string) logr.LogSink            { return t }
 func (t *TestLogger) GetErrorCount() int {
 	count := 0
 	for _, out := range t.Output {

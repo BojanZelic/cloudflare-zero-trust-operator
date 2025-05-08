@@ -39,7 +39,7 @@ var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 				},
 			}
 
-			Expect(cfcollections.AccessGroupEqual(first, second)).To(BeFalse())
+			Expect(cfcollections.AreAccessGroupsEquivalent(first, second)).To(BeFalse())
 		})
 		It("should be able able to find equality", func() {
 			rule := &zero_trust.AccessRule{}
@@ -69,7 +69,7 @@ var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 				},
 			}
 
-			Expect(cfcollections.AccessGroupEqual(first, second)).To(BeTrue())
+			Expect(cfcollections.AreAccessGroupsEquivalent(first, second)).To(BeTrue())
 		})
 
 		It("should be able able to find equality with an array of elements", func() {
@@ -116,7 +116,7 @@ var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 				},
 			}
 
-			Expect(cfcollections.AccessGroupEqual(first, second)).To(BeTrue())
+			Expect(cfcollections.AreAccessGroupsEquivalent(first, second)).To(BeTrue())
 		})
 	})
 	Context("AccessGroupCollection test", func() {

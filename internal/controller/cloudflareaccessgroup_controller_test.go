@@ -6,7 +6,7 @@ import (
 	"context"
 	"time"
 
-	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	v4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	. "github.com/onsi/ginkgo/v2"
@@ -78,14 +78,14 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Creating the same custom resource for the Kind CloudflareAccessGroup")
-			group := &v1alpha1.CloudflareAccessGroup{
+			group := &v4alpha1.CloudflareAccessGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ag.Name,
 					Namespace: namespace.Name,
 				},
-				Spec: v1alpha1.CloudflareAccessGroupSpec{
+				Spec: v4alpha1.CloudflareAccessGroupSpec{
 					Name: ag.Name,
-					Include: []v1alpha1.CloudFlareAccessRule{
+					Include: []v4alpha1.CloudFlareAccessRule{
 						{
 							Emails: []string{"test2@cf-operator-tests.uk"},
 						},
@@ -96,10 +96,10 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			err = k8sClient.Create(ctx, group)
 			Expect(err).To(Not(HaveOccurred()))
 
-			found := &v1alpha1.CloudflareAccessGroup{}
+			found := &v4alpha1.CloudflareAccessGroup{}
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func() string {
-				found = &v1alpha1.CloudflareAccessGroup{}
+				found = &v4alpha1.CloudflareAccessGroup{}
 				k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: group.Namespace}, found)
 				return found.Status.AccessGroupID
 			}, time.Second*10, time.Second).Should(Equal(ag.ID))
@@ -107,14 +107,14 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 
 		It("should successfully reconcile a custom resource for CloudflareAccessGroup", func() {
 			By("Creating the custom resource for the Kind CloudflareAccessGroup")
-			group := &v1alpha1.CloudflareAccessGroup{
+			group := &v4alpha1.CloudflareAccessGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      cloudflareName,
 					Namespace: namespace.Name,
 				},
-				Spec: v1alpha1.CloudflareAccessGroupSpec{
+				Spec: v4alpha1.CloudflareAccessGroupSpec{
 					Name: "integration accessgroup test",
-					Include: []v1alpha1.CloudFlareAccessRule{
+					Include: []v4alpha1.CloudFlareAccessRule{
 						{
 							Emails: []string{"test@cf-operator-tests.uk"},
 						},
@@ -127,14 +127,14 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 
 			By("Checking if the custom resource was successfully created")
 			Eventually(func() error {
-				found := &v1alpha1.CloudflareAccessGroup{}
+				found := &v4alpha1.CloudflareAccessGroup{}
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}, time.Minute, time.Second).Should(Succeed())
 
-			found := &v1alpha1.CloudflareAccessGroup{}
+			found := &v4alpha1.CloudflareAccessGroup{}
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func() string {
-				found = &v1alpha1.CloudflareAccessGroup{}
+				found = &v4alpha1.CloudflareAccessGroup{}
 				k8sClient.Get(ctx, typeNamespaceName, found)
 				return found.Status.AccessGroupID
 			}, time.Minute, time.Second).Should(Not(BeEmpty()))
@@ -162,12 +162,12 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			typeNamespaceName := types.NamespacedName{Name: "cloudflare-app-three", Namespace: cloudflareName}
 
 			By("pre-create a service token")
-			token := &v1alpha1.CloudflareServiceToken{
+			token := &v4alpha1.CloudflareServiceToken{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      typeNamespaceName.Name,
 					Namespace: typeNamespaceName.Namespace,
 				},
-				Spec: v1alpha1.CloudflareServiceTokenSpec{
+				Spec: v4alpha1.CloudflareServiceTokenSpec{
 					Name: "reference test group",
 				},
 			}
@@ -181,18 +181,18 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 				g.Expect(token.Status.ServiceTokenID).ToNot(BeEmpty())
 			}, time.Second*10, time.Second).Should(Succeed())
 
-			group := &v1alpha1.CloudflareAccessGroup{
+			group := &v4alpha1.CloudflareAccessGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      typeNamespaceName.Name,
 					Namespace: typeNamespaceName.Namespace,
 				},
-				Spec: v1alpha1.CloudflareAccessGroupSpec{
+				Spec: v4alpha1.CloudflareAccessGroupSpec{
 					Name: "reference test group",
-					Include: []v1alpha1.CloudFlareAccessRule{
+					Include: []v4alpha1.CloudFlareAccessRule{
 						{
-							ServiceTokens: []v1alpha1.ServiceToken{
+							ServiceTokens: []v4alpha1.ServiceToken{
 								{
-									ValueFrom: &v1alpha1.ServiceTokenReference{
+									ValueFrom: &v4alpha1.ServiceTokenReference{
 										Name:      token.Name,
 										Namespace: token.Namespace,
 									},

@@ -14,7 +14,7 @@ Cloudflare Zero-Trust operator allow you to manage your zero-trust configuration
 
 Cloudflare Access Group
 ```yaml
-apiVersion: cloudflare.zelic.io/v1alpha1
+apiVersion: cloudflare.zelic.io/v4alpha1
 kind: CloudflareAccessGroup
 metadata:
   name: accessgroup-example
@@ -32,7 +32,7 @@ spec:
 ```
 
 ```yaml
-apiVersion: cloudflare.zelic.io/v1alpha1
+apiVersion: cloudflare.zelic.io/v4alpha1
 kind: CloudflareAccessApplication
 metadata:
   name: domain-example
@@ -65,7 +65,7 @@ Currently in Project scope
 ## Complete Example
 
 ```yaml
-apiVersion: cloudflare.zelic.io/v1alpha1
+apiVersion: cloudflare.zelic.io/v4alpha1
 kind: CloudflareAccessApplication
 metadata:
   name: domain-example

@@ -6,7 +6,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	. "github.com/onsi/ginkgo/v2"
@@ -63,16 +63,16 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			typeNamespaceName := types.NamespacedName{Name: "token1", Namespace: nsName}
 
 			By("Creating the custom resource for the Kind CloudflareServiceToken")
-			var serviceToken *v1alpha1.CloudflareServiceToken
+			var serviceToken *v4alpha1.CloudflareServiceToken
 
-			serviceToken = &v1alpha1.CloudflareServiceToken{
+			serviceToken = &v4alpha1.CloudflareServiceToken{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      typeNamespaceName.Name,
 					Namespace: typeNamespaceName.Namespace,
 				},
-				Spec: v1alpha1.CloudflareServiceTokenSpec{
+				Spec: v4alpha1.CloudflareServiceTokenSpec{
 					Name: "servicetoken v2 test",
-					Template: v1alpha1.SecretTemplateSpec{
+					Template: v4alpha1.SecretTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "secret-location",
 						},
@@ -112,8 +112,8 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 					if token.Name == serviceToken.Spec.Name {
 						tokenfound = true
 
-						g.Expect(token.ID).To(Equal(string(sec.Data[sec.Annotations[v1alpha1.AnnotationTokenIDKey]])))
-						g.Expect(token.ClientID).To(Equal(string(sec.Data[sec.Annotations[v1alpha1.AnnotationClientIDKey]])))
+						g.Expect(token.ID).To(Equal(string(sec.Data[sec.Annotations[v4alpha1.AnnotationTokenIDKey]])))
+						g.Expect(token.ClientID).To(Equal(string(sec.Data[sec.Annotations[v4alpha1.AnnotationClientIDKey]])))
 					}
 				}
 				g.Expect(tokenfound).To(BeTrue(), "token not found")
@@ -125,17 +125,17 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			typeNamespaceName := types.NamespacedName{Name: "token2", Namespace: nsName}
 
 			By("Creating the custom resource for the Kind CloudflareServiceToken")
-			var group *v1alpha1.CloudflareServiceToken
+			var group *v4alpha1.CloudflareServiceToken
 
-			token := &v1alpha1.CloudflareServiceToken{}
+			token := &v4alpha1.CloudflareServiceToken{}
 			err := k8sClient.Get(ctx, typeNamespaceName, token)
 			if err != nil && errors.IsNotFound(err) {
-				group = &v1alpha1.CloudflareServiceToken{
+				group = &v4alpha1.CloudflareServiceToken{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      typeNamespaceName.Name,
 						Namespace: typeNamespaceName.Namespace,
 					},
-					Spec: v1alpha1.CloudflareServiceTokenSpec{
+					Spec: v4alpha1.CloudflareServiceTokenSpec{
 						Name: "integration servicetoken test",
 					},
 				}
@@ -145,7 +145,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			}
 
 			By("Checking if the custom resource was successfully created")
-			found := &v1alpha1.CloudflareServiceToken{}
+			found := &v4alpha1.CloudflareServiceToken{}
 			Eventually(func() error {
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}, time.Second*10, time.Second).Should(Succeed())
@@ -182,8 +182,8 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 				if token.Name == found.Spec.Name {
 					secretFound = true
 
-					Expect(token.ID).To(Equal(string(sec.Data[sec.Annotations[v1alpha1.AnnotationTokenIDKey]])))
-					Expect(token.ClientID).To(Equal(string(sec.Data[sec.Annotations[v1alpha1.AnnotationClientIDKey]])))
+					Expect(token.ID).To(Equal(string(sec.Data[sec.Annotations[v4alpha1.AnnotationTokenIDKey]])))
+					Expect(token.ClientID).To(Equal(string(sec.Data[sec.Annotations[v4alpha1.AnnotationClientIDKey]])))
 				}
 			}
 			//we should only have 1 Token created
@@ -245,17 +245,17 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			typeNamespaceName := types.NamespacedName{Name: "token4", Namespace: nsName}
 
 			By("Creating the custom resource for the Kind CloudflareServiceToken")
-			//var token *v1alpha1.CloudflareServiceToken
-			token := &v1alpha1.CloudflareServiceToken{}
+			//var token *v4alpha1.CloudflareServiceToken
+			token := &v4alpha1.CloudflareServiceToken{}
 
 			err := k8sClient.Get(ctx, typeNamespaceName, token)
 			if err != nil && errors.IsNotFound(err) {
-				token = &v1alpha1.CloudflareServiceToken{
+				token = &v4alpha1.CloudflareServiceToken{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      typeNamespaceName.Name,
 						Namespace: typeNamespaceName.Namespace,
 					},
-					Spec: v1alpha1.CloudflareServiceTokenSpec{
+					Spec: v4alpha1.CloudflareServiceTokenSpec{
 						Name: "integration servicetoken test4",
 					},
 				}
@@ -286,17 +286,17 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			typeNamespaceName := types.NamespacedName{Name: "token3", Namespace: nsName}
 
 			By("Creating the custom resource for the Kind CloudflareServiceToken")
-			//var token *v1alpha1.CloudflareServiceToken
-			token := &v1alpha1.CloudflareServiceToken{}
+			//var token *v4alpha1.CloudflareServiceToken
+			token := &v4alpha1.CloudflareServiceToken{}
 
 			err := k8sClient.Get(ctx, typeNamespaceName, token)
 			if err != nil && errors.IsNotFound(err) {
-				token = &v1alpha1.CloudflareServiceToken{
+				token = &v4alpha1.CloudflareServiceToken{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      typeNamespaceName.Name,
 						Namespace: typeNamespaceName.Namespace,
 					},
-					Spec: v1alpha1.CloudflareServiceTokenSpec{
+					Spec: v4alpha1.CloudflareServiceTokenSpec{
 						Name: "integration servicetoken test3",
 					},
 				}
@@ -314,7 +314,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			Eventually(func(g Gomega) {
 				k8sClient.Get(ctx, typeNamespaceName, token)
 				g.Expect(token.Status.ServiceTokenID).ToNot(BeEmpty())
-				keyValue, keyExists := token.Annotations[v1alpha1.AnnotationPreventDestroy]
+				keyValue, keyExists := token.Annotations[v4alpha1.AnnotationPreventDestroy]
 				g.Expect(keyExists).To(BeFalse())
 				g.Expect(keyValue).To(Or(BeEmpty(), Equal("false")))
 			}, time.Second*10, time.Second).Should(Succeed())
@@ -352,19 +352,19 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			typeNamespaceName := types.NamespacedName{Name: "token5", Namespace: nsName}
 
 			By("Creating the custom resource for the Kind CloudflareServiceToken")
-			token := &v1alpha1.CloudflareServiceToken{}
+			token := &v4alpha1.CloudflareServiceToken{}
 
 			err := k8sClient.Get(ctx, typeNamespaceName, token)
 			if err != nil && errors.IsNotFound(err) {
-				token = &v1alpha1.CloudflareServiceToken{
+				token = &v4alpha1.CloudflareServiceToken{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      typeNamespaceName.Name,
 						Namespace: typeNamespaceName.Namespace,
 						Annotations: map[string]string{
-							v1alpha1.AnnotationPreventDestroy: "true",
+							v4alpha1.AnnotationPreventDestroy: "true",
 						},
 					},
-					Spec: v1alpha1.CloudflareServiceTokenSpec{
+					Spec: v4alpha1.CloudflareServiceTokenSpec{
 						Name: "integration servicetoken test5",
 					},
 				}

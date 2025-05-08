@@ -35,7 +35,7 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	cloudflarev1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	cloudflarev4 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/controller"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
@@ -50,7 +50,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(cloudflarev1.AddToScheme(scheme))
+	utilruntime.Must(cloudflarev4.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -150,6 +150,14 @@ func main() {
 		R: mgr.GetClient(),
 	}
 
+	if err = (&controller.CloudflareAccessReusablePolicyReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		Helper: controllerHelper,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CloudflareAccessReusablePolicy")
+		os.Exit(1)
+	}
 	if err = (&controller.CloudflareAccessGroupReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),

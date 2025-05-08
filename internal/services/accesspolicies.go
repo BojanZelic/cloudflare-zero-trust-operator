@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -25,14 +25,14 @@ type AccessApplicationPolicyRefMatcherService struct {
 //nolint:gocognit
 func (s *AccessApplicationPolicyRefMatcherService) PopulateWithCloudflareUUIDs(
 	ctx context.Context,
-	policyRulersList []v1alpha1.GenericAccessPolicyRuler,
+	policyRulersList []v4alpha1.GenericAccessPolicyRuler,
 ) error {
 	for _, policyRuler := range policyRulersList {
 		include := policyRuler.GetInclude()
 		exclude := policyRuler.GetExclude()
 		require := policyRuler.GetRequire()
 
-		managedCRFields := []*[]v1alpha1.CloudFlareAccessRule{
+		managedCRFields := []*[]v4alpha1.CloudFlareAccessRule{
 			&include,
 			&exclude,
 			&require,
@@ -42,7 +42,7 @@ func (s *AccessApplicationPolicyRefMatcherService) PopulateWithCloudflareUUIDs(
 			for j, field := range *fields { //nolint:varnamelen
 				for k, token := range field.AccessGroups { //nolint:varnamelen
 					if token.ValueFrom != nil {
-						accessGroup := &v1alpha1.CloudflareAccessGroup{}
+						accessGroup := &v4alpha1.CloudflareAccessGroup{}
 						if err := s.Client.Get(ctx, token.ValueFrom.ToNamespacedName(), accessGroup); err != nil {
 							return errors.Wrapf(err, "unable to reference CloudflareAccessGroup %s - %s", token.ValueFrom.Name, token.ValueFrom.Namespace)
 						}
@@ -53,7 +53,7 @@ func (s *AccessApplicationPolicyRefMatcherService) PopulateWithCloudflareUUIDs(
 
 				for k, token := range field.ServiceTokens { //nolint:varnamelen
 					if token.ValueFrom != nil {
-						serviceToken := &v1alpha1.CloudflareServiceToken{}
+						serviceToken := &v4alpha1.CloudflareServiceToken{}
 						if err := s.Client.Get(ctx, token.ValueFrom.ToNamespacedName(), serviceToken); err != nil {
 							return errors.Wrapf(err, "unable to reference CloudflareServiceToken %s - %s", token.ValueFrom.Name, token.ValueFrom.Namespace)
 						}
@@ -61,8 +61,6 @@ func (s *AccessApplicationPolicyRefMatcherService) PopulateWithCloudflareUUIDs(
 						(*fields)[j].ServiceTokens[k].Value = serviceToken.Status.ServiceTokenID
 					}
 				}
-
-				// TODO: add reusable policies
 			}
 		}
 	}

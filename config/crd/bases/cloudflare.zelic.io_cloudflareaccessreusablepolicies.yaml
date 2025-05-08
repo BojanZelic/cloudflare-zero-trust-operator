@@ -14,7 +14,7 @@ spec:
     singular: cloudflareaccessreusablepolicy
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - name: v4alpha1
     schema:
       openAPIV3Schema:
         description: CloudflareAccessReusablePolicy is the Schema for the cloudflareaccessreusablepolicies
@@ -42,15 +42,21 @@ spec:
               of CloudflareAccessReusablePolicy.
             properties:
               decision:
-                description: 'Decision ex: allow, deny, non_identity, bypass - defaults
-                  to allow'
+                default: allow
+                description: The action Access will take if a user matches this policy.
+                  Infrastructure application policies can only use the Allow action.
+                enum:
+                - allow
+                - deny
+                - non_identity
+                - bypass
                 type: string
               exclude:
                 description: Rules evaluated with a NOT logical operator. To match
                   the policy, a user cannot meet any of the Exclude rules.
                 items:
                   description: CloudFlareAccessRule defines the rules used in CloudflareAccessGroup
-                    / CloudflareAccessApplicationPolicy / CloudflareAccessReusablePolicy
+                    / CloudflareAccessReusablePolicy
                   properties:
                     accessGroups:
                       description: Reference to other access groups
@@ -223,7 +229,7 @@ spec:
                   to meet only one of the Include rules.
                 items:
                   description: CloudFlareAccessRule defines the rules used in CloudflareAccessGroup
-                    / CloudflareAccessApplicationPolicy / CloudflareAccessReusablePolicy
+                    / CloudflareAccessReusablePolicy
                   properties:
                     accessGroups:
                       description: Reference to other access groups
@@ -399,7 +405,7 @@ spec:
                   the policy, a user must meet all of the Require rules.
                 items:
                   description: CloudFlareAccessRule defines the rules used in CloudflareAccessGroup
-                    / CloudflareAccessApplicationPolicy / CloudflareAccessReusablePolicy
+                    / CloudflareAccessReusablePolicy
                   properties:
                     accessGroups:
                       description: Reference to other access groups
@@ -569,6 +575,7 @@ spec:
                 type: array
             required:
             - decision
+            - include
             - name
             type: object
           status:

@@ -1,4 +1,4 @@
-apiVersion: cloudflare.zelic.io/v1alpha1
+apiVersion: cloudflare.zelic.io/v4alpha1
 kind: CloudflareAccessGroup
 metadata:
   labels:

@@ -14,10 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v4alpha1
 
 import (
-	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -55,10 +54,10 @@ type CloudflareAccessGroupStatus struct {
 	AccessGroupID string `json:"accessGroupId,omitempty"`
 
 	// Creation timestamp of the resource in Cloudflare
-	CreatedAt metav1.Time `json:"createdAt,omitempty"`
+	CreatedAt metav1.Time `json:"createdAt"`
 
 	// Updated timestamp of the resource in Cloudflare
-	UpdatedAt metav1.Time `json:"updatedAt,omitempty"`
+	UpdatedAt metav1.Time `json:"updatedAt"`
 
 	// Conditions store the status conditions of the CloudflareAccessApplication
 	// +operator-sdk:csv:customresourcedefinitions:type=status
@@ -71,10 +70,10 @@ type CloudflareAccessGroupStatus struct {
 // CloudflareAccessGroup is the Schema for the cloudflareaccessgroups API.
 type CloudflareAccessGroup struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
-	Spec   CloudflareAccessGroupSpec   `json:"spec,omitempty"`
-	Status CloudflareAccessGroupStatus `json:"status,omitempty"`
+	Spec   CloudflareAccessGroupSpec   `json:"spec"`
+	Status CloudflareAccessGroupStatus `json:"status"`
 }
 
 func (c CloudflareAccessGroup) GetType() string {
@@ -89,25 +88,12 @@ func (c CloudflareAccessGroup) UnderDeletion() bool {
 	return !c.DeletionTimestamp.IsZero()
 }
 
-func (c *CloudflareAccessGroup) ToCloudflare() zero_trust.AccessGroupGetResponse {
-	accessGroup := zero_trust.AccessGroupGetResponse{
-		Name:      c.Spec.Name,
-		ID:        c.Status.AccessGroupID,
-		CreatedAt: c.Status.CreatedAt.Time,
-		UpdatedAt: c.Status.UpdatedAt.Time,
-		Include:   toAccessRules(&c.Spec.Include),
-		Exclude:   toAccessRules(&c.Spec.Exclude),
-		Require:   toAccessRules(&c.Spec.Require),
-	}
-	return accessGroup
-}
-
 // +kubebuilder:object:root=true
 
 // CloudflareAccessGroupList contains a list of CloudflareAccessGroup.
 type CloudflareAccessGroupList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	Items           []CloudflareAccessGroup `json:"items"`
 }
 

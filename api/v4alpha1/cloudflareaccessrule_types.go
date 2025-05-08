@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v4alpha1
 
-// CloudFlareAccessRule defines the rules used in CloudflareAccessGroup / CloudflareAccessApplicationPolicy / CloudflareAccessReusablePolicy
+// CloudFlareAccessRule defines the rules used in CloudflareAccessGroup / CloudflareAccessReusablePolicy
 type CloudFlareAccessRule struct {
 	// Matches a Specific email
 	Emails []string `json:"emails,omitempty"`

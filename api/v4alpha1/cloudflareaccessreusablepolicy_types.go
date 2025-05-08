@@ -14,11 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v4alpha1
 
 import (
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
-	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -30,11 +28,13 @@ type CloudflareAccessReusablePolicySpec struct {
 	// Name of the Cloudflare Access's reusable Policy
 	Name string `json:"name"`
 
-	// Decision ex: allow, deny, non_identity, bypass - defaults to allow
+	// The action Access will take if a user matches this policy. Infrastructure application policies can only use the Allow action.
+	// +kubebuilder:validation:Enum=allow;deny;non_identity;bypass
+	// +kubebuilder:default=allow
 	Decision string `json:"decision"`
 
 	// Rules evaluated with an OR logical operator. A user needs to meet only one of the Include rules.
-	Include []CloudFlareAccessRule `json:"include,omitempty"`
+	Include []CloudFlareAccessRule `json:"include"`
 
 	// Rules evaluated with an AND logical operator. To match the policy, a user must meet all of the Require rules.
 	// +optional
@@ -63,10 +63,10 @@ type CloudflareAccessReusablePolicyStatus struct {
 	AccessReusablePolicyID string `json:"accessReusablePolicyId,omitempty"`
 
 	// Creation timestamp of the resource in Cloudflare
-	CreatedAt metav1.Time `json:"createdAt,omitempty"`
+	CreatedAt metav1.Time `json:"createdAt"`
 
 	// Updated timestamp of the resource in Cloudflare
-	UpdatedAt metav1.Time `json:"updatedAt,omitempty"`
+	UpdatedAt metav1.Time `json:"updatedAt"`
 
 	// Conditions store the status conditions of the CloudflareAccessApplication
 	// +operator-sdk:csv:customresourcedefinitions:type=status
@@ -79,10 +79,10 @@ type CloudflareAccessReusablePolicyStatus struct {
 // CloudflareAccessReusablePolicy is the Schema for the cloudflareaccessreusablepolicies API.
 type CloudflareAccessReusablePolicy struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
-	Spec   CloudflareAccessReusablePolicySpec   `json:"spec,omitempty"`
-	Status CloudflareAccessReusablePolicyStatus `json:"status,omitempty"`
+	Spec   CloudflareAccessReusablePolicySpec   `json:"spec"`
+	Status CloudflareAccessReusablePolicyStatus `json:"status"`
 }
 
 func (c *CloudflareAccessReusablePolicy) GetType() string {
@@ -97,30 +97,12 @@ func (c *CloudflareAccessReusablePolicy) UnderDeletion() bool {
 	return !c.DeletionTimestamp.IsZero()
 }
 
-func (aps CloudflareAccessReusablePolicyList) ToCloudflare() cfcollections.AccessReusablePolicyCollection {
-	ret := cfcollections.AccessReusablePolicyCollection{}
-
-	for _, policy := range aps.Items {
-		transformed := zero_trust.AccessPolicyListResponse{
-			Name:     policy.Name,
-			Decision: zero_trust.Decision(policy.Spec.Decision),
-			Include:  toAccessRules(&policy.Spec.Include),
-			Exclude:  toAccessRules(&policy.Spec.Exclude),
-			Require:  toAccessRules(&policy.Spec.Require),
-		}
-
-		ret = append(ret, transformed)
-	}
-
-	return ret
-}
-
 // +kubebuilder:object:root=true
 
 // CloudflareAccessReusablePolicyList contains a list of CloudflareAccessReusablePolicy.
 type CloudflareAccessReusablePolicyList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	Items           []CloudflareAccessReusablePolicy `json:"items"`
 }
 

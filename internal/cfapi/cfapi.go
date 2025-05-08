@@ -3,7 +3,7 @@ package cfapi
 import (
 	"context"
 
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	cloudflare "github.com/cloudflare/cloudflare-go/v4"
@@ -158,8 +158,7 @@ func (a *API) FindAccessApplicationByDomain(ctx context.Context, domain string) 
 	iter.Next()
 
 	if iter.Err() != nil {
-		empty := zero_trust.AccessApplicationGetResponse{}
-		return &empty, errors.Wrap(iter.Err(), "unable to get access applications")
+		return nil, errors.Wrap(iter.Err(), "unable to get access applications")
 	}
 
 	return a.AccessApplication(ctx, iter.Current().ID)
@@ -167,32 +166,32 @@ func (a *API) FindAccessApplicationByDomain(ctx context.Context, domain string) 
 
 func (a *API) AccessApplication(ctx context.Context, accessApplicationID string) (*zero_trust.AccessApplicationGetResponse, error) {
 	//
-	cfAG, err := a.client.ZeroTrust.Access.Applications.Get(ctx, accessApplicationID, zero_trust.AccessApplicationGetParams{
+	cfApp, err := a.client.ZeroTrust.Access.Applications.Get(ctx, accessApplicationID, zero_trust.AccessApplicationGetParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
-	return cfAG, errors.Wrap(err, "unable to get access application")
+	return cfApp, errors.Wrap(err, "unable to get access application")
 }
 
 func (a *API) CreateAccessApplication(
 	ctx context.Context,
-	ag *v1alpha1.CloudflareAccessApplication, //nolint:varnamelen
+	app *v4alpha1.CloudflareAccessApplication, //nolint:varnamelen
 ) (*zero_trust.AccessApplicationGetResponse, error) {
 	//
-	cfAG, err := a.client.ZeroTrust.Access.Applications.New(ctx, zero_trust.AccessApplicationNewParams{
+	cfApp, err := a.client.ZeroTrust.Access.Applications.New(ctx, zero_trust.AccessApplicationNewParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 		Body: zero_trust.AccessApplicationNewParamsBody{
-			Name:                   cloudflare.F(ag.Spec.Name),
-			Domain:                 cloudflare.F(ag.Spec.Domain),
-			Type:                   cloudflare.F(ag.Spec.Type),
-			AppLauncherVisible:     cloudflare.F(*ag.Spec.AppLauncherVisible),
-			AllowedIdPs:            cloudflare.F(interface{}(ag.Spec.AllowedIdps)),
-			AutoRedirectToIdentity: cloudflare.F(*ag.Spec.AutoRedirectToIdentity),
-			// Policies: , // TODO: maybe handle old legacy policies
-			SessionDuration:         cloudflare.F(ag.Spec.SessionDuration),
-			EnableBindingCookie:     cloudflare.F(*ag.Spec.EnableBindingCookie),
-			HTTPOnlyCookieAttribute: cloudflare.F(*ag.Spec.HTTPOnlyCookieAttribute),
-			LogoURL:                 cloudflare.F(ag.Spec.LogoURL),
+			Name:                   cloudflare.F(app.Spec.Name),
+			Domain:                 cloudflare.F(app.Spec.Domain),
+			Type:                   cloudflare.F(app.Spec.Type),
+			AppLauncherVisible:     cloudflare.F(*app.Spec.AppLauncherVisible),
+			AllowedIdPs:            cloudflare.F(any(app.Spec.AllowedIdps)),
+			AutoRedirectToIdentity: cloudflare.F(*app.Spec.AutoRedirectToIdentity),
+			// Policies:			// We rather handle policies definition once created via [ApplyAccessReusablePolicies]
+			SessionDuration:         cloudflare.F(app.Spec.SessionDuration),
+			EnableBindingCookie:     cloudflare.F(*app.Spec.EnableBindingCookie),
+			HTTPOnlyCookieAttribute: cloudflare.F(*app.Spec.HTTPOnlyCookieAttribute),
+			LogoURL:                 cloudflare.F(app.Spec.LogoURL),
 		},
 	})
 
@@ -201,37 +200,38 @@ func (a *API) CreateAccessApplication(
 		return &dummy, errors.Wrap(err, "unable to create access applications")
 	}
 
-	return a.AccessApplication(ctx, cfAG.ID)
+	return a.AccessApplication(ctx, cfApp.ID)
 }
 
 func (a *API) UpdateAccessApplication(
 	ctx context.Context,
-	ag zero_trust.AccessApplicationGetResponse, //nolint:varnamelen
+	app *v4alpha1.CloudflareAccessApplication, //nolint:varnamelen
 ) (*zero_trust.AccessApplicationGetResponse, error) {
 	//
-	cfAG, err := a.client.ZeroTrust.Access.Applications.Update(ctx, ag.ID, zero_trust.AccessApplicationUpdateParams{
-		AccountID: cloudflare.F(a.CFAccountID),
-		Body: zero_trust.AccessApplicationUpdateParamsBody{
-			Name:                   cloudflare.F(ag.Name),
-			Domain:                 cloudflare.F(ag.Domain),
-			Type:                   cloudflare.F(ag.Type),
-			AppLauncherVisible:     cloudflare.F(ag.AppLauncherVisible),
-			AllowedIdPs:            cloudflare.F(ag.AllowedIdPs),
-			AutoRedirectToIdentity: cloudflare.F(ag.AutoRedirectToIdentity),
-			// Policies: , // TODO: maybe handle old legacy policies
-			SessionDuration:         cloudflare.F(ag.SessionDuration),
-			EnableBindingCookie:     cloudflare.F(ag.EnableBindingCookie),
-			HTTPOnlyCookieAttribute: cloudflare.F(ag.HTTPOnlyCookieAttribute),
-			LogoURL:                 cloudflare.F(ag.LogoURL),
-		},
-	})
+	cfApp, err := a.client.ZeroTrust.Access.Applications.Update(ctx, app.Status.AccessApplicationID,
+		zero_trust.AccessApplicationUpdateParams{
+			AccountID: cloudflare.F(a.CFAccountID),
+			Body: zero_trust.AccessApplicationUpdateParamsBody{
+				Name:                   cloudflare.F(app.Name),
+				Domain:                 cloudflare.F(app.Spec.Domain),
+				Type:                   cloudflare.F(app.Spec.Type),
+				AppLauncherVisible:     cloudflare.F(*app.Spec.AppLauncherVisible),
+				AllowedIdPs:            cloudflare.F(any(app.Spec.AllowedIdps)),
+				AutoRedirectToIdentity: cloudflare.F(*app.Spec.AutoRedirectToIdentity),
+				// Policies:			// We rather handle policies updates in [ApplyAccessReusablePolicies]
+				SessionDuration:         cloudflare.F(app.Spec.SessionDuration),
+				EnableBindingCookie:     cloudflare.F(*app.Spec.EnableBindingCookie),
+				HTTPOnlyCookieAttribute: cloudflare.F(*app.Spec.HTTPOnlyCookieAttribute),
+				LogoURL:                 cloudflare.F(app.Spec.LogoURL),
+			},
+		})
 
 	if err != nil {
 		dummy := zero_trust.AccessApplicationGetResponse{}
 		return &dummy, errors.Wrap(err, "unable to update access applications")
 	}
 
-	return a.AccessApplication(ctx, cfAG.ID)
+	return a.AccessApplication(ctx, cfApp.ID)
 }
 
 func (a *API) DeleteAccessApplication(ctx context.Context, appID string) error {
@@ -247,81 +247,71 @@ func (a *API) DeleteAccessApplication(ctx context.Context, appID string) error {
 //
 //
 
-func (a *API) AccessApplicationPolicies(ctx context.Context, appID string) (cfcollections.AccessApplicationPolicyCollection, error) {
+func (a *API) ApplyAccessReusablePolicies(ctx context.Context, appID string, orderedPolicyIDs []string) (*zero_trust.AccessApplicationUpdateResponse, error) {
 	//
-	iter := a.client.ZeroTrust.Access.Applications.Policies.ListAutoPaging(ctx, appID, zero_trust.AccessApplicationPolicyListParams{
+	cfApp, err := a.client.ZeroTrust.Access.Applications.Update(ctx, appID, zero_trust.AccessApplicationUpdateParams{
+		AccountID: cloudflare.F(a.CFAccountID),
+		Body: zero_trust.AccessApplicationUpdateParamsBody{
+			Policies: cloudflare.F(any(orderedPolicyIDs)),
+		},
+	})
+
+	if err != nil {
+		dummy := zero_trust.AccessApplicationUpdateResponse{}
+		return &dummy, errors.Wrap(err, "unable to update access applications")
+	}
+
+	return cfApp, nil
+}
+
+//
+//
+//
+
+func (a *API) AccessReusablePolicy(ctx context.Context, policyID string) (*zero_trust.AccessPolicyGetResponse, error) {
+	//
+	cfApp, err := a.client.ZeroTrust.Access.Policies.Get(ctx, policyID, zero_trust.AccessPolicyGetParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
-	policiesCollection := cfcollections.AccessApplicationPolicyCollection{}
-	for iter.Next() {
-		policiesCollection = append(policiesCollection, iter.Current())
-	}
-
-	return policiesCollection, errors.Wrap(iter.Err(), "unable to get access Policies")
+	return cfApp, errors.Wrap(err, "unable to get access reusable policy")
 }
 
-func (a *API) CreateAccessApplicationPolicies(ctx context.Context, appID string, lap zero_trust.AccessApplicationPolicyListResponse) error {
-	//
-	approvalGroups := []zero_trust.ApprovalGroupParam{}
-	for _, r := range lap.ApprovalGroups {
-		approvalGroups = append(approvalGroups, zero_trust.ApprovalGroupParam{
-			ApprovalsNeeded: cloudflare.F(r.ApprovalsNeeded),
-			EmailAddresses:  cloudflare.F(r.EmailAddresses),
-			EmailListUUID:   cloudflare.F(r.EmailListUUID),
-		})
-	}
-
-	_, err := a.client.ZeroTrust.Access.Applications.Policies.New(ctx, appID, zero_trust.AccessApplicationPolicyNewParams{
-		AccountID:                    cloudflare.F(a.CFAccountID),
-		Precedence:                   cloudflare.F(lap.Precedence),
-		IsolationRequired:            cloudflare.F(lap.IsolationRequired),
-		SessionDuration:              cloudflare.F(lap.SessionDuration),
-		PurposeJustificationRequired: cloudflare.F(lap.PurposeJustificationRequired),
-		PurposeJustificationPrompt:   cloudflare.F(lap.PurposeJustificationPrompt),
-		ApprovalRequired:             cloudflare.F(lap.ApprovalRequired),
-		ApprovalGroups:               cloudflare.F(approvalGroups),
+func (a *API) CreateAccessReusablePolicy(ctx context.Context, arp *v4alpha1.CloudflareAccessReusablePolicy) (*zero_trust.AccessPolicyGetResponse, error) {
+	rp, err := a.client.ZeroTrust.Access.Policies.New(ctx, zero_trust.AccessPolicyNewParams{
+		AccountID: cloudflare.F(a.CFAccountID),
+		Decision:  cloudflare.F(zero_trust.Decision(arp.Spec.Decision)),
+		Name:      cloudflare.F(arp.Spec.Name),
+		Include:   cloudflare.F(v4alpha1.ToAccessRuleParams(&arp.Spec.Include)),
+		Exclude:   cloudflare.F(v4alpha1.ToAccessRuleParams(&arp.Spec.Exclude)),
+		Require:   cloudflare.F(v4alpha1.ToAccessRuleParams(&arp.Spec.Require)),
 	})
 
-	// TODO create policy
-
-	return errors.Wrap(err, "unable to create access Policy")
-}
-
-func (a *API) UpdateAccessApplicationPolicy(ctx context.Context, appID string, lap zero_trust.AccessApplicationPolicyListResponse) error {
-	//
-	approvalGroups := []zero_trust.ApprovalGroupParam{}
-	for _, r := range lap.ApprovalGroups {
-		approvalGroups = append(approvalGroups, zero_trust.ApprovalGroupParam{
-			ApprovalsNeeded: cloudflare.F(r.ApprovalsNeeded),
-			EmailAddresses:  cloudflare.F(r.EmailAddresses),
-			EmailListUUID:   cloudflare.F(r.EmailListUUID),
-		})
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create access reusable policy")
 	}
 
-	_, err := a.client.ZeroTrust.Access.Applications.Policies.Update(ctx, appID, lap.ID, zero_trust.AccessApplicationPolicyUpdateParams{
-		AccountID:                    cloudflare.F(a.CFAccountID),
-		Precedence:                   cloudflare.F(lap.Precedence),
-		IsolationRequired:            cloudflare.F(lap.IsolationRequired),
-		SessionDuration:              cloudflare.F(lap.SessionDuration),
-		PurposeJustificationRequired: cloudflare.F(lap.PurposeJustificationRequired),
-		PurposeJustificationPrompt:   cloudflare.F(lap.PurposeJustificationPrompt),
-		ApprovalRequired:             cloudflare.F(lap.ApprovalRequired),
-		ApprovalGroups:               cloudflare.F(approvalGroups),
-	})
-
-	// TODO create policy
-
-	return errors.Wrap(err, "unable to update access Policy")
+	return a.AccessReusablePolicy(ctx, rp.ID)
 }
 
-func (a *API) DeleteAccessApplicationPolicy(ctx context.Context, appID string, policyID string) error {
+func (a *API) UpdateAccessReusablePolicy(ctx context.Context, arp *v4alpha1.CloudflareAccessReusablePolicy) error {
+	_, err := a.client.ZeroTrust.Access.Policies.Update(ctx, arp.Status.AccessReusablePolicyID, zero_trust.AccessPolicyUpdateParams{
+		AccountID: cloudflare.F(a.CFAccountID),
+		Include:   cloudflare.F(v4alpha1.ToAccessRuleParams(&arp.Spec.Include)),
+		Exclude:   cloudflare.F(v4alpha1.ToAccessRuleParams(&arp.Spec.Exclude)),
+		Require:   cloudflare.F(v4alpha1.ToAccessRuleParams(&arp.Spec.Require)),
+	})
 
-	_, err := a.client.ZeroTrust.Access.Applications.Policies.Delete(ctx, appID, policyID, zero_trust.AccessApplicationPolicyDeleteParams{
+	return errors.Wrap(err, "unable to update reusable access policy")
+}
+
+func (a *API) DeleteAccessReusablePolicy(ctx context.Context, policyID string) error {
+
+	_, err := a.client.ZeroTrust.Access.Policies.Delete(ctx, policyID, zero_trust.AccessPolicyDeleteParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
-	return errors.Wrap(err, "unable to update access Policy")
+	return errors.Wrap(err, "unable to delete reusable access policy")
 }
 
 //

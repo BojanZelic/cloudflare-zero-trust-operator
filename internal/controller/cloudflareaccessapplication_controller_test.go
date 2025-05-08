@@ -6,7 +6,7 @@ import (
 	"context"
 	"time"
 
-	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	v4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -75,19 +75,19 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 		It("should successfully reconcile CloudflareAccessApplication policies", func() {
 			By("Creating the custom resource for the Kind CloudflareAccessApplication")
 			typeNamespaceName := types.NamespacedName{Name: "cloudflare-app-two", Namespace: cloudflareName}
-			apps := &v1alpha1.CloudflareAccessApplication{
+			apps := &v4alpha1.CloudflareAccessApplication{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      typeNamespaceName.Name,
 					Namespace: namespace.Name,
 				},
-				Spec: v1alpha1.CloudflareAccessApplicationSpec{
+				Spec: v4alpha1.CloudflareAccessApplicationSpec{
 					Name:   "integration policies test",
 					Domain: "integration-policies.cf-operator-tests.uk",
-					Policies: v1alpha1.CloudflareAccessApplicationPolicyList{
+					Policies: v4alpha1.CloudflareAccessApplicationPolicyList{
 						{
 							Name:     "integration_test",
 							Decision: "allow",
-							Include: []v1alpha1.CloudFlareAccessRule{
+							Include: []v4alpha1.CloudFlareAccessRule{
 								{
 									Emails: []string{"testemail@cf-operator-tests.uk", "testemail2@cf-operator-tests.uk"},
 								},
@@ -102,10 +102,10 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			err := k8sClient.Create(ctx, apps)
 			Expect(err).To(Not(HaveOccurred()))
 
-			found := &v1alpha1.CloudflareAccessApplication{}
+			found := &v4alpha1.CloudflareAccessApplication{}
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func() string {
-				found = &v1alpha1.CloudflareAccessApplication{}
+				found = &v4alpha1.CloudflareAccessApplication{}
 				k8sClient.Get(ctx, typeNamespaceName, found)
 				return found.Status.AccessApplicationID
 			}, time.Second*10, time.Second).Should(Not(BeEmpty()))
@@ -118,9 +118,9 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				g.Expect(cfResource).ToNot(BeEmpty())
 				g.Expect(found.Spec.Policies).ToNot(BeEmpty())
 				g.Expect(cfResource[0].Name).To(Equal(found.Spec.Policies[0].Name))
-				g.Expect(cfResource[0].Include[0].Email.(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[0]))
-				g.Expect(cfResource[0].Include[1].Email.(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[1]))
-				g.Expect(cfResource[0].Include[2].EmailDomain.(map[string]interface{})["email_domain"].(map[string]interface{})["domain"]).To(Equal(found.Spec.Policies[0].Include[1].EmailDomains[0]))
+				g.Expect(cfResource[0].Include[0].Email.(map[string]any)["email"].(map[string]any)["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[0]))
+				g.Expect(cfResource[0].Include[1].Email.(map[string]any)["email"].(map[string]any)["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[1]))
+				g.Expect(cfResource[0].Include[2].EmailDomain.(map[string]any)["email_domain"].(map[string]any)["domain"]).To(Equal(found.Spec.Policies[0].Include[1].EmailDomains[0]))
 			}, time.Second*25, time.Second).Should(Succeed())
 
 			By("changing a policy")
@@ -135,9 +135,9 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				cfResource, err = api.AccessApplicationPolicies(ctx, found.Status.AccessApplicationID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource[0].Name).To(Equal(found.Spec.Policies[0].Name))
-				g.Expect(cfResource[0].Include[0].Email.(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[0]))
-				g.Expect(cfResource[0].Include[1].Email.(map[string]interface{})["email"].(map[string]interface{})["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[1]))
-				g.Expect(cfResource[0].Include[2].EmailDomain.(map[string]interface{})["email_domain"].(map[string]interface{})["domain"]).To(Equal(found.Spec.Policies[0].Include[1].EmailDomains[0]))
+				g.Expect(cfResource[0].Include[0].Email.(map[string]any)["email"].(map[string]any)["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[0]))
+				g.Expect(cfResource[0].Include[1].Email.(map[string]any)["email"].(map[string]any)["email"]).To(Equal(found.Spec.Policies[0].Include[0].Emails[1]))
+				g.Expect(cfResource[0].Include[2].EmailDomain.(map[string]any)["email_domain"].(map[string]any)["domain"]).To(Equal(found.Spec.Policies[0].Include[1].EmailDomains[0]))
 			}, time.Second*25, time.Second).Should(Succeed())
 		})
 
@@ -145,22 +145,22 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			typeNamespaceName := types.NamespacedName{Name: "cloudflare-app-four", Namespace: cloudflareName}
 
 			By("Creating the custom resource for the Kind CloudflareAccessApplication")
-			apps := &v1alpha1.CloudflareAccessApplication{
+			apps := &v4alpha1.CloudflareAccessApplication{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      typeNamespaceName.Name,
 					Namespace: namespace.Name,
 				},
-				Spec: v1alpha1.CloudflareAccessApplicationSpec{
+				Spec: v4alpha1.CloudflareAccessApplicationSpec{
 					Name:   "bad-reference policies",
 					Domain: "bad-reference-policies.cf-operator-tests.uk",
-					Policies: v1alpha1.CloudflareAccessApplicationPolicyList{
+					Policies: v4alpha1.CloudflareAccessApplicationPolicyList{
 						{
 							Name:     "reference_test",
 							Decision: "allow",
-							Include: []v1alpha1.CloudFlareAccessRule{{
-								AccessGroups: []v1alpha1.AccessGroup{
+							Include: []v4alpha1.CloudFlareAccessRule{{
+								AccessGroups: []v4alpha1.AccessGroup{
 									{
-										ValueFrom: &v1alpha1.AccessGroupReference{
+										ValueFrom: &v4alpha1.AccessGroupReference{
 											Name:      "idontexist",
 											Namespace: "inanynamespace",
 										},
@@ -186,17 +186,17 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 		It("should successfully reconcile CloudflareAccessApplication policies with references", func() {
 
 			By("pre-create an access group")
-			group := &v1alpha1.CloudflareAccessGroup{}
+			group := &v4alpha1.CloudflareAccessGroup{}
 			typeNamespaceName := types.NamespacedName{Name: "cloudflare-app-three", Namespace: cloudflareName}
 
-			group = &v1alpha1.CloudflareAccessGroup{
+			group = &v4alpha1.CloudflareAccessGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      typeNamespaceName.Name,
 					Namespace: typeNamespaceName.Namespace,
 				},
-				Spec: v1alpha1.CloudflareAccessGroupSpec{
+				Spec: v4alpha1.CloudflareAccessGroupSpec{
 					Name: "reference test",
-					Include: []v1alpha1.CloudFlareAccessRule{
+					Include: []v4alpha1.CloudFlareAccessRule{
 						{
 							Emails: []string{"test2@cf-operator-tests.uk"},
 						},
@@ -211,12 +211,12 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Expect(err).To(Not(HaveOccurred()))
 
 			By("pre-create a service token")
-			token := &v1alpha1.CloudflareServiceToken{
+			token := &v4alpha1.CloudflareServiceToken{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      typeNamespaceName.Name,
 					Namespace: typeNamespaceName.Namespace,
 				},
-				Spec: v1alpha1.CloudflareServiceTokenSpec{
+				Spec: v4alpha1.CloudflareServiceTokenSpec{
 					Name: "reference test",
 				},
 			}
@@ -228,30 +228,30 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Expect(err).To(Not(HaveOccurred()))
 
 			By("Creating the custom resource for the Kind CloudflareAccessApplication")
-			apps := &v1alpha1.CloudflareAccessApplication{
+			apps := &v4alpha1.CloudflareAccessApplication{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      typeNamespaceName.Name,
 					Namespace: namespace.Name,
 				},
-				Spec: v1alpha1.CloudflareAccessApplicationSpec{
+				Spec: v4alpha1.CloudflareAccessApplicationSpec{
 					Name:   "reference policies",
 					Domain: "reference-policies.cf-operator-tests.uk",
-					Policies: v1alpha1.CloudflareAccessApplicationPolicyList{
+					Policies: v4alpha1.CloudflareAccessApplicationPolicyList{
 						{
 							Name:     "reference_test",
 							Decision: "allow",
-							Include: []v1alpha1.CloudFlareAccessRule{{
-								AccessGroups: []v1alpha1.AccessGroup{
+							Include: []v4alpha1.CloudFlareAccessRule{{
+								AccessGroups: []v4alpha1.AccessGroup{
 									{
-										ValueFrom: &v1alpha1.AccessGroupReference{
+										ValueFrom: &v4alpha1.AccessGroupReference{
 											Name:      group.Name,
 											Namespace: group.Namespace,
 										},
 									},
 								},
-								ServiceTokens: []v1alpha1.ServiceToken{
+								ServiceTokens: []v4alpha1.ServiceToken{
 									{
-										ValueFrom: &v1alpha1.ServiceTokenReference{
+										ValueFrom: &v4alpha1.ServiceTokenReference{
 											Name:      token.Name,
 											Namespace: token.Namespace,
 										},
@@ -278,12 +278,12 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			By("Creating the custom resource for the Kind CloudflareAccessApplication")
 			typeNamespaceName := types.NamespacedName{Name: "cloudflare-app-five", Namespace: cloudflareName}
 
-			apps := &v1alpha1.CloudflareAccessApplication{
+			apps := &v4alpha1.CloudflareAccessApplication{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      typeNamespaceName.Name,
 					Namespace: typeNamespaceName.Namespace,
 				},
-				Spec: v1alpha1.CloudflareAccessApplicationSpec{
+				Spec: v4alpha1.CloudflareAccessApplicationSpec{
 					Name:   "integration test",
 					Domain: "integration.cf-operator-tests.uk",
 				},
@@ -293,14 +293,14 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			By("Checking if the custom resource was successfully created")
 			Eventually(func() error {
-				found := &v1alpha1.CloudflareAccessApplication{}
+				found := &v4alpha1.CloudflareAccessApplication{}
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}, time.Second*10, time.Second).Should(Succeed())
 
-			found := &v1alpha1.CloudflareAccessApplication{}
+			found := &v4alpha1.CloudflareAccessApplication{}
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func(g Gomega) {
-				found = &v1alpha1.CloudflareAccessApplication{}
+				found = &v4alpha1.CloudflareAccessApplication{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Status.AccessApplicationID).ToNot(BeEmpty())
 				g.Expect(found.Status.CreatedAt.Time).To(Equal(found.Status.UpdatedAt.Time))
@@ -319,7 +319,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			By("Checking the latest Status should have the update")
 			Eventually(func(g Gomega) {
-				found = &v1alpha1.CloudflareAccessApplication{}
+				found = &v4alpha1.CloudflareAccessApplication{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Spec.Name).To(Equal("updated name"))
 				g.Expect(found.Status.AccessApplicationID).ToNot(BeEmpty())
@@ -345,12 +345,12 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			By("Creating the custom resource for the Kind CloudflareAccessApplication")
 			typeNamespaceName := types.NamespacedName{Name: "cloudflare-app-four", Namespace: cloudflareName}
 
-			apps := &v1alpha1.CloudflareAccessApplication{
+			apps := &v4alpha1.CloudflareAccessApplication{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      cloudflareName,
 					Namespace: namespace.Name,
 				},
-				Spec: v1alpha1.CloudflareAccessApplicationSpec{
+				Spec: v4alpha1.CloudflareAccessApplicationSpec{
 					Name:   "integration test",
 					Domain: "integration.cf-operator-tests.uk",
 				},
@@ -360,14 +360,14 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			By("Checking if the custom resource was successfully created")
 			Eventually(func() error {
-				found := &v1alpha1.CloudflareAccessApplication{}
+				found := &v4alpha1.CloudflareAccessApplication{}
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}, time.Minute, time.Second).Should(Succeed())
 
-			found := &v1alpha1.CloudflareAccessApplication{}
+			found := &v4alpha1.CloudflareAccessApplication{}
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func(g Gomega) {
-				found = &v1alpha1.CloudflareAccessApplication{}
+				found = &v4alpha1.CloudflareAccessApplication{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Status.AccessApplicationID).ToNot(BeEmpty())
 				g.Expect(found.Status.CreatedAt.Time).To(Equal(found.Status.UpdatedAt.Time))
@@ -386,7 +386,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			By("Checking the latest Status should have the update")
 			Eventually(func(g Gomega) {
-				found = &v1alpha1.CloudflareAccessApplication{}
+				found = &v4alpha1.CloudflareAccessApplication{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Spec.Name).To(Equal("updated name"))
 				g.Expect(found.Status.AccessApplicationID).ToNot(BeEmpty())
@@ -404,12 +404,12 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			By("Creating the custom resource for the Kind CloudflareAccessApplication")
 			typeNamespaceName := types.NamespacedName{Name: "cloudflare-app-six", Namespace: cloudflareName}
 
-			apps := &v1alpha1.CloudflareAccessApplication{
+			apps := &v4alpha1.CloudflareAccessApplication{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      typeNamespaceName.Name,
 					Namespace: typeNamespaceName.Namespace,
 				},
-				Spec: v1alpha1.CloudflareAccessApplicationSpec{
+				Spec: v4alpha1.CloudflareAccessApplicationSpec{
 					Name:    "integration test logo",
 					Domain:  "integration-logo-test.cf-operator-tests.uk",
 					LogoURL: "https://www.cloudflare.com/img/logo-web-badges/cf-logo-on-white-bg.svg",
@@ -420,14 +420,14 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			By("Checking if the custom resource was successfully created")
 			Eventually(func() error {
-				found := &v1alpha1.CloudflareAccessApplication{}
+				found := &v4alpha1.CloudflareAccessApplication{}
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}, time.Minute, time.Second).Should(Succeed())
 
-			found := &v1alpha1.CloudflareAccessApplication{}
+			found := &v4alpha1.CloudflareAccessApplication{}
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func(g Gomega) {
-				found = &v1alpha1.CloudflareAccessApplication{}
+				found = &v4alpha1.CloudflareAccessApplication{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Status.AccessApplicationID).ToNot(BeEmpty())
 				g.Expect(found.Status.CreatedAt.Time).To(Equal(found.Status.UpdatedAt.Time))
@@ -444,12 +444,12 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			typeNamespaceName := types.NamespacedName{Name: "cloudflare-app-seven", Namespace: cloudflareName}
 
 			previousCreatedAndUpdatedDate := metav1.NewTime(time.Now().Add(-time.Hour * 24))
-			apps := &v1alpha1.CloudflareAccessApplication{
+			apps := &v4alpha1.CloudflareAccessApplication{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      typeNamespaceName.Name,
 					Namespace: namespace.Name,
 				},
-				Spec: v1alpha1.CloudflareAccessApplicationSpec{
+				Spec: v4alpha1.CloudflareAccessApplicationSpec{
 					Name:   "missing application",
 					Domain: "recreate-application.cf-operator-tests.uk",
 				},
@@ -460,17 +460,17 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			By("Checking if the custom resource was successfully created")
 			Eventually(func() error {
-				found := &v1alpha1.CloudflareAccessApplication{}
+				found := &v4alpha1.CloudflareAccessApplication{}
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}, time.Minute, time.Second).Should(Succeed())
 
-			found := &v1alpha1.CloudflareAccessApplication{}
+			found := &v4alpha1.CloudflareAccessApplication{}
 			By("Checking the latest Status should have the ID of the resource")
 
 			oldAccessApplicationID := ""
 
 			Eventually(func(g Gomega) {
-				found = &v1alpha1.CloudflareAccessApplication{}
+				found = &v4alpha1.CloudflareAccessApplication{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Status.AccessApplicationID).ToNot(BeEmpty())
 				oldAccessApplicationID = found.Status.AccessApplicationID
@@ -483,7 +483,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			By("re-trigger reconcile by updating access application")
 			Eventually(func(g Gomega) {
-				found = &v1alpha1.CloudflareAccessApplication{}
+				found = &v4alpha1.CloudflareAccessApplication{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				found.Spec.Name = "updated name"
 				Expect(k8sClient.Update(ctx, found)).To(Not(HaveOccurred()))
@@ -491,7 +491,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func(g Gomega) {
-				found = &v1alpha1.CloudflareAccessApplication{}
+				found = &v4alpha1.CloudflareAccessApplication{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Status.AccessApplicationID).ToNot(Equal(oldAccessApplicationID))
 			}, time.Second*10, time.Second).Should(Succeed())

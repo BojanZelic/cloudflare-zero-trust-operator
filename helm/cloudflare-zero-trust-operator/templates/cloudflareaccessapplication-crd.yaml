@@ -18,7 +18,7 @@ spec:
     singular: cloudflareaccessapplication
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - name: v4alpha1
     schema:
       openAPIV3Schema:
         description: CloudflareAccessApplication is the Schema for the cloudflareaccessapplications

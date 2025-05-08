@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 	"github.com/pkg/errors"
@@ -25,19 +25,19 @@ func (h *ControllerHelper) EnsureFinalizer(
 
 	annotations := c.GetAnnotations()
 	preventDestroy := false
-	if annotationPreventDestroy, ok := annotations[v1alpha1.AnnotationPreventDestroy]; ok {
+	if annotationPreventDestroy, ok := annotations[v4alpha1.AnnotationPreventDestroy]; ok {
 		preventDestroy, _ = strconv.ParseBool(annotationPreventDestroy)
 	}
 
-	if preventDestroy && controllerutil.ContainsFinalizer(c, v1alpha1.FinalizerDeletion) {
-		controllerutil.RemoveFinalizer(c, v1alpha1.FinalizerDeletion)
+	if preventDestroy && controllerutil.ContainsFinalizer(c, v4alpha1.FinalizerDeletion) {
+		controllerutil.RemoveFinalizer(c, v4alpha1.FinalizerDeletion)
 		if err := h.R.Update(ctx, c); err != nil {
 			log.Error(err, "unable to remove finalizer")
 
 			return errors.Wrap(err, "unable to remove finalizer")
 		}
-	} else if !preventDestroy && !controllerutil.ContainsFinalizer(c, v1alpha1.FinalizerDeletion) {
-		controllerutil.AddFinalizer(c, v1alpha1.FinalizerDeletion)
+	} else if !preventDestroy && !controllerutil.ContainsFinalizer(c, v4alpha1.FinalizerDeletion) {
+		controllerutil.AddFinalizer(c, v4alpha1.FinalizerDeletion)
 		if err := h.R.Update(ctx, c); err != nil {
 			log.Error(err, "unable to add finalizer")
 
@@ -67,19 +67,21 @@ func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 
 	// The object is being deleted
 	//nolint:nestif
-	if controllerutil.ContainsFinalizer(k8sCR, v1alpha1.FinalizerDeletion) {
+	if controllerutil.ContainsFinalizer(k8sCR, v4alpha1.FinalizerDeletion) {
 		// our finalizer is present, so lets handle any external dependency
 		if k8sCR.GetID() != "" {
 			log.Info("will remove resource in Cloudflare")
 			var err error
 
 			switch k8sCR.(type) {
-			case *v1alpha1.CloudflareAccessApplication:
+			case *v4alpha1.CloudflareAccessApplication:
 				err = api.DeleteAccessApplication(ctx, k8sCR.GetID())
-			case *v1alpha1.CloudflareAccessGroup:
+			case *v4alpha1.CloudflareAccessGroup:
 				err = api.DeleteAccessGroup(ctx, k8sCR.GetID())
-			case *v1alpha1.CloudflareServiceToken:
+			case *v4alpha1.CloudflareServiceToken:
 				err = api.DeleteAccessServiceToken(ctx, k8sCR.GetID())
+			case *v4alpha1.CloudflareAccessReusablePolicy:
+				err = api.DeleteAccessReusablePolicy(ctx, k8sCR.GetID())
 			default:
 				return false, errors.Errorf("unknown type %T", k8sCR)
 			}
@@ -99,7 +101,7 @@ func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 		}
 
 		// remove our finalizer from the list and update it.
-		controllerutil.RemoveFinalizer(k8sCR, v1alpha1.FinalizerDeletion)
+		controllerutil.RemoveFinalizer(k8sCR, v4alpha1.FinalizerDeletion)
 		if err := h.R.Update(ctx, k8sCR); err != nil {
 			log.Error(err, "unable to remove finalizer")
 

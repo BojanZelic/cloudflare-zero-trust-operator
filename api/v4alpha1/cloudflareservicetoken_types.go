@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v4alpha1
 
 import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
@@ -45,7 +45,7 @@ type CloudflareServiceTokenSpec struct {
 	// Template to apply for the generated secret
 	// +optional
 	// +kubebuilder:default={"metadata": {}}
-	Template SecretTemplateSpec `json:"template,omitempty"`
+	Template SecretTemplateSpec `json:"template"`
 }
 
 type SecretTemplateSpec struct {
@@ -54,7 +54,7 @@ type SecretTemplateSpec struct {
 	// +optional
 	// +nullable
 	// +kubebuilder:validation:XPreserveUnknownFields
-	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Key that should store the secret data. Defaults to cloudflareServiceToken
 	// Warning: changing this value will recreate the secret
@@ -75,13 +75,13 @@ type CloudflareServiceTokenStatus struct {
 	ServiceTokenID string `json:"serviceTokenId,omitempty"`
 
 	// Creation timestamp of the resource in Cloudflare
-	CreatedAt metav1.Time `json:"createdAt,omitempty"`
+	CreatedAt metav1.Time `json:"createdAt"`
 
 	// Updated timestamp of the resource in Cloudflare
-	UpdatedAt metav1.Time `json:"updatedAt,omitempty"`
+	UpdatedAt metav1.Time `json:"updatedAt"`
 
 	// Updated timestamp of the resource in Cloudflare
-	ExpiresAt metav1.Time `json:"expiresAt,omitempty"`
+	ExpiresAt metav1.Time `json:"expiresAt"`
 
 	// SecretRef is the reference to the secret
 	// +optional
@@ -95,7 +95,7 @@ type CloudflareServiceTokenStatus struct {
 
 type SecretRef struct {
 	// reference to the secret
-	corev1.LocalObjectReference `json:"reference,omitempty"`
+	corev1.LocalObjectReference `json:"reference"`
 	// Key that stores the secret data.
 	ClientSecretKey string `json:"clientSecretKey,omitempty"`
 
@@ -109,10 +109,10 @@ type SecretRef struct {
 // CloudflareServiceToken is the Schema for the cloudflareservicetokens API.
 type CloudflareServiceToken struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
-	Spec   CloudflareServiceTokenSpec   `json:"spec,omitempty"`
-	Status CloudflareServiceTokenStatus `json:"status,omitempty"`
+	Spec   CloudflareServiceTokenSpec   `json:"spec"`
+	Status CloudflareServiceTokenStatus `json:"status"`
 }
 
 func (c *CloudflareServiceToken) GetType() string {
@@ -144,7 +144,7 @@ func (c *CloudflareServiceToken) ToExtendedToken() cftypes.ExtendedServiceToken 
 // CloudflareServiceTokenList contains a list of CloudflareServiceToken.
 type CloudflareServiceTokenList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	Items           []CloudflareServiceToken `json:"items"`
 }
 
