@@ -16,50 +16,50 @@ limitations under the License.
 
 package v4alpha1
 
-// CloudFlareAccessRule defines the rules used in CloudflareAccessGroup / CloudflareAccessReusablePolicy
-type CloudFlareAccessRule struct {
-	// Matches a Specific email
+// CloudFlareAccessRules defines the rules used in CloudflareAccessGroup / CloudflareAccessReusablePolicy
+type CloudFlareAccessRules struct {
+	// Matches specific emails
 	Emails []string `json:"emails,omitempty"`
 
-	// Matches a specific email Domain
+	// Matches a specific email domains
 	EmailDomains []string `json:"emailDomains,omitempty"`
 
-	// Matches an IP CIDR block
+	// Matches IP CIDR blocks
 	IPRanges []string `json:"ipRanges,omitempty"`
 
-	// Country List
+	// Matches Country IDs
 	Countries []string `json:"countries,omitempty"`
 
-	// ID of the login methods
+	// Matches ID of login methods
 	LoginMethods []string `json:"loginMethods,omitempty"`
 
-	// Certificate CNs
+	// Matches Certificate CNs
 	CommonNames []string `json:"commonNames,omitempty"`
 
 	// Allow Everyone
 	Everyone *bool `json:"everyone,omitempty"`
 
-	// Any valid certificate will be matched
+	// Matches Any valid certificate
 	ValidCertificate *bool `json:"validCertificate,omitempty"`
 
 	// Matches any valid service token
 	AnyAccessServiceToken *bool `json:"anyAccessServiceToken,omitempty"`
 
-	// Matches a service token
+	// Matches service tokens
 	ServiceTokens []ServiceToken `json:"serviceTokens,omitempty"`
 
-	// Reference to other access groups
+	// Would match other access groups
 	AccessGroups []AccessGroup `json:"accessGroups,omitempty"`
 
-	// Matches Google Group
+	// Matches Google Groups
 	GoogleGroups []GoogleGroup `json:"googleGroups,omitempty"`
 
-	// Okta Groups
+	// Matches Okta Groups
 	OktaGroups []OktaGroup `json:"oktaGroups,omitempty"`
 
-	// OIDC Claims
+	// Matches OIDC Claims
 	OIDCClaims []OIDCClaim `json:"oidcClaims,omitempty"`
 
-	// Github Organizations
+	// Matches Github Organizations
 	GithubOrganizations []GithubOrganization `json:"githubOrganizations,omitempty"`
 }

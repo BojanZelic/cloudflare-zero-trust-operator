@@ -107,8 +107,6 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessGroup status")
 	}
 
-	newCfAG := accessGroup.ToCloudflare()
-
 	if accessGroup.Status.AccessGroupID == "" {
 		existingCfAG, err = api.AccessGroupByName(ctx, accessGroup.Spec.Name)
 		if err != nil {
@@ -122,8 +120,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 			return ctrl.Result{}, errors.Wrap(err, "unable to update access groups")
 		}
 	} else {
-		cfAG, err := api.AccessGroup(ctx, accessGroup.Status.AccessGroupID)
-		existingCfAG = cfAG
+		existingCfAG, err = api.AccessGroup(ctx, accessGroup.Status.AccessGroupID)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to get access groups")
 		}
@@ -160,32 +157,18 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 
 	if existingCfAG == nil {
 		//nolint:varnamelen
-		ag, err := api.CreateAccessGroup(ctx,
-			accessGroup.Name,
-			v4alpha1.ToAccessRuleParams(&accessGroup.Spec.Include),
-			v4alpha1.ToAccessRuleParams(&accessGroup.Spec.Exclude),
-			v4alpha1.ToAccessRuleParams(&accessGroup.Spec.Require),
-		)
+		existingCfAG, err = api.CreateAccessGroup(ctx, accessGroup)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
 		}
-		err = r.ReconcileStatus(ctx, ag, accessGroup)
+		err = r.ReconcileStatus(ctx, existingCfAG, accessGroup)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to set access group status")
 		}
-		existingCfAG = ag
-	}
+	} else if needsUpdate := !cfcollections.AreAccessGroupsEquivalent(existingCfAG, accessGroup); needsUpdate {
+		log.Info(accessGroup.Spec.Name + " has changed, updating...")
 
-	castedAccessGroup := accessGroup.ToCloudflare()
-	if !cfcollections.AreAccessGroupsEquivalent(*existingCfAG, castedAccessGroup) {
-		log.Info(newCfAG.Name + " has changed, updating...")
-
-		err := api.UpdateAccessGroup(ctx, existingCfAG.ID,
-			accessGroup.Name,
-			v4alpha1.ToAccessRuleParams(&accessGroup.Spec.Include),
-			v4alpha1.ToAccessRuleParams(&accessGroup.Spec.Exclude),
-			v4alpha1.ToAccessRuleParams(&accessGroup.Spec.Require),
-		)
+		err := api.UpdateAccessGroup(ctx, accessGroup)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to update access groups")
 		}
@@ -196,7 +179,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 			metav1.Condition{
 				Type:    statusAvailable,
 				Status:  metav1.ConditionTrue,
-				Reason:  "Reconciling",
+				Reason:  "Reconcilied",
 				Message: "AccessGroup Reconciled Successfully",
 			},
 		)

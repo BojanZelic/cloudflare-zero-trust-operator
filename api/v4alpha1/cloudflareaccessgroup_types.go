@@ -29,22 +29,22 @@ type CloudflareAccessGroupSpec struct {
 	Name string `json:"name"`
 
 	// Rules evaluated with an OR logical operator. A user needs to meet only one of the Include rules.
-	Include []CloudFlareAccessRule `json:"include,omitempty"`
+	Include CloudFlareAccessRules `json:"include,omitempty"`
 
 	// Rules evaluated with an AND logical operator. To match the policy, a user must meet all the Require rules.
-	Require []CloudFlareAccessRule `json:"require,omitempty"`
+	Require CloudFlareAccessRules `json:"require,omitempty"`
 
 	// Rules evaluated with a NOT logical operator. To match the policy, a user cannot meet any of the Exclude rules.
-	Exclude []CloudFlareAccessRule `json:"exclude,omitempty"`
+	Exclude CloudFlareAccessRules `json:"exclude,omitempty"`
 }
 
-func (c CloudflareAccessGroupSpec) GetInclude() []CloudFlareAccessRule { return c.Include }
+func (c CloudflareAccessGroupSpec) GetInclude() CloudFlareAccessRules { return c.Include }
 
-func (c CloudflareAccessGroupSpec) GetExclude() []CloudFlareAccessRule {
+func (c CloudflareAccessGroupSpec) GetExclude() CloudFlareAccessRules {
 	return c.Exclude
 }
 
-func (c CloudflareAccessGroupSpec) GetRequire() []CloudFlareAccessRule {
+func (c CloudflareAccessGroupSpec) GetRequire() CloudFlareAccessRules {
 	return c.Require
 }
 

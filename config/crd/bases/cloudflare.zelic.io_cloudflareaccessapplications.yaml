@@ -83,7 +83,7 @@ spec:
                 type: string
               policyKeys:
                 description: |-
-                  PolicyKeys is an ordered set of [CloudflareAccessReusablePolicySpec] CRDs names, which should be applied to this app.
+                  PolicyKeys is an ordered slice of [CloudflareAccessReusablePolicy] CRDs names, which should be applied to this app.
                   Order determines precedence
                 items:
                   type: string
@@ -166,10 +166,23 @@ spec:
               createdAt:
                 format: date-time
                 type: string
+              reusablePolicyIds:
+                description: ordered CloudFlare's policies IDs, resolved by controller
+                  from "Spec.PolicyKeys"
+                items:
+                  type: string
+                type: array
               updatedAt:
                 format: date-time
                 type: string
+            required:
+            - createdAt
+            - updatedAt
             type: object
+        required:
+        - metadata
+        - spec
+        - status
         type: object
     served: true
     storage: true

@@ -7,8 +7,6 @@ import (
 	"time"
 
 	v4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
-	cloudflare "github.com/cloudflare/cloudflare-go/v4"
-	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -63,18 +61,14 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 		It("should successfully reconcile if a CloudflareAccessGroup AlreadyExists", func() {
 			By("Pre-creating a cloudflare access group")
 
-			ag, err := api.CreateAccessGroup(ctx,
-				"existing-access-group",
-				[]zero_trust.AccessRuleUnionParam{
-					zero_trust.EmailRuleParam{
-						Email: cloudflare.F(zero_trust.EmailRuleEmailParam{
-							Email: cloudflare.F("test1@cf-operator-tests.uk"),
-						}),
+			ag, err := api.CreateAccessGroup(ctx, &v4alpha1.CloudflareAccessGroup{
+				Spec: v4alpha1.CloudflareAccessGroupSpec{
+					Name: "existing-access-group",
+					Include: v4alpha1.CloudFlareAccessRules{
+						Emails: []string{"test1@cf-operator-tests.uk"},
 					},
 				},
-				[]zero_trust.AccessRuleUnionParam{},
-				[]zero_trust.AccessRuleUnionParam{},
-			)
+			})
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Creating the same custom resource for the Kind CloudflareAccessGroup")
@@ -85,10 +79,8 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 				},
 				Spec: v4alpha1.CloudflareAccessGroupSpec{
 					Name: ag.Name,
-					Include: []v4alpha1.CloudFlareAccessRule{
-						{
-							Emails: []string{"test2@cf-operator-tests.uk"},
-						},
+					Include: v4alpha1.CloudFlareAccessRules{
+						Emails: []string{"test2@cf-operator-tests.uk"},
 					},
 				},
 			}
@@ -114,10 +106,8 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 				},
 				Spec: v4alpha1.CloudflareAccessGroupSpec{
 					Name: "integration accessgroup test",
-					Include: []v4alpha1.CloudFlareAccessRule{
-						{
-							Emails: []string{"test@cf-operator-tests.uk"},
-						},
+					Include: v4alpha1.CloudFlareAccessRules{
+						Emails: []string{"test@cf-operator-tests.uk"},
 					},
 				},
 			}
@@ -188,14 +178,12 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 				},
 				Spec: v4alpha1.CloudflareAccessGroupSpec{
 					Name: "reference test group",
-					Include: []v4alpha1.CloudFlareAccessRule{
-						{
-							ServiceTokens: []v4alpha1.ServiceToken{
-								{
-									ValueFrom: &v4alpha1.ServiceTokenReference{
-										Name:      token.Name,
-										Namespace: token.Namespace,
-									},
+					Include: v4alpha1.CloudFlareAccessRules{
+						ServiceTokens: []v4alpha1.ServiceToken{
+							{
+								ValueFrom: &v4alpha1.ServiceTokenReference{
+									Name:      token.Name,
+									Namespace: token.Namespace,
 								},
 							},
 						},

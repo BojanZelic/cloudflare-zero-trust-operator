@@ -12,6 +12,18 @@ type AccessReusablePolicyCollection []zero_trust.AccessPolicyListResponse
 
 func (c AccessReusablePolicyCollection) Len() int { return len(c) }
 
+// areAccessRulesEquivalent compare les règles d'accès CloudFlare avec celles de Kubernetes
+func areAccessRulesEquivalent(cfRules, k8sRules []zero_trust.AccessRule) bool {
+	if len(cfRules) == 0 || len(k8sRules) == 0 {
+		return true // Si l'une des listes est vide, considérons qu'elles sont équivalentes
+	}
+
+	v1, _ := json.Marshal(cfRules)  //nolint:errchkjson
+	v2, _ := json.Marshal(k8sRules) //nolint:errchkjson
+
+	return reflect.DeepEqual(v1, v2)
+}
+
 //nolint:cyclop
 func AreAccessReusablePoliciesEquivalent(cf *zero_trust.AccessPolicyGetResponse, k8s *v4alpha1.CloudflareAccessReusablePolicy) bool {
 	if cf == nil && k8s == nil {
@@ -26,29 +38,14 @@ func AreAccessReusablePoliciesEquivalent(cf *zero_trust.AccessPolicyGetResponse,
 		return false
 	}
 
-	if len(cf.Include) != 0 && len(k8s.Spec.Include) != 0 {
-		v1, _ := json.Marshal(cf.Include)       //nolint:errchkjson
-		v2, _ := json.Marshal(k8s.Spec.Include) //nolint:errchkjson
-		if !reflect.DeepEqual(v1, v2) {
-			return false
-		}
+	if !areAccessRulesEquivalent(cf.Include, k8s.Spec.Include.ToAccessRules()) {
+		return false
 	}
-
-	if len(cf.Exclude) != 0 && len(k8s.Spec.Exclude) != 0 {
-		v1, _ := json.Marshal(cf.Exclude)       //nolint:errchkjson
-		v2, _ := json.Marshal(k8s.Spec.Exclude) //nolint:errchkjson
-
-		if !reflect.DeepEqual(v1, v2) {
-			return false
-		}
+	if !areAccessRulesEquivalent(cf.Exclude, k8s.Spec.Exclude.ToAccessRules()) {
+		return false
 	}
-
-	if len(cf.Require) != 0 && len(k8s.Spec.Require) != 0 {
-		v1, _ := json.Marshal(cf.Require)       //nolint:errchkjson
-		v2, _ := json.Marshal(k8s.Spec.Require) //nolint:errchkjson
-		if !reflect.DeepEqual(v1, v2) {
-			return false
-		}
+	if !areAccessRulesEquivalent(cf.Require, k8s.Spec.Require.ToAccessRules()) {
+		return false
 	}
 
 	return true

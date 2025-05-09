@@ -34,26 +34,26 @@ type CloudflareAccessReusablePolicySpec struct {
 	Decision string `json:"decision"`
 
 	// Rules evaluated with an OR logical operator. A user needs to meet only one of the Include rules.
-	Include []CloudFlareAccessRule `json:"include"`
+	Include CloudFlareAccessRules `json:"include"`
 
 	// Rules evaluated with an AND logical operator. To match the policy, a user must meet all of the Require rules.
 	// +optional
-	Require []CloudFlareAccessRule `json:"require,omitempty"`
+	Require CloudFlareAccessRules `json:"require,omitempty"`
 
 	// Rules evaluated with a NOT logical operator. To match the policy, a user cannot meet any of the Exclude rules.
 	// +optional
-	Exclude []CloudFlareAccessRule `json:"exclude,omitempty"`
+	Exclude CloudFlareAccessRules `json:"exclude,omitempty"`
 }
 
-func (c CloudflareAccessReusablePolicySpec) GetInclude() []CloudFlareAccessRule {
+func (c CloudflareAccessReusablePolicySpec) GetInclude() CloudFlareAccessRules {
 	return c.Include
 }
 
-func (c CloudflareAccessReusablePolicySpec) GetExclude() []CloudFlareAccessRule {
+func (c CloudflareAccessReusablePolicySpec) GetExclude() CloudFlareAccessRules {
 	return c.Exclude
 }
 
-func (c CloudflareAccessReusablePolicySpec) GetRequire() []CloudFlareAccessRule {
+func (c CloudflareAccessReusablePolicySpec) GetRequire() CloudFlareAccessRules {
 	return c.Require
 }
 

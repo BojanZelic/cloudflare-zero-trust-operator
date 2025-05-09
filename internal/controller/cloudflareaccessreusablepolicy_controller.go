@@ -108,8 +108,7 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 	}
 
 	if reusablePolicy.Status.AccessReusablePolicyID != "" {
-		cfRP, err := api.AccessReusablePolicy(ctx, reusablePolicy.Status.AccessReusablePolicyID)
-		existingCfRP = cfRP
+		existingCfRP, err = api.AccessReusablePolicy(ctx, reusablePolicy.Status.AccessReusablePolicyID)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to get reusable policies")
 		}
@@ -146,19 +145,15 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 
 	if existingCfRP == nil {
 		//nolint:varnamelen
-		ag, err := api.CreateAccessReusablePolicy(ctx, reusablePolicy)
+		existingCfRP, err = api.CreateAccessReusablePolicy(ctx, reusablePolicy)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to create reusable policy")
 		}
-		err = r.ReconcileStatus(ctx, ag, reusablePolicy)
+		err = r.ReconcileStatus(ctx, existingCfRP, reusablePolicy)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to set reusable policy status")
 		}
-		existingCfRP = ag
-	}
-
-	castedAccessPolicy := reusablePolicy.ToCloudflare()
-	if !cfcollections.AreAccessReusablePoliciesEquivalent(existingCfRP, &castedAccessPolicy) {
+	} else if mustUpdate := !cfcollections.AreAccessReusablePoliciesEquivalent(existingCfRP, reusablePolicy); mustUpdate {
 		log.Info(reusablePolicy.Name + " diverge from remote counterpart, updating CF API...")
 
 		err := api.UpdateAccessReusablePolicy(ctx, reusablePolicy)
@@ -172,7 +167,7 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 			metav1.Condition{
 				Type:    statusAvailable,
 				Status:  metav1.ConditionTrue,
-				Reason:  "Reconciling",
+				Reason:  "Reconcilied",
 				Message: "AccessPolicy Reconciled Successfully",
 			},
 		)

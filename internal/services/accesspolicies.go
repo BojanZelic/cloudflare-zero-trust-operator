@@ -32,34 +32,32 @@ func (s *AccessApplicationPolicyRefMatcherService) PopulateWithCloudflareUUIDs(
 		exclude := policyRuler.GetExclude()
 		require := policyRuler.GetRequire()
 
-		managedCRFields := []*[]v4alpha1.CloudFlareAccessRule{
+		managedCFRules := []*v4alpha1.CloudFlareAccessRules{
 			&include,
 			&exclude,
 			&require,
 		}
 
-		for _, fields := range managedCRFields {
-			for j, field := range *fields { //nolint:varnamelen
-				for k, token := range field.AccessGroups { //nolint:varnamelen
-					if token.ValueFrom != nil {
-						accessGroup := &v4alpha1.CloudflareAccessGroup{}
-						if err := s.Client.Get(ctx, token.ValueFrom.ToNamespacedName(), accessGroup); err != nil {
-							return errors.Wrapf(err, "unable to reference CloudflareAccessGroup %s - %s", token.ValueFrom.Name, token.ValueFrom.Namespace)
-						}
-
-						(*fields)[j].AccessGroups[k].Value = accessGroup.Status.AccessGroupID
+		for _, rulesType := range managedCFRules {
+			for i, group := range rulesType.AccessGroups { //nolint:varnamelen
+				if group.ValueFrom != nil {
+					accessGroup := &v4alpha1.CloudflareAccessGroup{}
+					if err := s.Client.Get(ctx, group.ValueFrom.ToNamespacedName(), accessGroup); err != nil {
+						return errors.Wrapf(err, "unable to reference CloudflareAccessGroup %s - %s", group.ValueFrom.Name, group.ValueFrom.Namespace)
 					}
+
+					(*rulesType).AccessGroups[i].Value = accessGroup.Status.AccessGroupID
 				}
+			}
 
-				for k, token := range field.ServiceTokens { //nolint:varnamelen
-					if token.ValueFrom != nil {
-						serviceToken := &v4alpha1.CloudflareServiceToken{}
-						if err := s.Client.Get(ctx, token.ValueFrom.ToNamespacedName(), serviceToken); err != nil {
-							return errors.Wrapf(err, "unable to reference CloudflareServiceToken %s - %s", token.ValueFrom.Name, token.ValueFrom.Namespace)
-						}
-
-						(*fields)[j].ServiceTokens[k].Value = serviceToken.Status.ServiceTokenID
+			for i, token := range rulesType.ServiceTokens { //nolint:varnamelen
+				if token.ValueFrom != nil {
+					serviceToken := &v4alpha1.CloudflareServiceToken{}
+					if err := s.Client.Get(ctx, token.ValueFrom.ToNamespacedName(), serviceToken); err != nil {
+						return errors.Wrapf(err, "unable to reference CloudflareServiceToken %s - %s", token.ValueFrom.Name, token.ValueFrom.Namespace)
 					}
+
+					(*rulesType).ServiceTokens[i].Value = serviceToken.Status.ServiceTokenID
 				}
 			}
 		}

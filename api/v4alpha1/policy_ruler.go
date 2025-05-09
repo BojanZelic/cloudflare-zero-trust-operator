@@ -20,7 +20,7 @@ package v4alpha1
 
 // must be implemented by [CloudflareAccessReusablePolicySpec] / [CloudflareAccessGroupSpec]
 type GenericAccessPolicyRuler interface {
-	GetInclude() []CloudFlareAccessRule
-	GetExclude() []CloudFlareAccessRule
-	GetRequire() []CloudFlareAccessRule
+	GetInclude() CloudFlareAccessRules
+	GetExclude() CloudFlareAccessRules
+	GetRequire() CloudFlareAccessRules
 }

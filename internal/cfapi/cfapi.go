@@ -77,46 +77,38 @@ func (a *API) AccessGroup(ctx context.Context, accessGroupID string) (*zero_trus
 	return cfAG, errors.Wrap(err, "unable to get access group")
 }
 
-func (a *API) CreateAccessGroup(ctx context.Context,
-	name string,
-	include []zero_trust.AccessRuleUnionParam,
-	exclude []zero_trust.AccessRuleUnionParam,
-	require []zero_trust.AccessRuleUnionParam,
-) (*zero_trust.AccessGroupGetResponse, error) {
+func (a *API) CreateAccessGroup(ctx context.Context, group *v4alpha1.CloudflareAccessGroup) (*zero_trust.AccessGroupGetResponse, error) {
 	//
-	insert, err := a.client.ZeroTrust.Access.Groups.New(ctx, zero_trust.AccessGroupNewParams{
-		AccountID: cloudflare.F(a.CFAccountID),
-		Name:      cloudflare.F(name),
-		Include:   cloudflare.F(include),
-		Exclude:   cloudflare.F(exclude),
-		Require:   cloudflare.F(require),
-	})
+	insert, err := a.client.ZeroTrust.Access.Groups.New(ctx,
+		zero_trust.AccessGroupNewParams{
+			AccountID: cloudflare.F(a.CFAccountID),
+			Name:      cloudflare.F(group.Spec.Name),
+			Include:   cloudflare.F(group.Spec.Include.ToAccessRuleParams()),
+			Exclude:   cloudflare.F(group.Spec.Exclude.ToAccessRuleParams()),
+			Require:   cloudflare.F(group.Spec.Require.ToAccessRuleParams()),
+		},
+	)
 
 	//
 	if err != nil {
-		dummy := zero_trust.AccessGroupGetResponse{}
-		return &dummy, errors.Wrap(err, "unable to create access groups")
+		return nil, errors.Wrap(err, "unable to create access groups")
 	}
 
 	//
 	return a.AccessGroup(ctx, insert.ID)
 }
 
-func (a *API) UpdateAccessGroup(ctx context.Context,
-	groupId string,
-	name string,
-	include []zero_trust.AccessRuleUnionParam,
-	exclude []zero_trust.AccessRuleUnionParam,
-	require []zero_trust.AccessRuleUnionParam,
-) error {
+func (a *API) UpdateAccessGroup(ctx context.Context, group *v4alpha1.CloudflareAccessGroup) error {
 	//
-	_, err := a.client.ZeroTrust.Access.Groups.Update(ctx, groupId, zero_trust.AccessGroupUpdateParams{
-		AccountID: cloudflare.F(a.CFAccountID),
-		Name:      cloudflare.F(name),
-		Include:   cloudflare.F(include),
-		Exclude:   cloudflare.F(exclude),
-		Require:   cloudflare.F(require),
-	})
+	_, err := a.client.ZeroTrust.Access.Groups.Update(ctx, group.Status.AccessGroupID,
+		zero_trust.AccessGroupUpdateParams{
+			AccountID: cloudflare.F(a.CFAccountID),
+			Name:      cloudflare.F(group.Spec.Name),
+			Include:   cloudflare.F(group.Spec.Include.ToAccessRuleParams()),
+			Exclude:   cloudflare.F(group.Spec.Exclude.ToAccessRuleParams()),
+			Require:   cloudflare.F(group.Spec.Require.ToAccessRuleParams()),
+		},
+	)
 
 	return errors.Wrap(err, "unable to update access groups")
 }
@@ -181,13 +173,13 @@ func (a *API) CreateAccessApplication(
 	cfApp, err := a.client.ZeroTrust.Access.Applications.New(ctx, zero_trust.AccessApplicationNewParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 		Body: zero_trust.AccessApplicationNewParamsBody{
-			Name:                   cloudflare.F(app.Spec.Name),
-			Domain:                 cloudflare.F(app.Spec.Domain),
-			Type:                   cloudflare.F(app.Spec.Type),
-			AppLauncherVisible:     cloudflare.F(*app.Spec.AppLauncherVisible),
-			AllowedIdPs:            cloudflare.F(any(app.Spec.AllowedIdps)),
-			AutoRedirectToIdentity: cloudflare.F(*app.Spec.AutoRedirectToIdentity),
-			// Policies:			// We rather handle policies definition once created via [ApplyAccessReusablePolicies]
+			Name:                    cloudflare.F(app.Spec.Name),
+			Domain:                  cloudflare.F(app.Spec.Domain),
+			Type:                    cloudflare.F(app.Spec.Type),
+			AppLauncherVisible:      cloudflare.F(*app.Spec.AppLauncherVisible),
+			AllowedIdPs:             cloudflare.F(any(app.Spec.AllowedIdps)),
+			AutoRedirectToIdentity:  cloudflare.F(*app.Spec.AutoRedirectToIdentity),
+			Policies:                cloudflare.F(any(app.Status.ReusablePolicyIDs)),
 			SessionDuration:         cloudflare.F(app.Spec.SessionDuration),
 			EnableBindingCookie:     cloudflare.F(*app.Spec.EnableBindingCookie),
 			HTTPOnlyCookieAttribute: cloudflare.F(*app.Spec.HTTPOnlyCookieAttribute),
@@ -196,8 +188,7 @@ func (a *API) CreateAccessApplication(
 	})
 
 	if err != nil {
-		dummy := zero_trust.AccessApplicationGetResponse{}
-		return &dummy, errors.Wrap(err, "unable to create access applications")
+		return nil, errors.Wrap(err, "unable to create access applications")
 	}
 
 	return a.AccessApplication(ctx, cfApp.ID)
@@ -212,13 +203,13 @@ func (a *API) UpdateAccessApplication(
 		zero_trust.AccessApplicationUpdateParams{
 			AccountID: cloudflare.F(a.CFAccountID),
 			Body: zero_trust.AccessApplicationUpdateParamsBody{
-				Name:                   cloudflare.F(app.Name),
-				Domain:                 cloudflare.F(app.Spec.Domain),
-				Type:                   cloudflare.F(app.Spec.Type),
-				AppLauncherVisible:     cloudflare.F(*app.Spec.AppLauncherVisible),
-				AllowedIdPs:            cloudflare.F(any(app.Spec.AllowedIdps)),
-				AutoRedirectToIdentity: cloudflare.F(*app.Spec.AutoRedirectToIdentity),
-				// Policies:			// We rather handle policies updates in [ApplyAccessReusablePolicies]
+				Name:                    cloudflare.F(app.Name),
+				Domain:                  cloudflare.F(app.Spec.Domain),
+				Type:                    cloudflare.F(app.Spec.Type),
+				AppLauncherVisible:      cloudflare.F(*app.Spec.AppLauncherVisible),
+				AllowedIdPs:             cloudflare.F(any(app.Spec.AllowedIdps)),
+				AutoRedirectToIdentity:  cloudflare.F(*app.Spec.AutoRedirectToIdentity),
+				Policies:                cloudflare.F(any(app.Status.ReusablePolicyIDs)),
 				SessionDuration:         cloudflare.F(app.Spec.SessionDuration),
 				EnableBindingCookie:     cloudflare.F(*app.Spec.EnableBindingCookie),
 				HTTPOnlyCookieAttribute: cloudflare.F(*app.Spec.HTTPOnlyCookieAttribute),
@@ -227,8 +218,7 @@ func (a *API) UpdateAccessApplication(
 		})
 
 	if err != nil {
-		dummy := zero_trust.AccessApplicationGetResponse{}
-		return &dummy, errors.Wrap(err, "unable to update access applications")
+		return nil, errors.Wrap(err, "unable to update access applications")
 	}
 
 	return a.AccessApplication(ctx, cfApp.ID)
@@ -241,27 +231,6 @@ func (a *API) DeleteAccessApplication(ctx context.Context, appID string) error {
 	})
 
 	return errors.Wrap(err, "unable to create access applications")
-}
-
-//
-//
-//
-
-func (a *API) ApplyAccessReusablePolicies(ctx context.Context, appID string, orderedPolicyIDs []string) (*zero_trust.AccessApplicationUpdateResponse, error) {
-	//
-	cfApp, err := a.client.ZeroTrust.Access.Applications.Update(ctx, appID, zero_trust.AccessApplicationUpdateParams{
-		AccountID: cloudflare.F(a.CFAccountID),
-		Body: zero_trust.AccessApplicationUpdateParamsBody{
-			Policies: cloudflare.F(any(orderedPolicyIDs)),
-		},
-	})
-
-	if err != nil {
-		dummy := zero_trust.AccessApplicationUpdateResponse{}
-		return &dummy, errors.Wrap(err, "unable to update access applications")
-	}
-
-	return cfApp, nil
 }
 
 //
@@ -282,9 +251,9 @@ func (a *API) CreateAccessReusablePolicy(ctx context.Context, arp *v4alpha1.Clou
 		AccountID: cloudflare.F(a.CFAccountID),
 		Decision:  cloudflare.F(zero_trust.Decision(arp.Spec.Decision)),
 		Name:      cloudflare.F(arp.Spec.Name),
-		Include:   cloudflare.F(v4alpha1.ToAccessRuleParams(&arp.Spec.Include)),
-		Exclude:   cloudflare.F(v4alpha1.ToAccessRuleParams(&arp.Spec.Exclude)),
-		Require:   cloudflare.F(v4alpha1.ToAccessRuleParams(&arp.Spec.Require)),
+		Include:   cloudflare.F(arp.Spec.Include.ToAccessRuleParams()),
+		Exclude:   cloudflare.F(arp.Spec.Exclude.ToAccessRuleParams()),
+		Require:   cloudflare.F(arp.Spec.Require.ToAccessRuleParams()),
 	})
 
 	if err != nil {
@@ -297,9 +266,9 @@ func (a *API) CreateAccessReusablePolicy(ctx context.Context, arp *v4alpha1.Clou
 func (a *API) UpdateAccessReusablePolicy(ctx context.Context, arp *v4alpha1.CloudflareAccessReusablePolicy) error {
 	_, err := a.client.ZeroTrust.Access.Policies.Update(ctx, arp.Status.AccessReusablePolicyID, zero_trust.AccessPolicyUpdateParams{
 		AccountID: cloudflare.F(a.CFAccountID),
-		Include:   cloudflare.F(v4alpha1.ToAccessRuleParams(&arp.Spec.Include)),
-		Exclude:   cloudflare.F(v4alpha1.ToAccessRuleParams(&arp.Spec.Exclude)),
-		Require:   cloudflare.F(v4alpha1.ToAccessRuleParams(&arp.Spec.Require)),
+		Include:   cloudflare.F(arp.Spec.Include.ToAccessRuleParams()),
+		Exclude:   cloudflare.F(arp.Spec.Exclude.ToAccessRuleParams()),
+		Require:   cloudflare.F(arp.Spec.Require.ToAccessRuleParams()),
 	})
 
 	return errors.Wrap(err, "unable to update reusable access policy")

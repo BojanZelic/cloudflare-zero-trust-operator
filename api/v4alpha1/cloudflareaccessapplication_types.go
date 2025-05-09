@@ -54,7 +54,7 @@ type CloudflareAccessApplicationSpec struct {
 	// +kubebuilder:default=false
 	AutoRedirectToIdentity *bool `json:"autoRedirectToIdentity,omitempty"`
 
-	// PolicyKeys is an ordered set of [CloudflareAccessReusablePolicySpec] CRDs names, which should be applied to this app.
+	// PolicyKeys is an ordered slice of [CloudflareAccessReusablePolicy] CRDs names, which should be applied to this app.
 	// Order determines precedence
 	// +optional
 	PolicyKeys []string `json:"policyKeys,omitempty"`
@@ -84,9 +84,12 @@ type CloudflareAccessApplicationStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	AccessApplicationID string      `json:"accessApplicationId,omitempty"`
-	CreatedAt           metav1.Time `json:"createdAt"`
-	UpdatedAt           metav1.Time `json:"updatedAt"`
+	AccessApplicationID string `json:"accessApplicationId,omitempty"`
+
+	// ordered CloudFlare's policies IDs, resolved by controller from "Spec.PolicyKeys"
+	ReusablePolicyIDs []string    `json:"reusablePolicyIds,omitempty"`
+	CreatedAt         metav1.Time `json:"createdAt"`
+	UpdatedAt         metav1.Time `json:"updatedAt"`
 
 	// Conditions store the status conditions of the CloudflareAccessApplication
 	// +operator-sdk:csv:customresourcedefinitions:type=status

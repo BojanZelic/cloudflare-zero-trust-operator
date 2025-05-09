@@ -18,13 +18,13 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	v4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/services"
 	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	"github.com/pkg/errors"
@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -78,6 +79,40 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		// Else, return with failure
 		log.Error(err, "Failed to get CloudflareAccessApplication")
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessApplication")
+	}
+
+	//
+	// Ensure all PolicyKeys underlying [CloudflareAccessReusablePolicy] references exist and are available,
+	// then store their CF IDs
+	//
+
+	var rp v4alpha1.CloudflareAccessReusablePolicy
+	orderedPolicyIds := []string{}
+	for _, policyKey := range app.Spec.PolicyKeys {
+		err := r.Get(ctx, types.NamespacedName{Name: policyKey, Namespace: req.Namespace}, &rp)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Referenced Policy Key does not correspond to an existing CloudflareAccessReusablePolicy")
+		}
+
+		ready := false
+		for _, cond := range rp.Status.Conditions {
+			if cond.Type == statusAvailable && cond.Status == metav1.ConditionTrue {
+				ready = true
+				break
+			}
+		}
+		if !ready {
+			log.Info("Referenced CloudflareAccessReusablePolicy not available yet, requeuing")
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		}
+
+		// if ready, we know for sure that AccessReusablePolicyID exists, so we extract it
+		orderedPolicyIds = append(orderedPolicyIds, rp.Status.AccessReusablePolicyID)
+	}
+
+	app.Status.ReusablePolicyIDs = orderedPolicyIds
+	if err := r.Client.Status().Update(ctx, app); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
 	}
 
 	//
@@ -188,7 +223,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		if err = r.ReconcileStatus(ctx, cfAccessApp, app); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "issue updating status")
 		}
-	} else if !cfcollections.AreAccessApplicationsEquivalent(cfAccessApp, app) {
+	} else if needsUpdate := !cfcollections.AreAccessApplicationsEquivalent(cfAccessApp, app); needsUpdate {
 		log.Info("app has changed - updating...", "name", app.Spec.Name, "domain", app.Spec.Domain)
 		cfAccessApp, err = api.UpdateAccessApplication(ctx, app)
 		if err != nil {
@@ -201,56 +236,15 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	}
 
 	//
-	// Now, lets have a look at the associated policies
+	// All set, now mark ressource as available
 	//
-
-	currentApplicationPolicies, err := api.AccessApplicationPolicies(ctx, app.Status.AccessApplicationID)
-	currentApplicationPolicies.SortByPrecedence()
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "unable get  access policies")
-	}
-
-	apService := &services.AccessApplicationPolicyRefMatcherService{
-		Client: r.Client,
-		Log:    log,
-	}
-	if err := apService.PopulateWithCloudflareUUIDs(ctx, app.Spec.Policies.ToGenericPolicyRuler()); err != nil {
-		_, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
-			meta.SetStatusCondition(&app.Status.Conditions,
-				metav1.Condition{
-					Type:    statusDegrated,
-					Status:  metav1.ConditionFalse,
-					Reason:  "InvalidReference",
-					Message: err.Error(),
-				},
-			)
-
-			return nil
-		})
-
-		log.Info("failed to update  access policies")
-
-		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
-		}
-
-		// don't requeue
-		return ctrl.Result{}, nil
-	}
-	expectedApplicationPolicies := app.Spec.Policies.ToCloudflare()
-	expectedApplicationPolicies.SortByPrecedence()
-
-	err = r.ReconcileApplicationPolicies(ctx, api, app, currentApplicationPolicies, expectedApplicationPolicies)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "unable get  access policies")
-	}
 
 	if _, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
 		meta.SetStatusCondition(&app.Status.Conditions,
 			metav1.Condition{
 				Type:    statusAvailable,
 				Status:  metav1.ConditionTrue,
-				Reason:  "Reconciling",
+				Reason:  "Reconcilied",
 				Message: "App Reconciled Successfully",
 			},
 		)
@@ -279,53 +273,6 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Cont
 	if err := r.Client.Status().Update(ctx, k8sApp); err != nil {
 		return errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
 	}
-	return nil
-}
-
-//nolint:gocognit,cyclop
-func (r *CloudflareAccessApplicationReconciler) ReconcileApplicationPolicies(
-	ctx context.Context, api *cfapi.API,
-	app *v4alpha1.CloudflareAccessApplication,
-	current, expected cfcollections.AccessApplicationPolicyCollection,
-) error {
-	log := logger.FromContext(ctx)
-
-	for i := 0; i < len(current) || i < len(expected); i++ { //nolint:varnamelen
-		var k8sPolicy *zero_trust.AccessApplicationPolicyListResponse
-		var cfPolicy *zero_trust.AccessApplicationPolicyListResponse
-		var err error
-		var action string
-		if i < len(current) {
-			cfPolicy = &current[i]
-		}
-		if i < len(expected) {
-			k8sPolicy = &expected[i]
-		}
-
-		if !cfcollections.AreK8SAccessPoliciesPresent(cfPolicy, k8sPolicy) {
-			if cfPolicy == nil && k8sPolicy != nil {
-				action = "create"
-				log.Info("accesspolicy is missing - creating...", "policyName", k8sPolicy.Name, "domain", app.Spec.Domain)
-				err = api.CreateAccessApplicationPolicies(ctx, app.Status.AccessApplicationID, *k8sPolicy)
-			}
-			if k8sPolicy == nil && cfPolicy != nil {
-				action = "delete"
-				log.Info("accesspolicy is removed - deleting...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
-				err = api.DeleteAccessApplicationPolicy(ctx, app.Status.AccessApplicationID, cfPolicy.ID)
-			}
-			if cfPolicy != nil && k8sPolicy != nil {
-				action = "update"
-				k8sPolicy.ID = cfPolicy.ID
-				log.Info("accesspolicy is changed - updating...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
-				err = api.UpdateAccessApplicationPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
-			}
-
-			if err != nil {
-				return errors.Wrapf(err, "Unable to %s access policy", action)
-			}
-		}
-	}
-
 	return nil
 }
 

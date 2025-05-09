@@ -22,7 +22,7 @@ func (c AccessGroupCollection) GetByName(name string) *zero_trust.AccessGroupLis
 	return nil
 }
 
-func AreAccessGroupsEquivalent(cf zero_trust.AccessGroupGetResponse, k8s v4alpha1.CloudflareAccessGroup) bool {
+func AreAccessGroupsEquivalent(cf *zero_trust.AccessGroupGetResponse, k8s *v4alpha1.CloudflareAccessGroup) bool {
 	if cf.Name != k8s.Spec.Name {
 		return false
 	}

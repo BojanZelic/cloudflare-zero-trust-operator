@@ -40,7 +40,7 @@ var _ = Describe("AccessApplicationPolicy", Label("AccessApplicationPolicy"), fu
 				Precedence: 1,
 			}
 
-			Expect(cfcollections.AreK8SAccessPoliciesPresent(&first, &second)).To(BeTrue())
+			Expect(cfcollections.DoK8SAccessPoliciesMatch(&first, &second)).To(BeTrue())
 		})
 	})
 	Context("AccessApplicationPolicyCollection test", func() {

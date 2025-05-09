@@ -261,7 +261,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 			metav1.Condition{
 				Type:    statusAvailable,
 				Status:  metav1.ConditionTrue,
-				Reason:  "Reconciling",
+				Reason:  "Reconcilied",
 				Message: "CloudflareServiceToken Reconciled Successfully",
 			},
 		)
