@@ -94,13 +94,8 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				Spec: v4alpha1.CloudflareAccessReusablePolicySpec{
 					Name: "bad-reference policies",
 					Include: v4alpha1.CloudFlareAccessRules{
-						AccessGroups: []v4alpha1.AccessGroup{
-							{
-								ValueFrom: &v4alpha1.AccessGroupReference{
-									Name:      "idontexist",
-									Namespace: "inanynamespace",
-								},
-							},
+						AccessGroupRefs: []string{
+							"inanynamespace/idontexist",
 						},
 					},
 				},
@@ -178,21 +173,11 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 					Name:     "reference_test",
 					Decision: "allow",
 					Include: v4alpha1.CloudFlareAccessRules{
-						AccessGroups: []v4alpha1.AccessGroup{
-							{
-								ValueFrom: &v4alpha1.AccessGroupReference{
-									Name:      group.Name,
-									Namespace: group.Namespace,
-								},
-							},
+						AccessGroupRefs: []string{
+							v4alpha1.ParsedNamespacedName(types.NamespacedName{Name: group.Name, Namespace: group.Namespace}),
 						},
-						ServiceTokens: []v4alpha1.ServiceToken{
-							{
-								ValueFrom: &v4alpha1.ServiceTokenReference{
-									Name:      token.Name,
-									Namespace: token.Namespace,
-								},
-							},
+						ServiceTokenRefs: []string{
+							v4alpha1.ParsedNamespacedName(types.NamespacedName{Name: token.Name, Namespace: token.Namespace}),
 						},
 					},
 				},
@@ -213,17 +198,17 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			//
 			//
 
-			By("Creating the custom resource for the Kind CloudflareAccessReusablePolicy")
-			apps := &v4alpha1.CloudflareAccessReusablePolicy{
+			By("Creating the custom resource for the Kind CloudflareAccessApplication")
+			apps := &v4alpha1.CloudflareAccessApplication{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      typeNamespaceName.Name,
 					Namespace: namespace.Name,
 				},
-				Spec: v4alpha1.CloudflareAccessReusablePolicySpec{
-					Name:   "reference policies",
+				Spec: v4alpha1.CloudflareAccessApplicationSpec{
+					Name:   "my test app",
 					Domain: "reference-policies.cf-operator-tests.uk",
 					PolicyRefs: []string{
-						RPTypeNamespaceName.Name,
+						v4alpha1.ParsedNamespacedName(RPTypeNamespaceName),
 					},
 				},
 			}
@@ -249,8 +234,10 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 					Namespace: typeNamespaceName.Namespace,
 				},
 				Spec: v4alpha1.CloudflareAccessReusablePolicySpec{
-					Name:   "integration test",
-					Domain: "integration.cf-operator-tests.uk",
+					Name: "integration test",
+					Include: v4alpha1.CloudFlareAccessRules{
+						EmailDomains: []string{"integration.cf-operator-tests.uk"},
+					},
 				},
 			}
 			err := k8sClient.Create(ctx, apps)
@@ -317,8 +304,10 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 					Namespace: namespace.Name,
 				},
 				Spec: v4alpha1.CloudflareAccessReusablePolicySpec{
-					Name:    "missing application",
-					Domains: []string{"recreate-application.cf-operator-tests.uk"},
+					Name: "missing application",
+					Include: v4alpha1.CloudFlareAccessRules{
+						EmailDomains: []string{"recreate-application.cf-operator-tests.uk"},
+					},
 				},
 			}
 

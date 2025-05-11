@@ -40,7 +40,7 @@ spec:
   include:
     - emails:
       - testemail3@domain.com
-    - groupRefs:
+    - accessGroupRefs:
       - accessgroup-example # or, use "{metadata.namespace}/{metadata.name}" for explicit targeting
 ```
 

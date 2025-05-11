@@ -44,7 +44,7 @@ spec:
   include:
     - emails:
       - testemail3@domain.com
-    - groupRefs:
+    - accessGroupRefs:
       - accessgroup-example # specify the CRD resource name
 ```
 
@@ -94,7 +94,7 @@ spec:
   include:
     - emails:
       - testemail3@domain.com
-    - groupRefs:
+    - accessGroupRefs:
       - accessgroup-example
     - name: Allow my rules
       decision: allow
@@ -117,7 +117,7 @@ spec:
           - DE
         - loginMethods:
           - "00000000-0000-0000-0000-00000000000000" # [check this](./docs/Advanced_Usage.md) for more infos 
-        - groupRefs:
+        - accessGroupRefs:
           - my-access-group # specify the CRD resource name of a previously declared CloudflareAccessGroup
         - serviceTokenRefs:
           - my-service-token # specify the CRD resource name of a previously declared CloudflareAccessServiceToken

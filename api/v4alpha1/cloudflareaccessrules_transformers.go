@@ -77,7 +77,7 @@ func (rules *CloudFlareAccessRules) ToAccessRuleParams(resolvedCfIds ResolvedClo
 			}),
 		})
 	}
-	for _, group := range rules.GroupRefs {
+	for _, group := range rules.AccessGroupRefs {
 		out = append(out, zero_trust.GroupRuleParam{
 			Group: cloudflare.F(zero_trust.GroupRuleGroupParam{
 				ID: cloudflare.F(group),
@@ -197,7 +197,7 @@ func (rules *CloudFlareAccessRules) ToAccessRules(resolvedCfIds ResolvedCloudfla
 			},
 		})
 	}
-	for _, group := range rules.GroupRefs {
+	for _, group := range rules.AccessGroupRefs {
 		out = append(out, zero_trust.AccessRule{
 			Group: zero_trust.GroupRuleGroup{
 				ID: group,

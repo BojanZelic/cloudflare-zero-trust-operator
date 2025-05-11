@@ -51,7 +51,7 @@ type CloudFlareAccessRules struct {
 	ServiceTokenRefs []string `json:"serviceTokenRefs,omitempty"`
 
 	// Would match access groups refs by {name} or {namespace/name} of [CloudflareAccessGroup]
-	GroupRefs []string `json:"accessGroupRefs,omitempty"`
+	AccessGroupRefs []string `json:"accessGroupRefs,omitempty"`
 
 	// Matches Google Groups
 	GoogleGroups []GoogleGroup `json:"googleGroups,omitempty"`
@@ -95,5 +95,5 @@ func (rules *CloudFlareAccessRules) GetNamespacedServiceTokenRefs(contextNamespa
 }
 
 func (rules *CloudFlareAccessRules) GetNamespacedGroupRefs(contextNamespace string) ([]types.NamespacedName, error) {
-	return parseNamespacedNames(rules.GroupRefs, contextNamespace)
+	return parseNamespacedNames(rules.AccessGroupRefs, contextNamespace)
 }

@@ -224,7 +224,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 			// bellow is for illustration only
 			refs := []string{"access-group-1", "access-group-2"}
 			accessGroup.Spec.Include = v4alpha1.CloudFlareAccessRules{
-				GroupRefs: refs,
+				AccessGroupRefs: refs,
 			}
 
 			// these would be resolved CloudFlare UUIDs of above underlying resources

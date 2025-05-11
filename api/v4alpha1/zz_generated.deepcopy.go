@@ -78,8 +78,8 @@ func (in *CloudFlareAccessRules) DeepCopyInto(out *CloudFlareAccessRules) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.GroupRefs != nil {
-		in, out := &in.GroupRefs, &out.GroupRefs
+	if in.AccessGroupRefs != nil {
+		in, out := &in.AccessGroupRefs, &out.AccessGroupRefs
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}

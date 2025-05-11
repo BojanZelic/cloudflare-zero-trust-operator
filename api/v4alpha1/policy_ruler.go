@@ -70,23 +70,23 @@ func PopulateWithCloudflareUUIDs(
 		//
 		//
 
-		groupRefs, err := rulesType.GetNamespacedGroupRefs(contextNamespace)
+		accessGroupRefs, err := rulesType.GetNamespacedGroupRefs(contextNamespace)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "issue while populating Cloudflare UUID")
 		}
-		for _, groupRef := range groupRefs {
+		for _, accessGroupRef := range accessGroupRefs {
 			//
 			accessGroup := &CloudflareAccessGroup{}
 
 			//
-			if err := k8sCli.Get(ctx, groupRef, accessGroup); err != nil {
-				return ctrl.Result{}, errors.Wrapf(err, "unable to reference CloudflareAccessGroup %s - %s", groupRef.Name, groupRef.Namespace)
+			if err := k8sCli.Get(ctx, accessGroupRef, accessGroup); err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "unable to reference CloudflareAccessGroup %s - %s", accessGroupRef.Name, accessGroupRef.Namespace)
 			}
 
 			//
 			if accessGroup.Status.AccessGroupID == "" {
 				return ctrl.Result{RequeueAfter: 10 * time.Second},
-					errors.Errorf("CloudflareAccessGroup %s - %s not ready yet", groupRef.Name, groupRef.Namespace)
+					errors.Errorf("CloudflareAccessGroup %s - %s not ready yet", accessGroupRef.Name, accessGroupRef.Namespace)
 			}
 
 			//
