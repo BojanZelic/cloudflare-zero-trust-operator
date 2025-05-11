@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,10 +21,9 @@ import (
 
 	v4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcompare"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/services"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -126,16 +125,12 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		}
 	}
 
-	apService := &services.AccessApplicationPolicyRefMatcherService{
-		Client: r.Client,
-		Log:    log,
-	}
-
-	if err := apService.PopulateWithCloudflareUUIDs(ctx, []v4alpha1.GenericAccessPolicyRuler{accessGroup.Spec}); err != nil {
+	//
+	if popRes, err := v4alpha1.PopulateWithCloudflareUUIDs(ctx, req.Namespace, r.Client, accessGroup); err != nil {
 		_, err = controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
 			meta.SetStatusCondition(&accessGroup.Status.Conditions,
 				metav1.Condition{
-					Type:    statusDegrated,
+					Type:    statusDegraded,
 					Status:  metav1.ConditionFalse,
 					Reason:  "InvalidReference",
 					Message: err.Error(),
@@ -145,14 +140,14 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 			return nil
 		})
 
-		log.Info("failed to update access policies")
-
+		//
+		log.Info("failed to update access group's referenced CloudFlare UUIDs")
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessGroup status")
 		}
 
-		// don't requeue
-		return ctrl.Result{}, nil
+		// might requeue !
+		return popRes, nil
 	}
 
 	if existingCfAG == nil {
@@ -165,7 +160,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to set access group status")
 		}
-	} else if needsUpdate := !cfcollections.AreAccessGroupsEquivalent(existingCfAG, accessGroup); needsUpdate {
+	} else if needsUpdate := !cfcompare.AreAccessGroupsEquivalent(existingCfAG, accessGroup); needsUpdate {
 		log.Info(accessGroup.Spec.Name + " has changed, updating...")
 
 		err := api.UpdateAccessGroup(ctx, accessGroup)

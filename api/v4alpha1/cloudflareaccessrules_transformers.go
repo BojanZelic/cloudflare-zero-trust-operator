@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,8 +21,10 @@ import (
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 )
 
+// Requires both access rules and CF UUIDs that have been referenced by them
+//
 //nolint:gocognit,cyclop
-func (rules *CloudFlareAccessRules) ToAccessRuleParams() []zero_trust.AccessRuleUnionParam {
+func (rules *CloudFlareAccessRules) ToAccessRuleParams(resolvedCfIds ResolvedCloudflareIDs) []zero_trust.AccessRuleUnionParam {
 	out := []zero_trust.AccessRuleUnionParam{}
 
 	for _, email := range rules.Emails {
@@ -46,14 +48,12 @@ func (rules *CloudFlareAccessRules) ToAccessRuleParams() []zero_trust.AccessRule
 			}),
 		})
 	}
-	for _, token := range rules.ServiceTokens {
-		if token.Value != "" {
-			out = append(out, zero_trust.ServiceTokenRuleParam{
-				ServiceToken: cloudflare.F(zero_trust.ServiceTokenRuleServiceTokenParam{
-					TokenID: cloudflare.F(token.Value),
-				}),
-			})
-		}
+	for _, token := range resolvedCfIds.ServiceTokenRefCfIds {
+		out = append(out, zero_trust.ServiceTokenRuleParam{
+			ServiceToken: cloudflare.F(zero_trust.ServiceTokenRuleServiceTokenParam{
+				TokenID: cloudflare.F(token),
+			}),
+		})
 	}
 	if rules.AnyAccessServiceToken != nil && *rules.AnyAccessServiceToken {
 		out = append(out, zero_trust.AnyValidServiceTokenRuleParam{
@@ -77,14 +77,12 @@ func (rules *CloudFlareAccessRules) ToAccessRuleParams() []zero_trust.AccessRule
 			}),
 		})
 	}
-	for _, group := range rules.AccessGroups {
-		if group.Value != "" {
-			out = append(out, zero_trust.GroupRuleParam{
-				Group: cloudflare.F(zero_trust.GroupRuleGroupParam{
-					ID: cloudflare.F(group.Value),
-				}),
-			})
-		}
+	for _, group := range rules.GroupRefs {
+		out = append(out, zero_trust.GroupRuleParam{
+			Group: cloudflare.F(zero_trust.GroupRuleGroupParam{
+				ID: cloudflare.F(group),
+			}),
+		})
 	}
 
 	for _, commonName := range rules.CommonNames {
@@ -123,12 +121,12 @@ func (rules *CloudFlareAccessRules) ToAccessRuleParams() []zero_trust.AccessRule
 		})
 	}
 
-	for _, oidcClaim := range rules.OIDCClaims {
+	for _, samlGroup := range rules.SAMLGroups {
 		out = append(out, zero_trust.SAMLGroupRuleParam{
 			SAML: cloudflare.F(zero_trust.SAMLGroupRuleSAMLParam{
-				IdentityProviderID: cloudflare.F(oidcClaim.IdentityProviderID),
-				AttributeName:      cloudflare.F(oidcClaim.Name),
-				AttributeValue:     cloudflare.F(oidcClaim.Value),
+				IdentityProviderID: cloudflare.F(samlGroup.IdentityProviderID),
+				AttributeName:      cloudflare.F(samlGroup.Name),
+				AttributeValue:     cloudflare.F(samlGroup.Value),
 			}),
 		})
 	}
@@ -146,7 +144,7 @@ func (rules *CloudFlareAccessRules) ToAccessRuleParams() []zero_trust.AccessRule
 }
 
 //nolint:gocognit,cyclop
-func (rules *CloudFlareAccessRules) ToAccessRules() []zero_trust.AccessRule {
+func (rules *CloudFlareAccessRules) ToAccessRules(resolvedCfIds ResolvedCloudflareIDs) []zero_trust.AccessRule {
 	out := []zero_trust.AccessRule{}
 
 	for _, email := range rules.Emails {
@@ -170,14 +168,12 @@ func (rules *CloudFlareAccessRules) ToAccessRules() []zero_trust.AccessRule {
 			},
 		})
 	}
-	for _, token := range rules.ServiceTokens {
-		if token.Value != "" {
-			out = append(out, zero_trust.AccessRule{
-				ServiceToken: zero_trust.ServiceTokenRuleServiceToken{
-					TokenID: token.Value,
-				},
-			})
-		}
+	for _, token := range rules.ServiceTokenRefs {
+		out = append(out, zero_trust.AccessRule{
+			ServiceToken: zero_trust.ServiceTokenRuleServiceToken{
+				TokenID: token,
+			},
+		})
 	}
 	if rules.AnyAccessServiceToken != nil && *rules.AnyAccessServiceToken {
 		out = append(out, zero_trust.AccessRule{
@@ -201,14 +197,12 @@ func (rules *CloudFlareAccessRules) ToAccessRules() []zero_trust.AccessRule {
 			},
 		})
 	}
-	for _, group := range rules.AccessGroups {
-		if group.Value != "" {
-			out = append(out, zero_trust.AccessRule{
-				Group: zero_trust.GroupRuleGroup{
-					ID: group.Value,
-				},
-			})
-		}
+	for _, group := range rules.GroupRefs {
+		out = append(out, zero_trust.AccessRule{
+			Group: zero_trust.GroupRuleGroup{
+				ID: group,
+			},
+		})
 	}
 
 	for _, commonName := range rules.CommonNames {
@@ -247,12 +241,12 @@ func (rules *CloudFlareAccessRules) ToAccessRules() []zero_trust.AccessRule {
 		})
 	}
 
-	for _, oidcClaim := range rules.OIDCClaims {
+	for _, samlGroup := range rules.SAMLGroups {
 		out = append(out, zero_trust.AccessRule{
 			SAML: zero_trust.SAMLGroupRuleSAML{
-				IdentityProviderID: oidcClaim.IdentityProviderID,
-				AttributeName:      oidcClaim.Name,
-				AttributeValue:     oidcClaim.Value,
+				IdentityProviderID: samlGroup.IdentityProviderID,
+				AttributeName:      samlGroup.Name,
+				AttributeValue:     samlGroup.Value,
 			},
 		})
 	}

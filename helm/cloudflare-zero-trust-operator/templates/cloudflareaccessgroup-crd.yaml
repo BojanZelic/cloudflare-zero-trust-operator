@@ -129,18 +129,18 @@ spec:
                       items:
                         type: string
                       type: array
-                    oidcClaims:
-                      description: OIDC Claims
+                    samlGroups:
+                      description: SAML Groups
                       items:
                         properties:
                           identityProviderId:
                             description: Identity Provider Id
                             type: string
                           name:
-                            description: Name of the OIDC claim
+                            description: Name of the SAML group
                             type: string
                           value:
-                            description: Value of the OIDC claim
+                            description: Value of the SAML group
                             type: string
                         required:
                         - identityProviderId
@@ -282,18 +282,18 @@ spec:
                       items:
                         type: string
                       type: array
-                    oidcClaims:
-                      description: OIDC Claims
+                    samlGroups:
+                      description: SAML Groups
                       items:
                         properties:
                           identityProviderId:
                             description: Identity Provider Id
                             type: string
                           name:
-                            description: Name of the OIDC claim
+                            description: Name of the SAML group
                             type: string
                           value:
-                            description: Value of the OIDC claim
+                            description: Value of the SAML group
                             type: string
                         required:
                         - identityProviderId
@@ -438,18 +438,18 @@ spec:
                       items:
                         type: string
                       type: array
-                    oidcClaims:
-                      description: OIDC Claims
+                    samlGroups:
+                      description: SAML Groups
                       items:
                         properties:
                           identityProviderId:
                             description: Identity Provider Id
                             type: string
                           name:
-                            description: Name of the OIDC claim
+                            description: Name of the SAML group
                             type: string
                           value:
-                            description: Value of the OIDC claim
+                            description: Value of the SAML group
                             type: string
                         required:
                         - identityProviderId

@@ -1,6 +1,6 @@
 # Cloudflare Zero-Trust Operator
 
-Cloudflare Zero-Trust operator allow you to manage your zero-trust configuration directly from kubernetes
+Cloudflare Zero-Trust operator allow you to manage your zero-trust configuration directly from your Kubernetes cluster.
 
 <!-- Version_Placeholder -->
 ![Version: 0.7.1](https://img.shields.io/badge/Version-0.7.1-informational?style=flat-square)
@@ -31,6 +31,24 @@ spec:
       - testemail2@domain.com
 ```
 
+Cloudflare Reusable Policy
+```yaml
+apiVersion: cloudflare.zelic.io/v4alpha1
+kind: CloudflareAccessReusablePolicy
+metadata:
+  name: allow-testemail1
+  namespace: default
+spec:
+  name: Allow testemail1
+  decision: allow
+  include:
+    - emails:
+      - testemail3@domain.com
+    - groupRefs:
+      - accessgroup-example # specify the CRD resource name
+```
+
+Cloudflare Access Application
 ```yaml
 apiVersion: cloudflare.zelic.io/v4alpha1
 kind: CloudflareAccessApplication
@@ -45,24 +63,79 @@ spec:
   name: my application
   domain: domain.example.com
   autoRedirectToIdentity: true
-  policies: 
-    - name: Allow testemail1
-      decision: allow
-      include:
-        - emails:
-          - testemail1@domain.com
+  policyRefs:
+    - allow-testemail1 # specify the CRD resource name
 ```
 
 ![Example App](./docs/images/app_example.png)
 
 ## Features
 Currently in Project scope
+- [x] Manage Cloudflare (Reusable) Policies
 - [x] Manage Cloudflare Access Groups
 - [x] Manage Cloudflare Access Applications
-- [x] Manage Cloudflare Access Tokens
+- [x] Manage Cloudflare Access Service Tokens
 
 
 ## Complete Example
+
+Cloudflare Reusable Policy
+```yaml
+apiVersion: cloudflare.zelic.io/v4alpha1
+kind: CloudflareAccessReusablePolicy
+metadata:
+  name: test-include-all
+  namespace: default
+spec:
+  name: Test all Cloudflare Zero-Trust Operator handled policies
+  decision: allow
+  exclude: # same as "include"
+  require: # same as "include"
+  include:
+    - emails:
+      - testemail3@domain.com
+    - groupRefs:
+      - accessgroup-example
+    - name: Allow my rules
+      decision: allow
+      include:
+        - everyone: true
+        - validCertificate: true
+        - anyAccessServiceToken: true
+        - commonNames: 
+          - my-secured-domain.example.com
+        - emails:
+          - testemail1@domain.com
+        - emailDomains:
+          - my-domain.com
+        # https://www.ipaddressguide.com/cidr
+        - ipRanges:
+          - "11.22.33.44/32"
+        # https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
+        - countries:
+          - FR
+          - DE
+        - loginMethods:
+          - "00000000-0000-0000-0000-00000000000000" # [check this](./docs/Advanced_Usage.md) for more infos 
+        - groupRefs:
+          - my-access-group # specify the CRD resource name of a previously declared CloudflareAccessGroup
+        - serviceTokenRefs:
+          - my-service-token # specify the CRD resource name of a previously declared CloudflareAccessServiceToken
+        - samlGroups:
+          - name: "mail"
+            value: "testemail2@my-saml-domain.com"
+            identityProviderId: "00000000-0000-0000-0000-00000000000000" # [check this](./docs/Advanced_Usage.md) for more infos 
+        - googleGroups:
+          - email: my-google-group@domain.com
+            identityProviderId: "00000000-0000-0000-0000-00000000000000" # [check this](./docs/Advanced_Usage.md) for more infos 
+        - oktaGroups:
+          - name: my-okta-group
+            identityProviderId: "10000000-0000-0000-0000-00000000000000" # [check this](./docs/Advanced_Usage.md) for more infos 
+        - githubOrganizations:
+          - name: epicgames
+            team: frontend # optional, would restrict access to this team only if present
+            identityProviderId: "10000000-0000-0000-0000-00000000000000" # [check this](./docs/Advanced_Usage.md) for more infos 
+```
 
 ```yaml
 apiVersion: cloudflare.zelic.io/v4alpha1
@@ -84,25 +157,12 @@ spec:
   enableBindingCookie: false
   httpOnlyCookieAttribute: true
   logoUrl: "https://www.cloudflare.com/img/logo-web-badges/cf-logo-on-white-bg.svg"
-  policies: 
-    - name: Allow my rules
-      decision: allow
-      include:
-        - emails:
-          - testemail1@domain.com
-        - emailDomains:
-          - my-domain.com
-        - ipRanges:
-          - "11.22.33.44/32"
-        - accessGroups:
-          - value: "my-access-group-id"
-        - googleGroups:
-          - email: my-google-group@domain.com
-            identityProviderId: 00000000-0000-0000-0000-00000000000000
-        - oktaGroups:
-          - name: my-okta-group
-            identityProviderId: 10000000-0000-0000-0000-00000000000000
+  policyRefs:
+    # - test-include-all
+    # - ...
+
 ```
+
 
 ## Advanced Usage
 
@@ -189,7 +249,7 @@ make integration-test
 
 ## License
 
-Copyright 2022.
+Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

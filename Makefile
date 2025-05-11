@@ -67,7 +67,7 @@ test: manifests generate fmt vet envtest ## Run tests.
 integration-test: manifests generate fmt vet envtest ## Run integration tests.
 	$(shell cat .env.integration 2>/dev/null | xargs) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -covermode=atomic -coverpkg=all --tags=integration -coverprofile cover.out
 
-# TODO(user): To use a different vendor for e2e tests, modify the setup under 'tests/e2e'.
+# TODO(maintainer): To use a different vendor for e2e tests, modify the setup under 'tests/e2e'.
 # The default setup assumes Kind is pre-installed and builds/loads the Manager Docker image locally.
 # Prometheus and CertManager are installed by default; skip with:
 # - PROMETHEUS_INSTALL_SKIP=true

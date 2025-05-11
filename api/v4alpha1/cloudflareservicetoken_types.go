@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,15 +34,18 @@ type CloudflareServiceTokenSpec struct {
 	// Time before the token should be automatically renewed. Defaults to "0"
 	// Automatically renewing a service token will change the service token value upon renewal.
 	// Tokens will get automatically renewed if the token is expired
+	//
 	// +optional
 	// +kubebuilder:default="0"
 	MinTimeBeforeRenewal string `json:"minTimeBeforeRenewal,omitempty"`
 
 	// Recreate the token if the secret with the service token value is missing or doesn't exist
+	//
 	// +kubebuilder:default=true
 	RecreateMissing bool `json:"recreateMissing,omitempty"`
 
 	// Template to apply for the generated secret
+	//
 	// +optional
 	// +kubebuilder:default={"metadata": {}}
 	Template SecretTemplateSpec `json:"template"`
@@ -51,19 +54,24 @@ type CloudflareServiceTokenSpec struct {
 type SecretTemplateSpec struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
+	//
 	// +optional
 	// +nullable
 	// +kubebuilder:validation:XPreserveUnknownFields
 	metav1.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Key that should store the secret data. Defaults to cloudflareServiceToken
+	//
 	// Warning: changing this value will recreate the secret
+	//
 	// +optional
 	// +kubebuilder:default=cloudflareSecretKey
 	ClientSecretKey string `json:"clientSecretKey,omitempty"`
 
 	// Key that should store the secret data. Defaults to cloudflareServiceToken.
+	//
 	// Warning: changing this value will recreate the secret
+	//
 	// +optional
 	// +kubebuilder:default=cloudflareClientId
 	ClientIDKey string `json:"clientIdKey,omitempty"`
@@ -84,11 +92,13 @@ type CloudflareServiceTokenStatus struct {
 	ExpiresAt metav1.Time `json:"expiresAt"`
 
 	// SecretRef is the reference to the secret
+	//
 	// +optional
 	// +nullable
 	SecretRef *SecretRef `json:"secretRef,omitempty"`
 
 	// Conditions store the status conditions of the CloudflareAccessApplication
+	//
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchMergeKey:"type" patchStrategy:"merge" protobuf:"bytes,1,rep,name=conditions"`
 }
@@ -98,7 +108,6 @@ type SecretRef struct {
 	corev1.LocalObjectReference `json:"reference"`
 	// Key that stores the secret data.
 	ClientSecretKey string `json:"clientSecretKey,omitempty"`
-
 	// Key that stores the secret data.
 	ClientIDKey string `json:"clientIdKey,omitempty"`
 }

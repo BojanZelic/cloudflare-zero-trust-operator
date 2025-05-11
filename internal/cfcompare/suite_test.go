@@ -1,4 +1,4 @@
-package cfcollections_test
+package cfcompare_test
 
 import (
 	"testing"

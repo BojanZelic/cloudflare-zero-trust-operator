@@ -1,4 +1,4 @@
-package cfcollections
+package cfcompare
 
 import (
 	"encoding/json"
@@ -7,20 +7,6 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 )
-
-type AccessGroupCollection []zero_trust.AccessGroupListResponse
-
-func (c AccessGroupCollection) Len() int { return len(c) }
-
-func (c AccessGroupCollection) GetByName(name string) *zero_trust.AccessGroupListResponse {
-	for _, policy := range c {
-		if policy.Name == name {
-			return &policy
-		}
-	}
-
-	return nil
-}
 
 func AreAccessGroupsEquivalent(cf *zero_trust.AccessGroupGetResponse, k8s *v4alpha1.CloudflareAccessGroup) bool {
 	if cf.Name != k8s.Spec.Name {

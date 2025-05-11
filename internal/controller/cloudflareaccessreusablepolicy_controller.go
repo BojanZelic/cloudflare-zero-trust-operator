@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,10 +21,9 @@ import (
 
 	v4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcompare"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/services"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -114,16 +113,13 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 		}
 	}
 
-	apService := &services.AccessApplicationPolicyRefMatcherService{
-		Client: r.Client,
-		Log:    log,
-	}
-
-	if err := apService.PopulateWithCloudflareUUIDs(ctx, []v4alpha1.GenericAccessPolicyRuler{reusablePolicy.Spec}); err != nil {
+	//
+	if popRes, err := v4alpha1.PopulateWithCloudflareUUIDs(ctx, req.Namespace, r.Client, reusablePolicy); err != nil {
+		// mark as failed
 		_, err = controllerutil.CreateOrPatch(ctx, r.Client, reusablePolicy, func() error {
 			meta.SetStatusCondition(&reusablePolicy.Status.Conditions,
 				metav1.Condition{
-					Type:    statusDegrated,
+					Type:    statusDegraded,
 					Status:  metav1.ConditionFalse,
 					Reason:  "InvalidReference",
 					Message: err.Error(),
@@ -133,14 +129,14 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 			return nil
 		})
 
-		log.Info("failed to update access policies")
-
+		//
+		log.Info("failed to update access policy's referenced CloudFlare UUIDs")
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessReusablePolicy status")
 		}
 
-		// don't requeue
-		return ctrl.Result{}, nil
+		// might requeue !
+		return popRes, nil
 	}
 
 	if existingCfRP == nil {
@@ -153,7 +149,7 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to set reusable policy status")
 		}
-	} else if mustUpdate := !cfcollections.AreAccessReusablePoliciesEquivalent(existingCfRP, reusablePolicy); mustUpdate {
+	} else if mustUpdate := !cfcompare.AreAccessReusablePoliciesEquivalent(existingCfRP, reusablePolicy); mustUpdate {
 		log.Info(reusablePolicy.Name + " diverge from remote counterpart, updating CF API...")
 
 		err := api.UpdateAccessReusablePolicy(ctx, reusablePolicy)

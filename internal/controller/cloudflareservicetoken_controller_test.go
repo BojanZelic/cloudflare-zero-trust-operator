@@ -18,17 +18,24 @@ import (
 )
 
 var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
-	BeforeAll(func() {
+	//
+	clear := func() {
 		ctx := context.Background()
 
 		By("Removing all existing service tokens")
 		tokens, err := api.ServiceTokens(ctx)
 		Expect(err).To(Not(HaveOccurred()))
-		for _, token := range tokens {
+		for _, token := range *tokens {
 			_ = api.DeleteAccessServiceToken(ctx, token.ID)
 			//Expect(err).To(Not(HaveOccurred()))
 		}
-	})
+	}
+	BeforeAll(clear)
+	AfterAll(clear)
+
+	//
+	//
+	//
 
 	Context("CloudflareServiceToken controller test", func() {
 
@@ -108,7 +115,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 
 			Eventually(func(g Gomega) {
 				tokenfound := false
-				for _, token := range tokens {
+				for _, token := range *tokens {
 					if token.Name == serviceToken.Spec.Name {
 						tokenfound = true
 
@@ -125,12 +132,12 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			typeNamespaceName := types.NamespacedName{Name: "token2", Namespace: nsName}
 
 			By("Creating the custom resource for the Kind CloudflareServiceToken")
-			var group *v4alpha1.CloudflareServiceToken
+			var sToken *v4alpha1.CloudflareServiceToken
 
 			token := &v4alpha1.CloudflareServiceToken{}
 			err := k8sClient.Get(ctx, typeNamespaceName, token)
 			if err != nil && errors.IsNotFound(err) {
-				group = &v4alpha1.CloudflareServiceToken{
+				sToken = &v4alpha1.CloudflareServiceToken{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      typeNamespaceName.Name,
 						Namespace: typeNamespaceName.Namespace,
@@ -140,7 +147,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 					},
 				}
 
-				err = k8sClient.Create(ctx, group)
+				err = k8sClient.Create(ctx, sToken)
 				Expect(err).To(Not(HaveOccurred()))
 			}
 
@@ -178,7 +185,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			Expect(err).To(Not(HaveOccurred()))
 
 			secretFound := false
-			for _, token := range tokens {
+			for _, token := range *tokens {
 				if token.Name == found.Spec.Name {
 					secretFound = true
 
@@ -212,27 +219,27 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			Expect(found.Status.SecretRef.Name).ToNot(BeEmpty())
 
 			By("Updating the secret template")
-			err = k8sClient.Get(ctx, typeNamespaceName, group)
+			err = k8sClient.Get(ctx, typeNamespaceName, sToken)
 			Expect(err).ToNot(HaveOccurred())
-			group.Spec.Template.Name = "moved-secret"
-			group.Spec.Template.ClientIDKey = "keylocation"
-			err = k8sClient.Update(ctx, group)
+			sToken.Spec.Template.Name = "moved-secret"
+			sToken.Spec.Template.ClientIDKey = "keylocation"
+			err = k8sClient.Update(ctx, sToken)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Make sure the status ref is what we expect")
 			Eventually(func(g Gomega) {
-				err = k8sClient.Get(ctx, typeNamespaceName, group)
+				err = k8sClient.Get(ctx, typeNamespaceName, sToken)
 				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(group.Status.SecretRef.Name).To(Equal(group.Spec.Template.Name))
-				g.Expect(group.Status.SecretRef.ClientIDKey).To(Equal(group.Spec.Template.ClientIDKey))
+				g.Expect(sToken.Status.SecretRef.Name).To(Equal(sToken.Spec.Template.Name))
+				g.Expect(sToken.Status.SecretRef.ClientIDKey).To(Equal(sToken.Spec.Template.ClientIDKey))
 			}).Should(Succeed())
 
 			By("Checking if the new secret was successfully created")
 			Eventually(func() error {
 				sec = &corev1.Secret{}
-				return k8sClient.Get(ctx, types.NamespacedName{Name: group.Spec.Template.Name, Namespace: typeNamespaceName.Namespace}, sec)
+				return k8sClient.Get(ctx, types.NamespacedName{Name: sToken.Spec.Template.Name, Namespace: typeNamespaceName.Namespace}, sec)
 			}, time.Second*10, time.Second).Should(Succeed())
-			Expect(sec.Data).To(HaveKey(group.Spec.Template.ClientIDKey))
+			Expect(sec.Data).To(HaveKey(sToken.Spec.Template.ClientIDKey))
 
 			By("Checking if the old secret was removed")
 			Eventually(func() error {
@@ -323,7 +330,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			tokens, err := api.ServiceTokens(ctx)
 			Expect(err).To(Not(HaveOccurred()))
 			var foundToken *cftypes.ExtendedServiceToken
-			for _, cfToken := range tokens {
+			for _, cfToken := range *tokens {
 				if cfToken.ID == token.Status.ServiceTokenID {
 					foundToken = &cfToken
 				}
@@ -338,7 +345,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			Eventually(func(g Gomega) {
 				tokens, _ := api.ServiceTokens(ctx)
 				var foundToken *cftypes.ExtendedServiceToken
-				for _, cfToken := range tokens {
+				for _, cfToken := range *tokens {
 					if cfToken.ID == token.Status.ServiceTokenID {
 						foundToken = &cfToken
 					}
@@ -388,7 +395,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			tokens, err := api.ServiceTokens(ctx)
 			Expect(err).To(Not(HaveOccurred()))
 			var foundToken *cftypes.ExtendedServiceToken
-			for _, cfToken := range tokens {
+			for _, cfToken := range *tokens {
 				if cfToken.ID == token.Status.ServiceTokenID {
 					foundToken = &cfToken
 				}
@@ -403,7 +410,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			tokens, err = api.ServiceTokens(ctx)
 			Expect(err).To(Not(HaveOccurred()))
 			foundToken = nil
-			for _, cfToken := range tokens {
+			for _, cfToken := range *tokens {
 				if cfToken.ID == token.Status.ServiceTokenID {
 					foundToken = &cfToken
 				}

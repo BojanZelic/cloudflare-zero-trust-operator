@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package v4alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -25,58 +26,91 @@ import (
 
 // CloudflareAccessApplicationSpec defines the desired state of CloudflareAccessApplication.
 type CloudflareAccessApplicationSpec struct {
-	// Name of the Cloudflare Access Application
-	Name string `json:"name"`
-
-	// The domain and path that Access will secure.
-	// ex: "test.example.com/admin"
-	Domain string `json:"domain"`
-
-	// The application type. defaults to "self_hosted"
+	// The application type. If ommited, resolves to "self_hosted". Only a bunch of official types are supported.
+	//
+	// https://developers.cloudflare.com/api/resources/zero_trust/subresources/access/subresources/applications/models/application_type/
+	//
 	// +optional
 	// +kubebuilder:default=self_hosted
+	// +kubebuilder:validation:Enum=self_hosted;warp;app_launcher
 	Type string `json:"type,omitempty"`
 
-	// Displays the application in the App Launcher.
+	// Name of the Cloudflare Access Application.
+	//
+	// Meaningless for "warp" and "app_launcher" app types. Required for "self_hosted".
+	//
+	// +optional
+	Name string `json:"name,omitempty"`
+
+	// The domain and path that Access will secure.
+	//
+	// Meaningless for "warp" and "app_launcher" app types. Required for "self_hosted".
+	//
+	// ex: "test.example.com/admin"
+	//
+	// +optional
+	Domain string `json:"domain,omitempty"`
+
+	// Specify if the application will be visible in the App Launcher.
+	//
+	// Meaningless for "warp" and "app_launcher" app types.
+	//
 	// +optional
 	// +kubebuilder:default=true
 	AppLauncherVisible *bool `json:"appLauncherVisible,omitempty"`
 
 	// The identity providers your users can select when connecting to this application. Defaults to all IdPs configured in your account.
+	//
 	// ex: ["699d98642c564d2e855e9661899b7252"]
+	//
 	// +optional
 	// +kubebuilder:default={}
 	AllowedIdps []string `json:"allowedIdps,omitempty"`
 
 	// When set to true, users skip the identity provider selection step during login.
 	// You must specify only one identity provider in allowed_idps.
+	//
 	// +optional
 	// +kubebuilder:default=false
 	AutoRedirectToIdentity *bool `json:"autoRedirectToIdentity,omitempty"`
 
-	// PolicyKeys is an ordered slice of [CloudflareAccessReusablePolicy] CRDs names, which should be applied to this app.
+	// PolicyRefs is an ordered slice of names or {namespace/name} referencing [CloudflareAccessReusablePolicy].
+	// Referenced policies would be applied to this access application.
 	// Order determines precedence
+	//
 	// +optional
-	PolicyKeys []string `json:"policyKeys,omitempty"`
+	PolicyRefs []string `json:"policyRefs,omitempty"`
 
 	// SessionDuration is the length of the session duration.
+	//
 	// +optional
 	// +kubebuilder:default="24h"
 	SessionDuration string `json:"sessionDuration,omitempty"`
 
 	// Enables the binding cookie, which increases security against compromised authorization tokens and CSRF attacks.
+	//
+	// Meaningless for "warp" and "app_launcher" app types.
+	//
 	// +optional
 	// +kubebuilder:default=false
 	EnableBindingCookie *bool `json:"enableBindingCookie,omitempty"`
 
 	// Enables the HttpOnly cookie attribute, which increases security against XSS attacks.
+	//
+	// Meaningless for "warp" and "app_launcher" app types.
+	//
 	// +optional
 	// +kubebuilder:default=true
 	HTTPOnlyCookieAttribute *bool `json:"httpOnlyCookieAttribute,omitempty"`
 
 	// The image URL for the logo shown in the App Launcher dashboard
+	//
 	// +optional
 	LogoURL string `json:"logoUrl,omitempty"`
+}
+
+func (spec *CloudflareAccessApplicationSpec) GetNamespacedPolicyRefs(contextNamespace string) ([]types.NamespacedName, error) {
+	return parseNamespacedNames(spec.PolicyRefs, contextNamespace)
 }
 
 // CloudflareAccessApplicationStatus defines the observed state of CloudflareAccessApplication.
@@ -86,12 +120,13 @@ type CloudflareAccessApplicationStatus struct {
 
 	AccessApplicationID string `json:"accessApplicationId,omitempty"`
 
-	// ordered CloudFlare's policies IDs, resolved by controller from "Spec.PolicyKeys"
+	// ordered CloudFlare's policies IDs, resolved by controller from "Spec.PolicyRefs"
 	ReusablePolicyIDs []string    `json:"reusablePolicyIds,omitempty"`
 	CreatedAt         metav1.Time `json:"createdAt"`
 	UpdatedAt         metav1.Time `json:"updatedAt"`
 
 	// Conditions store the status conditions of the CloudflareAccessApplication
+	//
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchMergeKey:"type" patchStrategy:"merge" protobuf:"bytes,1,rep,name=conditions"`
 }

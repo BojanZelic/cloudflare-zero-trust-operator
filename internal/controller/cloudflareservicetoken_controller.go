@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -134,10 +134,10 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access service token")
 		}
-		for i, token := range allTokens {
+		for i, token := range *allTokens {
 			if token.ID == string(secret.Data[secret.Annotations[v4alpha1.AnnotationTokenIDKey]]) {
-				existingServiceToken = &allTokens[i]
-
+				token := (*allTokens)[i]
+				existingServiceToken = &token
 				break
 			}
 		}
@@ -146,7 +146,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	if existingServiceToken == nil {
 		token, err := api.CreateAccessServiceToken(ctx, serviceToken.ToExtendedToken())
 		log.Info("created access service token", "token_id", token.ID)
-		existingServiceToken = &token
+		existingServiceToken = token
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access service token")
 		}

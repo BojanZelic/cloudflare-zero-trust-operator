@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,32 +29,24 @@ type CloudflareAccessReusablePolicySpec struct {
 	Name string `json:"name"`
 
 	// The action Access will take if a user matches this policy. Infrastructure application policies can only use the Allow action.
+	//
 	// +kubebuilder:validation:Enum=allow;deny;non_identity;bypass
 	// +kubebuilder:default=allow
 	Decision string `json:"decision"`
 
 	// Rules evaluated with an OR logical operator. A user needs to meet only one of the Include rules.
+	//
 	Include CloudFlareAccessRules `json:"include"`
 
 	// Rules evaluated with an AND logical operator. To match the policy, a user must meet all of the Require rules.
+	//
 	// +optional
-	Require CloudFlareAccessRules `json:"require,omitempty"`
+	Require CloudFlareAccessRules `json:"require"`
 
 	// Rules evaluated with a NOT logical operator. To match the policy, a user cannot meet any of the Exclude rules.
+	//
 	// +optional
-	Exclude CloudFlareAccessRules `json:"exclude,omitempty"`
-}
-
-func (c CloudflareAccessReusablePolicySpec) GetInclude() CloudFlareAccessRules {
-	return c.Include
-}
-
-func (c CloudflareAccessReusablePolicySpec) GetExclude() CloudFlareAccessRules {
-	return c.Exclude
-}
-
-func (c CloudflareAccessReusablePolicySpec) GetRequire() CloudFlareAccessRules {
-	return c.Require
+	Exclude CloudFlareAccessRules `json:"exclude"`
 }
 
 // CloudflareAccessReusablePolicyStatus defines the observed state of CloudflareAccessReusablePolicy.
@@ -68,7 +60,11 @@ type CloudflareAccessReusablePolicyStatus struct {
 	// Updated timestamp of the resource in Cloudflare
 	UpdatedAt metav1.Time `json:"updatedAt"`
 
+	//
+	ResolvedIdpsFromRefs RulerResolvedCloudflareIDs `json:"resolvedCfIds"`
+
 	// Conditions store the status conditions of the CloudflareAccessApplication
+	//
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchMergeKey:"type" patchStrategy:"merge" protobuf:"bytes,1,rep,name=conditions"`
 }
@@ -95,6 +91,25 @@ func (c *CloudflareAccessReusablePolicy) GetID() string {
 
 func (c *CloudflareAccessReusablePolicy) UnderDeletion() bool {
 	return !c.DeletionTimestamp.IsZero()
+}
+
+func (c CloudflareAccessReusablePolicy) GetIncludeRules() *CloudFlareAccessRules {
+	return &c.Spec.Include
+}
+func (c CloudflareAccessReusablePolicy) GetExcludeRules() *CloudFlareAccessRules {
+	return &c.Spec.Exclude
+}
+func (c CloudflareAccessReusablePolicy) GetRequireRules() *CloudFlareAccessRules {
+	return &c.Spec.Require
+}
+func (c CloudflareAccessReusablePolicy) GetIncludeCfIds() *ResolvedCloudflareIDs {
+	return &c.Status.ResolvedIdpsFromRefs.Include
+}
+func (c CloudflareAccessReusablePolicy) GetExcludeCfIds() *ResolvedCloudflareIDs {
+	return &c.Status.ResolvedIdpsFromRefs.Exclude
+}
+func (c CloudflareAccessReusablePolicy) GetRequireCfIds() *ResolvedCloudflareIDs {
+	return &c.Status.ResolvedIdpsFromRefs.Require
 }
 
 // +kubebuilder:object:root=true

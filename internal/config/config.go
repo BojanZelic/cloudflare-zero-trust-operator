@@ -27,6 +27,7 @@ func SetConfigDefaults() {
 	viper.AutomaticEnv()
 }
 
+// allows overriding of "account_id" from resource annotations
 func ParseCloudflareConfig(obj metav1.Object) ZeroTrustConfig {
 	cloudflareConfig := ZeroTrustConfig{}
 

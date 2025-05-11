@@ -17,14 +17,17 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"os"
 
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
+	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, SAML, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -36,6 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	cloudflarev4 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/controller"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
@@ -115,7 +119,7 @@ func main() {
 		// https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.1/pkg/metrics/filters#WithAuthenticationAndAuthorization
 		metricsServerOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
 
-		// TODO(user): If CertDir, CertName, and KeyName are not specified, controller-runtime will automatically
+		// TODO(maintainer): If CertDir, CertName, and KeyName are not specified, controller-runtime will automatically
 		// generate self-signed certificates for the metrics server. While convenient for development and testing,
 		// this setup is not recommended for production.
 	}
@@ -145,6 +149,7 @@ func main() {
 	}
 
 	config.SetConfigDefaults()
+	displayAvailableIdentityProviders()
 
 	controllerHelper := &ctrlhelper.ControllerHelper{
 		R: mgr.GetClient(),
@@ -198,4 +203,44 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+// show in the logs what Identity providers are available
+func displayAvailableIdentityProviders() {
+	//
+	idpsUsedIn := []string{
+		"CloudflareAccessApplication.Spec.allowedIdps",
+		"CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.{loginMethods}",
+		"CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.{googleGroups,oktaGroups,samlGroups,githubOrganizations}.identityProviderId",
+	}
+
+	//
+	setupLog.Info(
+		"Checking available Identity Providers that you may use to configure this operator...",
+		"IdentityProvidersUsedIn",
+		idpsUsedIn,
+	)
+
+	// Gather credentials to connect to Cloudflare's API
+	cfConfig := config.ParseCloudflareConfig(&metav1.ObjectMeta{})
+	validConfig, err := cfConfig.IsValid()
+	if !validConfig {
+		setupLog.Error(err, "invalid config")
+		os.Exit(1)
+	}
+
+	// Initialize Cloudflare's API wrapper
+	api := cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
+	ctx := context.TODO()
+	idProviders, err := api.IdentityProviders(ctx)
+	if err != nil {
+		setupLog.Error(err, "failed to fetch env account identity providers")
+		os.Exit(1)
+	}
+
+	//
+	setupLog.Info("Found Identity providers. Please use their UUID as reference within this operator.",
+		"AvailableIDPs",
+		idProviders,
+	)
 }

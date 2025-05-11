@@ -45,13 +45,17 @@ spec:
                 default: []
                 description: |-
                   The identity providers your users can select when connecting to this application. Defaults to all IdPs configured in your account.
+
                   ex: ["699d98642c564d2e855e9661899b7252"]
                 items:
                   type: string
                 type: array
               appLauncherVisible:
                 default: true
-                description: Displays the application in the App Launcher.
+                description: |-
+                  Specify if the application will be visible in the App Launcher.
+
+                  Meaningless for "warp" and "app_launcher" app types.
                 type: boolean
               autoRedirectToIdentity:
                 default: false
@@ -62,28 +66,39 @@ spec:
               domain:
                 description: |-
                   The domain and path that Access will secure.
+
+                  Meaningless for "warp" and "app_launcher" app types. Required for "self_hosted".
+
                   ex: "test.example.com/admin"
                 type: string
               enableBindingCookie:
                 default: false
-                description: Enables the binding cookie, which increases security
-                  against compromised authorization tokens and CSRF attacks.
+                description: |-
+                  Enables the binding cookie, which increases security against compromised authorization tokens and CSRF attacks.
+
+                  Meaningless for "warp" and "app_launcher" app types.
                 type: boolean
               httpOnlyCookieAttribute:
                 default: true
-                description: Enables the HttpOnly cookie attribute, which increases
-                  security against XSS attacks.
+                description: |-
+                  Enables the HttpOnly cookie attribute, which increases security against XSS attacks.
+
+                  Meaningless for "warp" and "app_launcher" app types.
                 type: boolean
               logoUrl:
                 description: The image URL for the logo shown in the App Launcher
                   dashboard
                 type: string
               name:
-                description: Name of the Cloudflare Access Application
-                type: string
-              policyKeys:
                 description: |-
-                  PolicyKeys is an ordered slice of [CloudflareAccessReusablePolicy] CRDs names, which should be applied to this app.
+                  Name of the Cloudflare Access Application.
+
+                  Meaningless for "warp" and "app_launcher" app types. Required for "self_hosted".
+                type: string
+              policyRefs:
+                description: |-
+                  PolicyRefs is an ordered slice of names or {namespace/name} referencing [CloudflareAccessReusablePolicy].
+                  Referenced policies would be applied to this access application.
                   Order determines precedence
                 items:
                   type: string
@@ -94,11 +109,15 @@ spec:
                 type: string
               type:
                 default: self_hosted
-                description: The application type. defaults to "self_hosted"
+                description: |-
+                  The application type. If ommited, resolves to "self_hosted". Only a bunch of official types are supported.
+
+                  https://developers.cloudflare.com/api/resources/zero_trust/subresources/access/subresources/applications/models/application_type/
+                enum:
+                - self_hosted
+                - warp
+                - app_launcher
                 type: string
-            required:
-            - domain
-            - name
             type: object
           status:
             description: CloudflareAccessApplicationStatus defines the observed state
@@ -168,7 +187,7 @@ spec:
                 type: string
               reusablePolicyIds:
                 description: ordered CloudFlare's policies IDs, resolved by controller
-                  from "Spec.PolicyKeys"
+                  from "Spec.PolicyRefs"
                 items:
                   type: string
                 type: array

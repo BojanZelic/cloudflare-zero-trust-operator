@@ -1,21 +1,9 @@
-package cfcollections
+package cfcompare
 
 import (
-	"sort"
-
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 )
-
-type AccessApplicationPolicyCollection []zero_trust.AccessApplicationPolicyListResponse
-
-func (c AccessApplicationPolicyCollection) Len() int { return len(c) }
-
-func (c AccessApplicationPolicyCollection) SortByPrecedence() {
-	sort.Slice(c, func(i, j int) bool {
-		return c[i].Precedence < c[j].Precedence
-	})
-}
 
 // Check if a bunch of reusable policies defined in K8S are present in an arbirary list of Cloudflare policies
 // Ignore all non-reusable, or "imperatively declared elsewhere" policies.

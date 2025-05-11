@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import (
 
 	v4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcompare"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	cloudflare "github.com/cloudflare/cloudflare-go/v4"
@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,8 +50,8 @@ type CloudflareAccessApplicationReconciler struct {
 const (
 	// statusAvailable represents the status of the Cloudflare App.
 	statusAvailable = "Available"
-	// statusDegrated represents the status used when the custom resource is deleted and the finalizer operations are must to occur.
-	statusDegrated = "Degraded"
+	// statusDegraded represents the status used when the custom resource is deleted and the finalizer operations are must to occur.
+	statusDegraded = "Degraded"
 )
 
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications,verbs=get;list;watch;create;update;patch;delete
@@ -82,16 +81,23 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	}
 
 	//
-	// Ensure all PolicyKeys underlying [CloudflareAccessReusablePolicy] references exist and are available,
+	// Ensure all PolicyRefs underlying [CloudflareAccessReusablePolicy] references exist and are available,
 	// then store their CF IDs
 	//
 
+	//
+	policyRefsNS, err := app.Spec.GetNamespacedPolicyRefs(req.Namespace)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Failed to determine policy references")
+	}
+
+	//
 	var rp v4alpha1.CloudflareAccessReusablePolicy
 	orderedPolicyIds := []string{}
-	for _, policyKey := range app.Spec.PolicyKeys {
-		err := r.Get(ctx, types.NamespacedName{Name: policyKey, Namespace: req.Namespace}, &rp)
+	for _, policyRefNS := range policyRefsNS {
+		err := r.Get(ctx, policyRefNS, &rp)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Referenced Policy Key does not correspond to an existing CloudflareAccessReusablePolicy")
+			return ctrl.Result{}, errors.Wrap(err, "Referenced Policy Ref does not correspond to an existing CloudflareAccessReusablePolicy")
 		}
 
 		ready := false
@@ -175,10 +181,31 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	//
 
 	if app.Status.AccessApplicationID == "" { //nolint
-		//
-		cfAccessApp, err = api.FindAccessApplicationByDomain(ctx, app.Spec.Domain)
-		if cfAccessApp == nil || err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "error querying application app from cloudflare")
+		switch app.Spec.Type {
+		case "self_hosted":
+			{
+				cfAccessApp, err = api.FindAccessApplicationByDomain(ctx, app.Spec.Domain)
+				if cfAccessApp == nil || err != nil {
+					return ctrl.Result{}, errors.Wrap(err, "error querying application app from cloudflare")
+				}
+			}
+		case "warp":
+		case "app_launcher":
+			{
+				cfAccessApp, err = api.FindFirstAccessApplicationOfType(ctx, app.Spec.Type)
+				if cfAccessApp == nil || err != nil {
+					return ctrl.Result{}, errors.Wrapf(
+						err,
+						"error querying unique '%s' application from cloudflare. "+
+							"Make sure you activated the associated feature in your cloudflare's dashboard !",
+						app.Spec.Type,
+					)
+				}
+			}
+		default:
+			{
+				return ctrl.Result{}, errors.Errorf("Unhandled application type '%s'. Contact the developpers.", app.Spec.Type)
+			}
 		}
 
 		//
@@ -223,7 +250,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		if err = r.ReconcileStatus(ctx, cfAccessApp, app); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "issue updating status")
 		}
-	} else if needsUpdate := !cfcollections.AreAccessApplicationsEquivalent(cfAccessApp, app); needsUpdate {
+	} else if needsUpdate := !cfcompare.AreAccessApplicationsEquivalent(cfAccessApp, app); needsUpdate {
 		log.Info("app has changed - updating...", "name", app.Spec.Name, "domain", app.Spec.Domain)
 		cfAccessApp, err = api.UpdateAccessApplication(ctx, app)
 		if err != nil {

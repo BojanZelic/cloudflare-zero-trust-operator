@@ -64,12 +64,14 @@ spec:
                     default: cloudflareClientId
                     description: |-
                       Key that should store the secret data. Defaults to cloudflareServiceToken.
+
                       Warning: changing this value will recreate the secret
                     type: string
                   clientSecretKey:
                     default: cloudflareSecretKey
                     description: |-
                       Key that should store the secret data. Defaults to cloudflareServiceToken
+
                       Warning: changing this value will recreate the secret
                     type: string
                   metadata:

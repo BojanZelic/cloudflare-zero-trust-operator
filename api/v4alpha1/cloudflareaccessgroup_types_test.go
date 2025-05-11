@@ -17,33 +17,33 @@ func TestBooks(t *testing.T) {
 }
 
 var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGroup"), func() {
-	var accessRule *v4alpha1.CloudflareAccessGroup
+	var accessGroup *v4alpha1.CloudflareAccessGroup
 
 	When("the instance is created", func() {
 		BeforeEach(func() {
-			accessRule = &v4alpha1.CloudflareAccessGroup{}
+			accessGroup = &v4alpha1.CloudflareAccessGroup{}
 		})
 
 		It("can export Included emails to the cloudflare object", func() {
 			emails := []string{"test@email.com", "test2@email.com"}
-			accessRule.Spec.Include = v4alpha1.CloudFlareAccessRules{{
+			accessGroup.Spec.Include = v4alpha1.CloudFlareAccessRules{{
 				Emails: emails,
 			}}
-			accessRule.Spec.Require = v4alpha1.CloudFlareAccessRules{{
+			accessGroup.Spec.Require = v4alpha1.CloudFlareAccessRules{{
 				Emails: emails,
 			}}
-			accessRule.Spec.Exclude = v4alpha1.CloudFlareAccessRules{{
+			accessGroup.Spec.Exclude = v4alpha1.CloudFlareAccessRules{{
 				Emails: emails,
 			}}
 
 			for i := range emails { //nolint:varnamelen
-				include, ok := json.Marshal(accessRule.Spec.Include[i])
-				exclude, ok := json.Marshal(accessRule.Spec.Exclude[i])
-				require, ok := json.Marshal(accessRule.Spec.Require[i])
+				include, ok := json.Marshal(accessGroup.Spec.Include[i])
+				exclude, ok := json.Marshal(accessGroup.Spec.Exclude[i])
+				require, ok := json.Marshal(accessGroup.Spec.Require[i])
 
-				includeAR, ok := json.Marshal(accessRule.Spec.Include[i])
-				excludeAR, ok := json.Marshal(accessRule.Spec.Exclude[i])
-				requireAR, ok := json.Marshal(accessRule.Spec.Require[i])
+				includeAR, ok := json.Marshal(accessGroup.Spec.Include[i])
+				excludeAR, ok := json.Marshal(accessGroup.Spec.Exclude[i])
+				requireAR, ok := json.Marshal(accessGroup.Spec.Require[i])
 
 				Expect(include).To(Equal(
 					zero_trust.AccessRule{
@@ -52,14 +52,14 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 						},
 					},
 				))
-				Expect(accessRule.ToCloudflare().Require[i]).To(Equal(
+				Expect(accessGroup.ToCloudflare().Require[i]).To(Equal(
 					zero_trust.AccessRule{
 						Email: zero_trust.EmailRuleEmail{
 							Email: emails[i],
 						},
 					},
 				))
-				Expect(accessRule.ToCloudflare().Exclude[i]).To(Equal(
+				Expect(accessGroup.ToCloudflare().Exclude[i]).To(Equal(
 					zero_trust.AccessRule{
 						Email: zero_trust.EmailRuleEmail{
 							Email: emails[i],
@@ -71,11 +71,11 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 
 		It("can export emaildomains to the cloudflare object", func() {
 			domains := []string{"email.com", "email2.com"}
-			accessRule.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
+			accessGroup.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
 				EmailDomains: domains,
 			}}
 			for i := range domains {
-				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(
+				Expect(accessGroup.ToCloudflare().Include[i]).To(Equal(
 					zero_trust.AccessRule{
 						EmailDomain: zero_trust.DomainRuleEmailDomain{
 							Domain: domains[i],
@@ -96,11 +96,11 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 					IdentityProviderID: "11111111-1111-1111-1111-111111111111",
 				},
 			}
-			accessRule.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
+			accessGroup.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
 				GoogleGroups: googleGroups,
 			}}
 			for i, group := range googleGroups {
-				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(
+				Expect(accessGroup.ToCloudflare().Include[i]).To(Equal(
 					zero_trust.AccessRule{
 						GSuite: zero_trust.GSuiteGroupRuleGSuite{
 							Email:              group.Email,
@@ -112,7 +112,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 		})
 
 		It("can export oktaGroups to the cloudflare object", func() {
-			accessRule.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
+			accessGroup.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
 				OktaGroups: []v4alpha1.OktaGroup{
 					{
 						Name:               "myOktaGroup1",
@@ -124,8 +124,8 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 					},
 				},
 			}}
-			for i, group := range accessRule.Spec.Include[0].OktaGroups {
-				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(
+			for i, group := range accessGroup.Spec.Include[0].OktaGroups {
+				Expect(accessGroup.ToCloudflare().Include[i]).To(Equal(
 					zero_trust.AccessRule{
 						Okta: zero_trust.OktaGroupRuleOkta{
 							Name:               group.Name,
@@ -136,23 +136,23 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 			}
 		})
 
-		It("can export oidcClaims to the cloudflare object", func() {
-			accessRule.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
-				OIDCClaims: []v4alpha1.OIDCClaim{
+		It("can export samlGroups to the cloudflare object", func() {
+			accessGroup.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
+				SAMLGroups: []v4alpha1.SAMLGroup{
 					{
-						Name:               "myOidcClaimName1",
-						Value:              "myOidcClaimValue1",
+						Name:               "mySamlGroupName1",
+						Value:              "mySamlGroupValue1",
 						IdentityProviderID: "00000000-0000-0000-0000-00000000000000",
 					},
 					{
-						Name:               "myOidcClaimName2",
-						Value:              "myOidcClaimValue2",
+						Name:               "mySamlGroupName2",
+						Value:              "mySamlGroupValue2",
 						IdentityProviderID: "11111111-1111-1111-1111-111111111111",
 					},
 				},
 			}}
-			for i, group := range accessRule.Spec.Include[0].OIDCClaims {
-				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(
+			for i, group := range accessGroup.Spec.Include[0].SAMLGroups {
+				Expect(accessGroup.ToCloudflare().Include[i]).To(Equal(
 					zero_trust.AccessRule{
 						SAML: zero_trust.SAMLGroupRuleSAML{
 							AttributeName:      group.Name,
@@ -166,11 +166,11 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 
 		It("can export ipRanges to the cloudflare object", func() {
 			ips := []string{"1.1.1.1/32", "8.8.8.8/32"}
-			accessRule.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
+			accessGroup.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
 				IPRanges: ips},
 			}
 			for i := range ips {
-				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(
+				Expect(accessGroup.ToCloudflare().Include[i]).To(Equal(
 					zero_trust.AccessRule{
 						IP: zero_trust.IPRuleIP{
 							IP: ips[i],
@@ -182,11 +182,11 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 
 		It("can export serviceTokens to the cloudflare object", func() {
 			ids := []v4alpha1.ServiceToken{{Value: "some_service_token"}, {Value: "some_other_service_token"}}
-			accessRule.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
+			accessGroup.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
 				ServiceTokens: ids,
 			}}
 			for i, id := range ids {
-				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(
+				Expect(accessGroup.ToCloudflare().Include[i]).To(Equal(
 					zero_trust.AccessRule{
 						ServiceToken: zero_trust.ServiceTokenRuleServiceToken{
 							TokenID: id.Value,
@@ -198,10 +198,10 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 
 		It("can export any serviceTokens to the cloudflare object", func() {
 			validServiceToken := true
-			accessRule.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
+			accessGroup.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
 				AnyAccessServiceToken: &validServiceToken,
 			}}
-			Expect(accessRule.ToCloudflare().Include[0]).To(Equal(
+			Expect(accessGroup.ToCloudflare().Include[0]).To(Equal(
 				zero_trust.AccessRule{
 					AnyValidServiceToken: zero_trust.AnyValidServiceTokenRuleAnyValidServiceToken{},
 				},
@@ -210,10 +210,10 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 
 		It("can export validCertificate to the cloudflare object", func() {
 			validCert := true
-			accessRule.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
+			accessGroup.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
 				ValidCertificate: &validCert,
 			}}
-			Expect(accessRule.ToCloudflare().Include[0]).To(Equal(
+			Expect(accessGroup.ToCloudflare().Include[0]).To(Equal(
 				zero_trust.AccessRule{
 					Certificate: zero_trust.CertificateRuleCertificate{},
 				},
@@ -222,10 +222,10 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 
 		It("can export everyone to the cloudflare object", func() {
 			everyone := true
-			accessRule.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
+			accessGroup.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
 				Everyone: &everyone,
 			}}
-			Expect(accessRule.ToCloudflare().Include[0]).To(Equal(
+			Expect(accessGroup.ToCloudflare().Include[0]).To(Equal(
 				zero_trust.AccessRule{
 					Everyone: zero_trust.EveryoneRuleEveryone{},
 				},
@@ -233,11 +233,11 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 		})
 
 		It("can export Country to the cloudflare object", func() {
-			accessRule.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
+			accessGroup.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
 				Countries: []string{"US", "UK"},
 			}}
-			for i, country := range accessRule.Spec.Include[0].Countries {
-				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(
+			for i, country := range accessGroup.Spec.Include[0].Countries {
+				Expect(accessGroup.ToCloudflare().Include[i]).To(Equal(
 					zero_trust.AccessRule{
 						Geo: zero_trust.CountryRuleGeo{
 							CountryCode: country,
@@ -249,11 +249,11 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 
 		It("can export accessGroups to the cloudflare object", func() {
 			ids := []v4alpha1.AccessGroup{{Value: "first_access_group_id"}, {Value: "second_access_group_id"}}
-			accessRule.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
+			accessGroup.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
 				AccessGroups: ids,
 			}}
 			for i, id := range ids {
-				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(
+				Expect(accessGroup.ToCloudflare().Include[i]).To(Equal(
 					zero_trust.AccessRule{
 						Group: zero_trust.GroupRuleGroup{
 							ID: id.Value,
@@ -264,12 +264,12 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 		})
 
 		It("can export loginMethods to the cloudflare object", func() {
-			accessRule.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
+			accessGroup.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
 				LoginMethods: []string{"00000000-1234-5678-1234-123456789012"},
 			}}
 
-			for i, id := range accessRule.Spec.Include[0].LoginMethods {
-				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(
+			for i, id := range accessGroup.Spec.Include[0].LoginMethods {
+				Expect(accessGroup.ToCloudflare().Include[i]).To(Equal(
 					zero_trust.AccessRule{
 						LoginMethod: zero_trust.AccessRuleAccessLoginMethodRuleLoginMethod{
 							ID: id,
@@ -280,7 +280,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 		})
 
 		It("can export github organizations to the cloudflare object", func() {
-			accessRule.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
+			accessGroup.Spec.Include = []v4alpha1.CloudFlareAccessRules{{
 				GithubOrganizations: []v4alpha1.GithubOrganization{{
 					Name:               "test",
 					IdentityProviderID: "zelic-io",
@@ -288,8 +288,8 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 				}},
 			}}
 
-			for i, org := range accessRule.Spec.Include[0].GithubOrganizations {
-				Expect(accessRule.ToCloudflare().Include[i]).To(Equal(
+			for i, org := range accessGroup.Spec.Include[0].GithubOrganizations {
+				Expect(accessGroup.ToCloudflare().Include[i]).To(Equal(
 					zero_trust.AccessRule{
 						GitHubOrganization: zero_trust.GitHubOrganizationRuleGitHubOrganization{
 							IdentityProviderID: org.IdentityProviderID,

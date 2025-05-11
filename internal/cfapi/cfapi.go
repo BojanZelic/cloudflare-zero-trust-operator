@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 	"github.com/cloudflare/cloudflare-go/v4/option"
@@ -35,21 +34,6 @@ func New(cfAPIToken string, cfAPIKey string, cfAPIEmail string, cfAccountID stri
 //
 //
 //
-
-func (a *API) AccessGroups(ctx context.Context) (cfcollections.AccessGroupCollection, error) {
-	//
-	iter := a.client.ZeroTrust.Access.Groups.ListAutoPaging(ctx, zero_trust.AccessGroupListParams{
-		AccountID: cloudflare.F(a.CFAccountID),
-	})
-
-	cfAccessGroupCollection := cfcollections.AccessGroupCollection{}
-	for iter.Next() {
-		cfAccessGroupCollection = append(cfAccessGroupCollection, iter.Current())
-	}
-
-	//
-	return cfAccessGroupCollection, errors.Wrap(iter.Err(), "unable to get access groups")
-}
 
 func (a *API) AccessGroupByName(ctx context.Context, name string) (*zero_trust.AccessGroupGetResponse, error) {
 	//
@@ -83,9 +67,9 @@ func (a *API) CreateAccessGroup(ctx context.Context, group *v4alpha1.CloudflareA
 		zero_trust.AccessGroupNewParams{
 			AccountID: cloudflare.F(a.CFAccountID),
 			Name:      cloudflare.F(group.Spec.Name),
-			Include:   cloudflare.F(group.Spec.Include.ToAccessRuleParams()),
-			Exclude:   cloudflare.F(group.Spec.Exclude.ToAccessRuleParams()),
-			Require:   cloudflare.F(group.Spec.Require.ToAccessRuleParams()),
+			Include:   cloudflare.F(group.Spec.Include.ToAccessRuleParams(group.Status.ResolvedIdpsFromRefs.Include)),
+			Exclude:   cloudflare.F(group.Spec.Exclude.ToAccessRuleParams(group.Status.ResolvedIdpsFromRefs.Exclude)),
+			Require:   cloudflare.F(group.Spec.Require.ToAccessRuleParams(group.Status.ResolvedIdpsFromRefs.Require)),
 		},
 	)
 
@@ -104,9 +88,9 @@ func (a *API) UpdateAccessGroup(ctx context.Context, group *v4alpha1.CloudflareA
 		zero_trust.AccessGroupUpdateParams{
 			AccountID: cloudflare.F(a.CFAccountID),
 			Name:      cloudflare.F(group.Spec.Name),
-			Include:   cloudflare.F(group.Spec.Include.ToAccessRuleParams()),
-			Exclude:   cloudflare.F(group.Spec.Exclude.ToAccessRuleParams()),
-			Require:   cloudflare.F(group.Spec.Require.ToAccessRuleParams()),
+			Include:   cloudflare.F(group.Spec.Include.ToAccessRuleParams(group.Status.ResolvedIdpsFromRefs.Include)),
+			Exclude:   cloudflare.F(group.Spec.Exclude.ToAccessRuleParams(group.Status.ResolvedIdpsFromRefs.Exclude)),
+			Require:   cloudflare.F(group.Spec.Require.ToAccessRuleParams(group.Status.ResolvedIdpsFromRefs.Require)),
 		},
 	)
 
@@ -126,20 +110,6 @@ func (a *API) DeleteAccessGroup(ctx context.Context, groupID string) error {
 //
 //
 
-func (a *API) AccessApplications(ctx context.Context) ([]zero_trust.AccessApplicationListResponse, error) {
-	//
-	iter := a.client.ZeroTrust.Access.Applications.ListAutoPaging(ctx, zero_trust.AccessApplicationListParams{
-		AccountID: cloudflare.F(a.CFAccountID),
-	})
-
-	apps := []zero_trust.AccessApplicationListResponse{}
-	for iter.Next() {
-		apps = append(apps, iter.Current())
-	}
-
-	return apps, errors.Wrap(iter.Err(), "unable to get access applications")
-}
-
 func (a *API) FindAccessApplicationByDomain(ctx context.Context, domain string) (*zero_trust.AccessApplicationGetResponse, error) {
 	//
 	iter := a.client.ZeroTrust.Access.Applications.ListAutoPaging(ctx, zero_trust.AccessApplicationListParams{
@@ -156,6 +126,24 @@ func (a *API) FindAccessApplicationByDomain(ctx context.Context, domain string) 
 	return a.AccessApplication(ctx, iter.Current().ID)
 }
 
+func (a *API) FindFirstAccessApplicationOfType(ctx context.Context, app_type string) (*zero_trust.AccessApplicationGetResponse, error) {
+	//
+	iter := a.client.ZeroTrust.Access.Applications.ListAutoPaging(ctx, zero_trust.AccessApplicationListParams{
+		AccountID: cloudflare.F(a.CFAccountID),
+	})
+
+	for iter.Next() {
+		if iter.Current().Type != app_type {
+			continue
+		}
+
+		//
+		return a.AccessApplication(ctx, iter.Current().ID)
+	}
+
+	return nil, errors.Wrap(iter.Err(), "unable to get access applications")
+}
+
 func (a *API) AccessApplication(ctx context.Context, accessApplicationID string) (*zero_trust.AccessApplicationGetResponse, error) {
 	//
 	cfApp, err := a.client.ZeroTrust.Access.Applications.Get(ctx, accessApplicationID, zero_trust.AccessApplicationGetParams{
@@ -170,22 +158,63 @@ func (a *API) CreateAccessApplication(
 	app *v4alpha1.CloudflareAccessApplication, //nolint:varnamelen
 ) (*zero_trust.AccessApplicationGetResponse, error) {
 	//
-	cfApp, err := a.client.ZeroTrust.Access.Applications.New(ctx, zero_trust.AccessApplicationNewParams{
-		AccountID: cloudflare.F(a.CFAccountID),
-		Body: zero_trust.AccessApplicationNewParamsBody{
-			Name:                    cloudflare.F(app.Spec.Name),
-			Domain:                  cloudflare.F(app.Spec.Domain),
-			Type:                    cloudflare.F(app.Spec.Type),
-			AppLauncherVisible:      cloudflare.F(*app.Spec.AppLauncherVisible),
-			AllowedIdPs:             cloudflare.F(any(app.Spec.AllowedIdps)),
-			AutoRedirectToIdentity:  cloudflare.F(*app.Spec.AutoRedirectToIdentity),
-			Policies:                cloudflare.F(any(app.Status.ReusablePolicyIDs)),
-			SessionDuration:         cloudflare.F(app.Spec.SessionDuration),
-			EnableBindingCookie:     cloudflare.F(*app.Spec.EnableBindingCookie),
-			HTTPOnlyCookieAttribute: cloudflare.F(*app.Spec.HTTPOnlyCookieAttribute),
-			LogoURL:                 cloudflare.F(app.Spec.LogoURL),
-		},
-	})
+	var cfApp *zero_trust.AccessApplicationNewResponse
+	var err error
+
+	//
+	switch app.Spec.Type {
+	case "self_hosted":
+		{
+			cfApp, err = a.client.ZeroTrust.Access.Applications.New(ctx, zero_trust.AccessApplicationNewParams{
+				AccountID: cloudflare.F(a.CFAccountID),
+				Body: zero_trust.AccessApplicationNewParamsBodySelfHostedApplication{
+					Name:                    cloudflare.F(app.Spec.Name),
+					Domain:                  cloudflare.F(app.Spec.Domain),
+					Type:                    cloudflare.F(app.Spec.Type),
+					AppLauncherVisible:      cloudflare.F(*app.Spec.AppLauncherVisible),
+					AllowedIdPs:             cloudflare.F(app.Spec.AllowedIdps),
+					AutoRedirectToIdentity:  cloudflare.F(*app.Spec.AutoRedirectToIdentity),
+					Policies:                cloudflare.F(p_new_SH(app.Status.ReusablePolicyIDs)),
+					SessionDuration:         cloudflare.F(app.Spec.SessionDuration),
+					EnableBindingCookie:     cloudflare.F(*app.Spec.EnableBindingCookie),
+					HTTPOnlyCookieAttribute: cloudflare.F(*app.Spec.HTTPOnlyCookieAttribute),
+					LogoURL:                 cloudflare.F(app.Spec.LogoURL),
+				},
+			})
+		}
+	case "warp":
+		{
+			cfApp, err = a.client.ZeroTrust.Access.Applications.New(ctx, zero_trust.AccessApplicationNewParams{
+				AccountID: cloudflare.F(a.CFAccountID),
+				Body: zero_trust.AccessApplicationNewParamsBodyDeviceEnrollmentPermissionsApplication{
+					Type:                   cloudflare.F(zero_trust.ApplicationType(app.Spec.Type)),
+					AllowedIdPs:            cloudflare.F(app.Spec.AllowedIdps),
+					AutoRedirectToIdentity: cloudflare.F(*app.Spec.AutoRedirectToIdentity),
+					Policies:               cloudflare.F(p_new_DEP(app.Status.ReusablePolicyIDs)),
+					SessionDuration:        cloudflare.F(app.Spec.SessionDuration),
+					AppLauncherLogoURL:     cloudflare.F(app.Spec.LogoURL),
+				},
+			})
+		}
+	case "app_launch":
+		{
+			cfApp, err = a.client.ZeroTrust.Access.Applications.New(ctx, zero_trust.AccessApplicationNewParams{
+				AccountID: cloudflare.F(a.CFAccountID),
+				Body: zero_trust.AccessApplicationNewParamsBodyAppLauncherApplication{
+					Type:                   cloudflare.F(zero_trust.ApplicationType(app.Spec.Type)),
+					AllowedIdPs:            cloudflare.F(app.Spec.AllowedIdps),
+					AutoRedirectToIdentity: cloudflare.F(*app.Spec.AutoRedirectToIdentity),
+					Policies:               cloudflare.F(p_new_AL(app.Status.ReusablePolicyIDs)),
+					SessionDuration:        cloudflare.F(app.Spec.SessionDuration),
+					AppLauncherLogoURL:     cloudflare.F(app.Spec.LogoURL),
+				},
+			})
+		}
+	default:
+		{
+			return nil, errors.Errorf("Unhandled application creation for '%s' app type. Contact the developpers.", app.Spec.Type)
+		}
+	}
 
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create access applications")
@@ -199,26 +228,69 @@ func (a *API) UpdateAccessApplication(
 	app *v4alpha1.CloudflareAccessApplication, //nolint:varnamelen
 ) (*zero_trust.AccessApplicationGetResponse, error) {
 	//
-	cfApp, err := a.client.ZeroTrust.Access.Applications.Update(ctx, app.Status.AccessApplicationID,
-		zero_trust.AccessApplicationUpdateParams{
-			AccountID: cloudflare.F(a.CFAccountID),
-			Body: zero_trust.AccessApplicationUpdateParamsBody{
-				Name:                    cloudflare.F(app.Name),
-				Domain:                  cloudflare.F(app.Spec.Domain),
-				Type:                    cloudflare.F(app.Spec.Type),
-				AppLauncherVisible:      cloudflare.F(*app.Spec.AppLauncherVisible),
-				AllowedIdPs:             cloudflare.F(any(app.Spec.AllowedIdps)),
-				AutoRedirectToIdentity:  cloudflare.F(*app.Spec.AutoRedirectToIdentity),
-				Policies:                cloudflare.F(any(app.Status.ReusablePolicyIDs)),
-				SessionDuration:         cloudflare.F(app.Spec.SessionDuration),
-				EnableBindingCookie:     cloudflare.F(*app.Spec.EnableBindingCookie),
-				HTTPOnlyCookieAttribute: cloudflare.F(*app.Spec.HTTPOnlyCookieAttribute),
-				LogoURL:                 cloudflare.F(app.Spec.LogoURL),
-			},
-		})
+	var cfApp *zero_trust.AccessApplicationUpdateResponse
+	var err error
+
+	//
+	switch app.Spec.Type {
+	case "self_hosted":
+		{
+			cfApp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, app.Status.AccessApplicationID,
+				zero_trust.AccessApplicationUpdateParams{
+					AccountID: cloudflare.F(a.CFAccountID),
+					Body: zero_trust.AccessApplicationUpdateParamsBodySelfHostedApplication{
+						Name:                    cloudflare.F(app.Spec.Name),
+						Domain:                  cloudflare.F(app.Spec.Domain),
+						AppLauncherVisible:      cloudflare.F(*app.Spec.AppLauncherVisible),
+						AllowedIdPs:             cloudflare.F(app.Spec.AllowedIdps),
+						AutoRedirectToIdentity:  cloudflare.F(*app.Spec.AutoRedirectToIdentity),
+						Policies:                cloudflare.F(p_update_SH(app.Status.ReusablePolicyIDs)),
+						SessionDuration:         cloudflare.F(app.Spec.SessionDuration),
+						EnableBindingCookie:     cloudflare.F(*app.Spec.EnableBindingCookie),
+						HTTPOnlyCookieAttribute: cloudflare.F(*app.Spec.HTTPOnlyCookieAttribute),
+						LogoURL:                 cloudflare.F(app.Spec.LogoURL),
+					},
+				},
+			)
+		}
+	case "warp":
+		{
+			cfApp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, app.Status.AccessApplicationID,
+				zero_trust.AccessApplicationUpdateParams{
+					AccountID: cloudflare.F(a.CFAccountID),
+					Body: zero_trust.AccessApplicationUpdateParamsBodyDeviceEnrollmentPermissionsApplication{
+						AllowedIdPs:            cloudflare.F(app.Spec.AllowedIdps),
+						AutoRedirectToIdentity: cloudflare.F(*app.Spec.AutoRedirectToIdentity),
+						Policies:               cloudflare.F(p_update_DEP(app.Status.ReusablePolicyIDs)),
+						SessionDuration:        cloudflare.F(app.Spec.SessionDuration),
+						AppLauncherLogoURL:     cloudflare.F(app.Spec.LogoURL),
+					},
+				},
+			)
+		}
+	case "app_launch":
+		{
+			cfApp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, app.Status.AccessApplicationID,
+				zero_trust.AccessApplicationUpdateParams{
+					AccountID: cloudflare.F(a.CFAccountID),
+					Body: zero_trust.AccessApplicationUpdateParamsBodyAppLauncherApplication{
+						AllowedIdPs:            cloudflare.F(app.Spec.AllowedIdps),
+						AutoRedirectToIdentity: cloudflare.F(*app.Spec.AutoRedirectToIdentity),
+						Policies:               cloudflare.F(p_update_AL(app.Status.ReusablePolicyIDs)),
+						SessionDuration:        cloudflare.F(app.Spec.SessionDuration),
+						AppLauncherLogoURL:     cloudflare.F(app.Spec.LogoURL),
+					},
+				},
+			)
+		}
+	default:
+		{
+			return nil, errors.Errorf("Unhandled application creation for '%s' app type. Contact the developpers.", app.Spec.Type)
+		}
+	}
 
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to update access applications")
+		return nil, errors.Wrap(err, "unable to create access applications")
 	}
 
 	return a.AccessApplication(ctx, cfApp.ID)
@@ -251,9 +323,9 @@ func (a *API) CreateAccessReusablePolicy(ctx context.Context, arp *v4alpha1.Clou
 		AccountID: cloudflare.F(a.CFAccountID),
 		Decision:  cloudflare.F(zero_trust.Decision(arp.Spec.Decision)),
 		Name:      cloudflare.F(arp.Spec.Name),
-		Include:   cloudflare.F(arp.Spec.Include.ToAccessRuleParams()),
-		Exclude:   cloudflare.F(arp.Spec.Exclude.ToAccessRuleParams()),
-		Require:   cloudflare.F(arp.Spec.Require.ToAccessRuleParams()),
+		Include:   cloudflare.F(arp.Spec.Include.ToAccessRuleParams(arp.Status.ResolvedIdpsFromRefs.Include)),
+		Exclude:   cloudflare.F(arp.Spec.Exclude.ToAccessRuleParams(arp.Status.ResolvedIdpsFromRefs.Exclude)),
+		Require:   cloudflare.F(arp.Spec.Require.ToAccessRuleParams(arp.Status.ResolvedIdpsFromRefs.Require)),
 	})
 
 	if err != nil {
@@ -266,12 +338,12 @@ func (a *API) CreateAccessReusablePolicy(ctx context.Context, arp *v4alpha1.Clou
 func (a *API) UpdateAccessReusablePolicy(ctx context.Context, arp *v4alpha1.CloudflareAccessReusablePolicy) error {
 	_, err := a.client.ZeroTrust.Access.Policies.Update(ctx, arp.Status.AccessReusablePolicyID, zero_trust.AccessPolicyUpdateParams{
 		AccountID: cloudflare.F(a.CFAccountID),
-		Include:   cloudflare.F(arp.Spec.Include.ToAccessRuleParams()),
-		Exclude:   cloudflare.F(arp.Spec.Exclude.ToAccessRuleParams()),
-		Require:   cloudflare.F(arp.Spec.Require.ToAccessRuleParams()),
+		Include:   cloudflare.F(arp.Spec.Include.ToAccessRuleParams(arp.Status.ResolvedIdpsFromRefs.Include)),
+		Exclude:   cloudflare.F(arp.Spec.Exclude.ToAccessRuleParams(arp.Status.ResolvedIdpsFromRefs.Exclude)),
+		Require:   cloudflare.F(arp.Spec.Require.ToAccessRuleParams(arp.Status.ResolvedIdpsFromRefs.Require)),
 	})
 
-	return errors.Wrap(err, "unable to update reusable access policy")
+	return errors.Wrap(err, "unable to update access reusable policy")
 }
 
 func (a *API) DeleteAccessReusablePolicy(ctx context.Context, policyID string) error {
@@ -280,14 +352,14 @@ func (a *API) DeleteAccessReusablePolicy(ctx context.Context, policyID string) e
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
-	return errors.Wrap(err, "unable to delete reusable access policy")
+	return errors.Wrap(err, "unable to delete access reusable policy")
 }
 
 //
 //
 //
 
-func (a *API) ServiceTokens(ctx context.Context) ([]cftypes.ExtendedServiceToken, error) {
+func (a *API) ServiceTokens(ctx context.Context) (*[]cftypes.ExtendedServiceToken, error) {
 
 	iter := a.client.ZeroTrust.Access.ServiceTokens.ListAutoPaging(ctx, zero_trust.AccessServiceTokenListParams{
 		AccountID: cloudflare.F(a.CFAccountID),
@@ -300,10 +372,10 @@ func (a *API) ServiceTokens(ctx context.Context) ([]cftypes.ExtendedServiceToken
 		})
 	}
 
-	return extendedTokens, errors.Wrap(iter.Err(), "unable to get service tokens")
+	return &extendedTokens, errors.Wrap(iter.Err(), "unable to get service tokens")
 }
 
-func (a *API) CreateAccessServiceToken(ctx context.Context, token cftypes.ExtendedServiceToken) (cftypes.ExtendedServiceToken, error) {
+func (a *API) CreateAccessServiceToken(ctx context.Context, token cftypes.ExtendedServiceToken) (*cftypes.ExtendedServiceToken, error) {
 	//
 	res, err := a.client.ZeroTrust.Access.ServiceTokens.New(ctx, zero_trust.AccessServiceTokenNewParams{
 		AccountID: cloudflare.F(a.CFAccountID),
@@ -311,7 +383,7 @@ func (a *API) CreateAccessServiceToken(ctx context.Context, token cftypes.Extend
 	})
 
 	if err != nil {
-		return cftypes.ExtendedServiceToken{}, errors.Wrap(err, "unable to create access service token")
+		return nil, errors.Wrap(err, "unable to create access service token")
 	}
 
 	sToken, err := a.client.ZeroTrust.Access.ServiceTokens.Get(ctx, res.ID, zero_trust.AccessServiceTokenGetParams{
@@ -330,7 +402,7 @@ func (a *API) CreateAccessServiceToken(ctx context.Context, token cftypes.Extend
 		},
 	}
 
-	return extendedToken, errors.Wrap(err, "unable to create access service token")
+	return &extendedToken, errors.Wrap(err, "unable to create access service token")
 }
 
 func (a *API) DeleteAccessServiceToken(ctx context.Context, tokenID string) error {
