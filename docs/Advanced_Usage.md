@@ -2,8 +2,8 @@
 
 ## Regarding Identity Provider IDs
 You might need to specify Identity Provider IDs in your specifications; to know which are available to you and configured on your CloudFlare's account, you might find a recap of those in the log when you start your operator.
-// TODO add log example
 ```
+// TODO add log example
 ```
 
 ## Reference other resources from another namespace
@@ -60,7 +60,7 @@ spec:
     - default/allow-testemail1 # access resource from "default" instead of "default2"
 ```
 
-## Regarding WARP and App Launcher special applications
+## Regarding `WARP` and `App Launcher` special applications
 
 In Cloudflare's Zero Trust Official Dashboard UI, both `WARP`'s Device enrollment permissions and `App Launcher` are not explicitely considered Access Applications per-se; You cannot find them in `Zero Trust > [YourAccount] > Access > Applications`.
 
@@ -70,7 +70,7 @@ As such, you can still use a `CloudflareAccessApplication` to configure their po
 
 ex:
 
-for WARP's Device enrollment permissions
+For WARP's Device Enrollment Permissions
 ```yaml
 apiVersion: cloudflare.zelic.io/v4alpha1
 kind: CloudflareAccessGroup
