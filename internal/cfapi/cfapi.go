@@ -212,7 +212,7 @@ func (a *API) CreateAccessApplication(
 		}
 	default:
 		{
-			return nil, errors.Errorf("Unhandled application creation for '%s' app type. Contact the developpers.", app.Spec.Type)
+			return nil, errors.Errorf("Unhandled application creation for '%s' app type. Contact the developers.", app.Spec.Type)
 		}
 	}
 
@@ -285,7 +285,7 @@ func (a *API) UpdateAccessApplication(
 		}
 	default:
 		{
-			return nil, errors.Errorf("Unhandled application creation for '%s' app type. Contact the developpers.", app.Spec.Type)
+			return nil, errors.Errorf("Unhandled application creation for '%s' app type. Contact the developers.", app.Spec.Type)
 		}
 	}
 
@@ -319,7 +319,7 @@ func (a *API) AccessReusablePolicy(ctx context.Context, policyID string) (*zero_
 }
 
 func (a *API) CreateAccessReusablePolicy(ctx context.Context, arp *v4alpha1.CloudflareAccessReusablePolicy) (*zero_trust.AccessPolicyGetResponse, error) {
-	rp, err := a.client.ZeroTrust.Access.Policies.New(ctx, zero_trust.AccessPolicyNewParams{
+	rp, err := a.client.ZeroTrust.Access.Policies.New(ctx, zero_trust.AccessPolicyNewParams{ //nolint:varnamelen
 		AccountID: cloudflare.F(a.CFAccountID),
 		Decision:  cloudflare.F(zero_trust.Decision(arp.Spec.Decision)),
 		Name:      cloudflare.F(arp.Spec.Name),

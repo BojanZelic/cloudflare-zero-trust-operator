@@ -58,7 +58,7 @@ const (
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications/finalizers,verbs=update
 
-//nolint:cyclop,gocognit
+//nolint:maintidx,cyclop,gocognit,gocyclo,varnamelen
 func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::Reconcile")
 	app := &v4alpha1.CloudflareAccessApplication{}
@@ -92,7 +92,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	}
 
 	//
-	var rp v4alpha1.CloudflareAccessReusablePolicy
+	var rp v4alpha1.CloudflareAccessReusablePolicy //nolint:varnamelen
 	orderedPolicyIds := []string{}
 	for _, policyRefNS := range policyRefsNS {
 		err := r.Get(ctx, policyRefNS, &rp)
@@ -204,7 +204,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 			}
 		default:
 			{
-				return ctrl.Result{}, errors.Errorf("Unhandled application type '%s'. Contact the developpers.", app.Spec.Type)
+				return ctrl.Result{}, errors.Errorf("Unhandled application type '%s'. Contact the developers.", app.Spec.Type)
 			}
 		}
 

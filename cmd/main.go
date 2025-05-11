@@ -58,6 +58,7 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
+//nolint:cyclop
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
@@ -210,8 +211,11 @@ func displayAvailableIdentityProviders() {
 	//
 	idpsUsedIn := []string{
 		"CloudflareAccessApplication.Spec.allowedIdps",
-		"CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.{loginMethods}",
-		"CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.{googleGroups,oktaGroups,samlGroups,githubOrganizations}.identityProviderId",
+		"CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.loginMethods[]",
+		"CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.googleGroups[].identityProviderId",
+		"CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.oktaGroups[].identityProviderId",
+		"CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.samlGroups[].identityProviderId",
+		"CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.githubOrganizations[].identityProviderId",
 	}
 
 	//

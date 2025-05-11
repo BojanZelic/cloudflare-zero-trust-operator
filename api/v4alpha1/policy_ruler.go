@@ -64,7 +64,7 @@ func PopulateWithCloudflareUUIDs(
 	}
 
 	//
-	for i, rulesType := range managedCFRules {
+	for i, rulesType := range managedCFRules { //nolint:varnamelen
 
 		//
 		//

@@ -26,7 +26,7 @@ import (
 
 // CloudflareAccessApplicationSpec defines the desired state of CloudflareAccessApplication.
 type CloudflareAccessApplicationSpec struct {
-	// The application type. If ommited, resolves to "self_hosted". Only a bunch of official types are supported.
+	// The application type. If omitted, resolves to "self_hosted". Only a bunch of official types are supported.
 	//
 	// https://developers.cloudflare.com/api/resources/zero_trust/subresources/access/subresources/applications/models/application_type/
 	//

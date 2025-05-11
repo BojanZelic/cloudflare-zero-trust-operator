@@ -194,14 +194,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 				Spec: v4alpha1.CloudflareAccessGroupSpec{
 					Name: "reference test group",
 					Include: v4alpha1.CloudFlareAccessRules{
-						ServiceTokens: []v4alpha1.ServiceToken{
-							{
-								ValueFrom: &v4alpha1.ServiceTokenReference{
-									Name:      token.Name,
-									Namespace: token.Namespace,
-								},
-							},
-						},
+						ServiceTokenRefs: []string{v4alpha1.ParsedNamespacedName(typeNamespaceName)},
 					},
 				},
 			}

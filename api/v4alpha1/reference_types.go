@@ -45,6 +45,17 @@ type GithubOrganization struct {
 //
 //
 
+// Turns a [NamespacedName] into a parsable string, understood by this operator's CRDs manifests "Refs"-like fields
+func ParsedNamespacedName(nn types.NamespacedName) string { //nolint:varnamelen
+	//
+	if nn.Namespace == "" {
+		return nn.Name
+	}
+
+	//
+	return fmt.Sprintf("%s/%s", nn.Namespace, nn.Name)
+}
+
 func parseNamespacedNames(parsableNames []string, contextNamespace string) (nsNames []types.NamespacedName, err error) {
 	for _, parsableName := range parsableNames {
 		//
@@ -64,9 +75,9 @@ func parseNamespacedNames(parsableNames []string, contextNamespace string) (nsNa
 	return
 }
 
-// ParseNamespacedName parses a string into a types.NamespacedName.
+// ParseNamespacedName parses a string (which are expected by "Refs"-like fields in this operator CRDs) into a types.NamespacedName.
 // Accepts "namespace/name" or just "name" (in which case namespace wil be contextNamespace).
-func _parseNamespacedName(s string, contextNamespace string) (types.NamespacedName, error) {
+func _parseNamespacedName(s string, contextNamespace string) (types.NamespacedName, error) { //nolint:varnamelen
 	if s == "" {
 		return types.NamespacedName{}, fmt.Errorf("input string is empty")
 	}

@@ -8,7 +8,7 @@ import (
 // Check if a bunch of reusable policies defined in K8S are present in an arbirary list of Cloudflare policies
 // Ignore all non-reusable, or "imperatively declared elsewhere" policies.
 //
-//nolint:cyclop
+//nolint:cyclop,varnamelen
 func DoK8SAccessPoliciesMatch(cf *zero_trust.AccessApplicationGetResponse, k8s *v4alpha1.CloudflareAccessApplication) bool {
 	if cf == nil && k8s == nil {
 		return true
@@ -19,7 +19,7 @@ func DoK8SAccessPoliciesMatch(cf *zero_trust.AccessApplicationGetResponse, k8s *
 	}
 
 	// If the K8s policy list is empty, we consider all policies are present
-	if len(*&k8s.Status.ReusablePolicyIDs) == 0 {
+	if len(k8s.Status.ReusablePolicyIDs) == 0 {
 		return true
 	}
 
@@ -37,7 +37,7 @@ func DoK8SAccessPoliciesMatch(cf *zero_trust.AccessApplicationGetResponse, k8s *
 		foundMatch := false
 		for _, cfPolicy := range cfPolicies {
 			// get "id" field
-			cfPolicyId, ok := cfPolicy["id"].(string)
+			cfPolicyId, ok := cfPolicy["id"].(string) //nolint:varnamelen
 			if !ok {
 				continue
 			}

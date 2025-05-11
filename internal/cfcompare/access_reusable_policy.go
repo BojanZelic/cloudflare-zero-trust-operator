@@ -20,7 +20,7 @@ func areAccessRulesEquivalent(cfRules, k8sRules []zero_trust.AccessRule) bool {
 	return reflect.DeepEqual(v1, v2)
 }
 
-//nolint:cyclop
+//nolint:cyclop,varnamelen
 func AreAccessReusablePoliciesEquivalent(cf *zero_trust.AccessPolicyGetResponse, k8s *v4alpha1.CloudflareAccessReusablePolicy) bool {
 	if cf == nil && k8s == nil {
 		return true

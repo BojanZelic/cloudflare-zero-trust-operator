@@ -8,6 +8,7 @@ import (
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 )
 
+//nolint:cyclop,varnamelen
 func AreAccessApplicationsEquivalent(cf *zero_trust.AccessApplicationGetResponse, k8s *v4alpha1.CloudflareAccessApplication) bool {
 	return DoK8SAccessPoliciesMatch(cf, k8s) &&
 		strings.TrimSpace(cf.Type) == strings.TrimSpace(k8s.Spec.Type) &&
