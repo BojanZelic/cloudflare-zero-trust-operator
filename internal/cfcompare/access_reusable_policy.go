@@ -10,7 +10,7 @@ import (
 
 func AreAccessRulesEquivalent(cfRules, k8sRules []zero_trust.AccessRule) bool {
 	if len(cfRules) == 0 || len(k8sRules) == 0 {
-		return true // Si l'une des listes est vide, considérons qu'elles sont équivalentes
+		return true // If one of the lists is empty, consider them equivalent
 	}
 
 	v1, _ := json.Marshal(cfRules)  //nolint:errchkjson
