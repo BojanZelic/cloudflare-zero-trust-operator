@@ -8,8 +8,7 @@ import (
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 )
 
-// areAccessRulesEquivalent compare les règles d'accès CloudFlare avec celles de Kubernetes
-func areAccessRulesEquivalent(cfRules, k8sRules []zero_trust.AccessRule) bool {
+func AreAccessRulesEquivalent(cfRules, k8sRules []zero_trust.AccessRule) bool {
 	if len(cfRules) == 0 || len(k8sRules) == 0 {
 		return true // Si l'une des listes est vide, considérons qu'elles sont équivalentes
 	}
@@ -34,13 +33,13 @@ func AreAccessReusablePoliciesEquivalent(cf *zero_trust.AccessPolicyGetResponse,
 		return false
 	}
 
-	if !areAccessRulesEquivalent(cf.Include, k8s.Spec.Include.ToAccessRules(k8s.Status.ResolvedIdpsFromRefs.Include)) {
+	if !AreAccessRulesEquivalent(cf.Include, k8s.Spec.Include.ToAccessRules(k8s.Status.ResolvedIdpsFromRefs.Include)) {
 		return false
 	}
-	if !areAccessRulesEquivalent(cf.Exclude, k8s.Spec.Exclude.ToAccessRules(k8s.Status.ResolvedIdpsFromRefs.Exclude)) {
+	if !AreAccessRulesEquivalent(cf.Exclude, k8s.Spec.Exclude.ToAccessRules(k8s.Status.ResolvedIdpsFromRefs.Exclude)) {
 		return false
 	}
-	if !areAccessRulesEquivalent(cf.Require, k8s.Spec.Require.ToAccessRules(k8s.Status.ResolvedIdpsFromRefs.Require)) {
+	if !AreAccessRulesEquivalent(cf.Require, k8s.Spec.Require.ToAccessRules(k8s.Status.ResolvedIdpsFromRefs.Require)) {
 		return false
 	}
 

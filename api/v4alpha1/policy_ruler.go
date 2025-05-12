@@ -90,7 +90,7 @@ func PopulateWithCloudflareUUIDs(
 			}
 
 			//
-			managedCFIds[i].GroupRefCfIds = append(managedCFIds[i].GroupRefCfIds, accessGroup.Status.AccessGroupID)
+			managedCFIds[i].AccessGroupRefCfIds = append(managedCFIds[i].AccessGroupRefCfIds, accessGroup.Status.AccessGroupID)
 		}
 
 		//

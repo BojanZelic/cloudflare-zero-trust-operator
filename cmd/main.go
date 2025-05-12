@@ -242,9 +242,28 @@ func displayAvailableIdentityProviders() {
 		os.Exit(1)
 	}
 
+	if len(*idProviders) == 0 {
+		setupLog.Info(
+			"No identity providers found; you might want to enable some through CloudFlare's dashboard "+
+				"to leverage most of this operator's features.",
+			"moreInfosAt", "https://developers.cloudflare.com/cloudflare-one/identity/",
+		)
+		return
+	}
+
 	//
-	setupLog.Info("Found Identity providers. Please use their UUID as reference within this operator.",
+	setupLog.Info("Enumerating found identity providers; please use their UUID as reference within this operator :",
 		"AvailableIDPs",
-		idProviders,
+		len(*idProviders),
 	)
+
+	for i, idProvider := range *idProviders {
+		setupLog.Info(
+			"Found IdentityProvider",
+			"order", i,
+			"type", idProvider.Type,
+			"name", idProvider.Name,
+			"uuid", idProvider.ID,
+		)
+	}
 }

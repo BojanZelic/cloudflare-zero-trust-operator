@@ -27,6 +27,29 @@ import (
 func (rules *CloudFlareAccessRules) ToAccessRuleParams(resolvedCfIds ResolvedCloudflareIDs) []zero_trust.AccessRuleUnionParam {
 	out := []zero_trust.AccessRuleUnionParam{}
 
+	//
+	//
+	//
+
+	for _, token := range resolvedCfIds.ServiceTokenRefCfIds {
+		out = append(out, zero_trust.ServiceTokenRuleParam{
+			ServiceToken: cloudflare.F(zero_trust.ServiceTokenRuleServiceTokenParam{
+				TokenID: cloudflare.F(token),
+			}),
+		})
+	}
+	for _, group := range rules.AccessGroupRefs {
+		out = append(out, zero_trust.GroupRuleParam{
+			Group: cloudflare.F(zero_trust.GroupRuleGroupParam{
+				ID: cloudflare.F(group),
+			}),
+		})
+	}
+
+	//
+	//
+	//
+
 	for _, email := range rules.Emails {
 		out = append(out, zero_trust.EmailRuleParam{
 			Email: cloudflare.F(zero_trust.EmailRuleEmailParam{
@@ -48,13 +71,7 @@ func (rules *CloudFlareAccessRules) ToAccessRuleParams(resolvedCfIds ResolvedClo
 			}),
 		})
 	}
-	for _, token := range resolvedCfIds.ServiceTokenRefCfIds {
-		out = append(out, zero_trust.ServiceTokenRuleParam{
-			ServiceToken: cloudflare.F(zero_trust.ServiceTokenRuleServiceTokenParam{
-				TokenID: cloudflare.F(token),
-			}),
-		})
-	}
+
 	if rules.AnyAccessServiceToken != nil && *rules.AnyAccessServiceToken {
 		out = append(out, zero_trust.AnyValidServiceTokenRuleParam{
 			AnyValidServiceToken: cloudflare.F(zero_trust.AnyValidServiceTokenRuleAnyValidServiceTokenParam{}),
@@ -74,13 +91,6 @@ func (rules *CloudFlareAccessRules) ToAccessRuleParams(resolvedCfIds ResolvedClo
 		out = append(out, zero_trust.CountryRuleParam{
 			Geo: cloudflare.F(zero_trust.CountryRuleGeoParam{
 				CountryCode: cloudflare.F(countryCode),
-			}),
-		})
-	}
-	for _, group := range rules.AccessGroupRefs {
-		out = append(out, zero_trust.GroupRuleParam{
-			Group: cloudflare.F(zero_trust.GroupRuleGroupParam{
-				ID: cloudflare.F(group),
 			}),
 		})
 	}
@@ -147,6 +157,30 @@ func (rules *CloudFlareAccessRules) ToAccessRuleParams(resolvedCfIds ResolvedClo
 func (rules *CloudFlareAccessRules) ToAccessRules(resolvedCfIds ResolvedCloudflareIDs) []zero_trust.AccessRule {
 	out := []zero_trust.AccessRule{}
 
+	//
+	//
+	//
+
+	for _, group := range resolvedCfIds.AccessGroupRefCfIds {
+		out = append(out, zero_trust.AccessRule{
+			Group: zero_trust.GroupRuleGroup{
+				ID: group,
+			},
+		})
+	}
+
+	for _, token := range resolvedCfIds.ServiceTokenRefCfIds {
+		out = append(out, zero_trust.AccessRule{
+			ServiceToken: zero_trust.ServiceTokenRuleServiceToken{
+				TokenID: token,
+			},
+		})
+	}
+
+	//
+	//
+	//
+
 	for _, email := range rules.Emails {
 		out = append(out, zero_trust.AccessRule{
 			Email: zero_trust.EmailRuleEmail{
@@ -154,6 +188,7 @@ func (rules *CloudFlareAccessRules) ToAccessRules(resolvedCfIds ResolvedCloudfla
 			},
 		})
 	}
+
 	for _, domain := range rules.EmailDomains {
 		out = append(out, zero_trust.AccessRule{
 			EmailDomain: zero_trust.DomainRuleEmailDomain{
@@ -161,6 +196,7 @@ func (rules *CloudFlareAccessRules) ToAccessRules(resolvedCfIds ResolvedCloudfla
 			},
 		})
 	}
+
 	for _, ip := range rules.IPRanges {
 		out = append(out, zero_trust.AccessRule{
 			IP: zero_trust.IPRuleIP{
@@ -168,13 +204,7 @@ func (rules *CloudFlareAccessRules) ToAccessRules(resolvedCfIds ResolvedCloudfla
 			},
 		})
 	}
-	for _, token := range rules.ServiceTokenRefs {
-		out = append(out, zero_trust.AccessRule{
-			ServiceToken: zero_trust.ServiceTokenRuleServiceToken{
-				TokenID: token,
-			},
-		})
-	}
+
 	if rules.AnyAccessServiceToken != nil && *rules.AnyAccessServiceToken {
 		out = append(out, zero_trust.AccessRule{
 			AnyValidServiceToken: zero_trust.AnyValidServiceTokenRuleAnyValidServiceToken{},
@@ -190,17 +220,11 @@ func (rules *CloudFlareAccessRules) ToAccessRules(resolvedCfIds ResolvedCloudfla
 			Certificate: zero_trust.CertificateRuleCertificate{},
 		})
 	}
+
 	for _, countryCode := range rules.Countries {
 		out = append(out, zero_trust.AccessRule{
 			Geo: zero_trust.CountryRuleGeo{
 				CountryCode: countryCode,
-			},
-		})
-	}
-	for _, group := range rules.AccessGroupRefs {
-		out = append(out, zero_trust.AccessRule{
-			Group: zero_trust.GroupRuleGroup{
-				ID: group,
 			},
 		})
 	}

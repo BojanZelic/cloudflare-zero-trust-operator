@@ -3,7 +3,10 @@
 ## Regarding Identity Provider IDs
 You might need to specify Identity Provider IDs in your specifications; to know which are available to you and configured on your CloudFlare's account, you might find a recap of those in the log when you start your operator.
 ```
-// TODO add log example
+2025-05-12T01:52:22+02:00	INFO	setup	Checking available Identity Providers that you may use to configure this operator...	{"IdentityProvidersUsedIn": ["CloudflareAccessApplication.Spec.allowedIdps", "CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.loginMethods[]", "CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.googleGroups[].identityProviderId", "CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.oktaGroups[].identityProviderId", "CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.samlGroups[].identityProviderId", "CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.githubOrganizations[].identityProviderId"]}
+2025-05-12T01:52:23+02:00	INFO	setup	Found Identity providers; please use their UUID as reference within this operator. Enumerating...	{"AvailableIDPs": 2}
+2025-05-12T01:52:23+02:00	INFO	setup	Found IdentityProvider	{"order": 0, "type": "github", "name": "Epic Games", "uuid": "4cbe376a-8e8b-4ffc-bb94-00000000"}
+2025-05-12T01:52:23+02:00	INFO	setup	Found IdentityProvider	{"order": 1, "type": "onetimepin", "name": "", "uuid": "0864ee42-87eb-4379-9176-00000000"}
 ```
 
 ## Reference other resources from another namespace
@@ -79,9 +82,10 @@ metadata:
   namespace: default
 spec:
   type: warp
-  # name: Warp Login App # NOT NEEDED ! "Warp Login App" is the default name (per CloudFlare's API) and cannot be changed
-  # domain: "whatever.com" # NOT NEEDED ! Meaningless in this context
-  # policyRefs: ....
+  # name: Warp Login App # WILL BE IGNORED ! "Warp Login App" is the default name (per CloudFlare's API) and cannot be changed
+  # domain: "whatever.com" # WILL BE IGNORED ! Meaningless in context
+  policyRefs:
+    - # configure as usual
 ```
 
 For App Launcher
@@ -93,7 +97,8 @@ metadata:
   namespace: default
 spec:
   type: app_launcher
-  # name: App Launcher # NOT NEEDED ! "App Launcher" is the default name (per CloudFlare's API) and cannot be changed
-  # domain: "whatever.com" # NOT NEEDED ! Meaningless in this context
-  # policyRefs: ....
+  # name: App Launcher # WILL BE IGNORED ! "App Launcher" is the default name (per CloudFlare's API) and cannot be changed
+  # domain: "whatever.com" # WILL BE IGNORED ! Meaningless in context
+  policyRefs:
+    - # configure as usual
 ```

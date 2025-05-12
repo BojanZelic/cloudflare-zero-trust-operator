@@ -1,5 +1,5 @@
 {
-  "go.buildFlags": ["-tags=integration"],
+  "go.buildFlags": ["-tags=integration,debug"],
   "go.lintTool": "golangci-lint-v2",
   "go.lintFlags": [
     "--path-mode='abs'"

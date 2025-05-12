@@ -182,15 +182,15 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 
 	if app.Status.AccessApplicationID == "" { //nolint
 		switch app.Spec.Type {
-		case "self_hosted":
+		case string(zero_trust.ApplicationTypeSelfHosted):
 			{
 				cfAccessApp, err = api.FindAccessApplicationByDomain(ctx, app.Spec.Domain)
 				if cfAccessApp == nil || err != nil {
 					return ctrl.Result{}, errors.Wrap(err, "error querying application app from cloudflare")
 				}
 			}
-		case "warp":
-		case "app_launcher":
+		case string(zero_trust.ApplicationTypeWARP):
+		case string(zero_trust.ApplicationTypeAppLauncher):
 			{
 				cfAccessApp, err = api.FindFirstAccessApplicationOfType(ctx, app.Spec.Type)
 				if cfAccessApp == nil || err != nil {

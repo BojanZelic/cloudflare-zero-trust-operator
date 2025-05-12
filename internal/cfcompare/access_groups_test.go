@@ -74,7 +74,7 @@ var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 			rule1 := &zero_trust.AccessRule{}
 			err := rule1.UnmarshalJSON([]byte(`{
 				"email": {
-					"email": "test@test.com"
+					"email": "test1@test.com"
 				}
 			}`))
 

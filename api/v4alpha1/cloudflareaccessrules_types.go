@@ -81,7 +81,7 @@ type RulerResolvedCloudflareIDs struct {
 
 type ResolvedCloudflareIDs struct {
 	// +optional
-	GroupRefCfIds []string `json:"groupRefCfIds,omitempty"`
+	AccessGroupRefCfIds []string `json:"accessGroupRefCfIds,omitempty"`
 	// +optional
 	ServiceTokenRefCfIds []string `json:"serviceTokenRefCfIds,omitempty"`
 }

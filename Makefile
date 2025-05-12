@@ -100,7 +100,7 @@ build: manifests generate fmt vet ## Build manager binary.
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./cmd/main.go
+	go run -tags debug ./cmd/main.go
 
 # If you wish to build the manager image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64). However, you must enable docker buildKit for it.
@@ -179,6 +179,7 @@ CONTROLLER_TOOLS_VERSION ?= v0.16.4
 ENVTEST_VERSION ?= release-0.19
 GOLANGCI_LINT_VERSION ?= v2.1.6
 
+
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
@@ -194,6 +195,7 @@ envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	$(call go-install-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest,$(ENVTEST_VERSION))
 
+
 HELMIFY = $(LOCALBIN)/helmify
 helmify:
 	test -s $(LOCALBIN)/helmify || GOBIN=$(LOCALBIN) go install github.com/arttor/helmify/cmd/helmify@v0.3.7
@@ -201,6 +203,10 @@ helmify:
 HELM_DOCS = $(LOCALBIN)/helm-docs
 helm-docs:
 	test -s $(LOCALBIN)/helm-docs || GOBIN=$(LOCALBIN) go install github.com/norwoodj/helm-docs/cmd/helm-docs@v1.11.0
+
+.PHONY: dlv
+dlv: 
+	go install github.com/go-delve/delve/cmd/dlv@v1.24.2
 
 helm: manifests kustomize helmify helm-docs
 	$(KUSTOMIZE) build config/operator-bundle | $(HELMIFY) cloudflare-zero-trust-operator

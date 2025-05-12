@@ -163,7 +163,7 @@ func (a *API) CreateAccessApplication(
 
 	//
 	switch app.Spec.Type {
-	case "self_hosted":
+	case string(zero_trust.ApplicationTypeSelfHosted):
 		{
 			cfApp, err = a.client.ZeroTrust.Access.Applications.New(ctx, zero_trust.AccessApplicationNewParams{
 				AccountID: cloudflare.F(a.CFAccountID),
@@ -182,7 +182,7 @@ func (a *API) CreateAccessApplication(
 				},
 			})
 		}
-	case "warp":
+	case string(zero_trust.ApplicationTypeWARP):
 		{
 			cfApp, err = a.client.ZeroTrust.Access.Applications.New(ctx, zero_trust.AccessApplicationNewParams{
 				AccountID: cloudflare.F(a.CFAccountID),
@@ -196,7 +196,7 @@ func (a *API) CreateAccessApplication(
 				},
 			})
 		}
-	case "app_launch":
+	case string(zero_trust.ApplicationTypeAppLauncher):
 		{
 			cfApp, err = a.client.ZeroTrust.Access.Applications.New(ctx, zero_trust.AccessApplicationNewParams{
 				AccountID: cloudflare.F(a.CFAccountID),
@@ -233,7 +233,7 @@ func (a *API) UpdateAccessApplication(
 
 	//
 	switch app.Spec.Type {
-	case "self_hosted":
+	case string(zero_trust.ApplicationTypeSelfHosted):
 		{
 			cfApp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, app.Status.AccessApplicationID,
 				zero_trust.AccessApplicationUpdateParams{
@@ -253,7 +253,7 @@ func (a *API) UpdateAccessApplication(
 				},
 			)
 		}
-	case "warp":
+	case string(zero_trust.ApplicationTypeWARP):
 		{
 			cfApp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, app.Status.AccessApplicationID,
 				zero_trust.AccessApplicationUpdateParams{
@@ -268,7 +268,7 @@ func (a *API) UpdateAccessApplication(
 				},
 			)
 		}
-	case "app_launch":
+	case string(zero_trust.ApplicationTypeAppLauncher):
 		{
 			cfApp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, app.Status.AccessApplicationID,
 				zero_trust.AccessApplicationUpdateParams{

@@ -230,7 +230,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 			// these would be resolved CloudFlare UUIDs of above underlying resources
 			refIds := []string{"000441100-1234-5678-1234-123456789012", "00004200-1334-5678-1234-123456789012"}
 			accessGroup.Status.ResolvedIdpsFromRefs.Include = v4alpha1.ResolvedCloudflareIDs{
-				GroupRefCfIds: refIds,
+				AccessGroupRefCfIds: refIds,
 			}
 
 			include := accessGroup.Spec.Include.ToAccessRules(accessGroup.Status.ResolvedIdpsFromRefs.Include)

@@ -502,7 +502,7 @@ spec:
                 properties:
                   exclude:
                     properties:
-                      groupRefCfIds:
+                      accessGroupRefCfIds:
                         items:
                           type: string
                         type: array
@@ -513,7 +513,7 @@ spec:
                     type: object
                   include:
                     properties:
-                      groupRefCfIds:
+                      accessGroupRefCfIds:
                         items:
                           type: string
                         type: array
@@ -524,7 +524,7 @@ spec:
                     type: object
                   require:
                     properties:
-                      groupRefCfIds:
+                      accessGroupRefCfIds:
                         items:
                           type: string
                         type: array

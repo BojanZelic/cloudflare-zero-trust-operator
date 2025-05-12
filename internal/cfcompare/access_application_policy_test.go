@@ -22,13 +22,15 @@ var _ = Describe("AccessApplicationPolicy", Label("AccessApplicationPolicy"), fu
 			Expect(err).NotTo(HaveOccurred())
 
 			first := zero_trust.AccessApplicationGetResponse{
-				Policies: []zero_trust.AccessApplicationGetResponseSelfHostedApplicationPolicy{{
-					Name: "test",
-					ID:   "1232313123123",
-					Include: []zero_trust.AccessRule{
-						*rule,
+				Policies: []map[string]any{{
+					"name":       "test",
+					"id":         "1232313123123",
+					"precedence": 1,
+					"include": map[string]any{
+						"email": map[string]any{
+							"email": "test@test.com",
+						},
 					},
-					Precedence: 1,
 				}},
 			}
 
