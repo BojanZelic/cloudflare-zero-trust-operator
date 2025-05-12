@@ -7,9 +7,5 @@ metadata:
 spec:
   name: my application
   domain: example.cf-operator-tests.uk
-  policies: 
-    - name: Allow testemail1
-      decision: allow
-      include:
-        - emails:
-          - testemail1@domain.com
+  policyRefs:
+    - cloudflareaccessreusablepolicy-sample

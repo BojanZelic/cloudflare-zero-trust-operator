@@ -49,13 +49,17 @@ spec:
                 default: []
                 description: |-
                   The identity providers your users can select when connecting to this application. Defaults to all IdPs configured in your account.
+  
                   ex: ["699d98642c564d2e855e9661899b7252"]
                 items:
                   type: string
                 type: array
               appLauncherVisible:
                 default: true
-                description: Displays the application in the App Launcher.
+                description: |-
+                  Specify if the application will be visible in the App Launcher.
+  
+                  Meaningless for "warp" and "app_launcher" app types.
                 type: boolean
               autoRedirectToIdentity:
                 default: false
@@ -66,500 +70,41 @@ spec:
               domain:
                 description: |-
                   The domain and path that Access will secure.
+  
+                  Meaningless for "warp" and "app_launcher" app types. Required for "self_hosted".
+  
                   ex: "test.example.com/admin"
                 type: string
               enableBindingCookie:
                 default: false
-                description: Enables the binding cookie, which increases security against
-                  compromised authorization tokens and CSRF attacks.
+                description: |-
+                  Enables the binding cookie, which increases security against compromised authorization tokens and CSRF attacks.
+  
+                  Meaningless for "warp" and "app_launcher" app types.
                 type: boolean
               httpOnlyCookieAttribute:
                 default: true
-                description: Enables the HttpOnly cookie attribute, which increases
-                  security against XSS attacks.
+                description: |-
+                  Enables the HttpOnly cookie attribute, which increases security against XSS attacks.
+  
+                  Meaningless for "warp" and "app_launcher" app types.
                 type: boolean
               logoUrl:
                 description: The image URL for the logo shown in the App Launcher dashboard
                 type: string
               name:
-                description: Name of the Cloudflare Access Application
-                type: string
-              policies:
                 description: |-
-                  Policies is the ordered set of policies that should be applied to the application
+                  Name of the Cloudflare Access Application.
+  
+                  Meaningless for "warp" and "app_launcher" app types. Required for "self_hosted".
+                type: string
+              policyRefs:
+                description: |-
+                  PolicyRefs is an ordered slice of names or {namespace/name} referencing [CloudflareAccessReusablePolicy].
+                  Referenced policies would be applied to this access application.
                   Order determines precedence
                 items:
-                  properties:
-                    decision:
-                      description: 'Decision ex: allow, deny, non_identity, bypass -
-                        defaults to allow'
-                      type: string
-                    exclude:
-                      description: Rules evaluated with a NOT logical operator. To match
-                        the policy, a user cannot meet any of the Exclude rules.
-                      items:
-                        properties:
-                          accessGroups:
-                            description: Reference to other access groups
-                            items:
-                              properties:
-                                value:
-                                  description: |-
-                                    Optional: no more than one of the following may be specified.
-                                    ID of the CloudflareAccessGroup
-                                  type: string
-                                valueFrom:
-                                  description: Source for the CloudflareAccessGroup's
-                                    variable. Cannot be used if value is not empty.
-                                  properties:
-                                    name:
-                                      description: |-
-                                        `name` is the name of the AccessGroup .
-                                        Required
-                                      type: string
-                                    namespace:
-                                      description: |-
-                                        `namespace` is the namespace of the AccessGroup.
-                                        Required
-                                      type: string
-                                  required:
-                                  - name
-                                  - namespace
-                                  type: object
-                              type: object
-                            type: array
-                          anyAccessServiceToken:
-                            description: Matches any valid service token
-                            type: boolean
-                          commonNames:
-                            description: Certificate CNs
-                            items:
-                              type: string
-                            type: array
-                          countries:
-                            description: Countries
-                            items:
-                              type: string
-                            type: array
-                          emailDomains:
-                            description: Matches a specific email Domain
-                            items:
-                              type: string
-                            type: array
-                          emails:
-                            description: Matches a Specific email
-                            items:
-                              type: string
-                            type: array
-                          everyone:
-                            description: Allow Everyone
-                            type: boolean
-                          googleGroups:
-                            description: Matches Google Group
-                            items:
-                              properties:
-                                email:
-                                  description: Google group email
-                                  type: string
-                                identityProviderId:
-                                  description: Identity Provider Id
-                                  type: string
-                              required:
-                              - email
-                              - identityProviderId
-                              type: object
-                            type: array
-                          ipRanges:
-                            description: Matches an IP CIDR block
-                            items:
-                              type: string
-                            type: array
-                          loginMethods:
-                            description: ID of the login method
-                            items:
-                              type: string
-                            type: array
-                          samlGroups:
-                            description: SAML Groups
-                            items:
-                              properties:
-                                identityProviderId:
-                                  description: Identity Provider Id
-                                  type: string
-                                name:
-                                  description: Name of the SAML group
-                                  type: string
-                                value:
-                                  description: Value of the SAML group
-                                  type: string
-                              required:
-                              - identityProviderId
-                              - name
-                              - value
-                              type: object
-                            type: array
-                          oktaGroups:
-                            description: Okta Groups
-                            items:
-                              properties:
-                                identityProviderId:
-                                  description: Identity Provider Id
-                                  type: string
-                                name:
-                                  description: Name of the Okta Group
-                                  type: string
-                              required:
-                              - identityProviderId
-                              - name
-                              type: object
-                            type: array
-                          serviceTokens:
-                            description: Matches a service token
-                            items:
-                              properties:
-                                value:
-                                  description: |-
-                                    Optional: no more than one of the following may be specified.
-                                    ID of the CloudflareServiceToken
-                                  type: string
-                                valueFrom:
-                                  description: Source for the CloudflareServiceToken's
-                                    variable. Cannot be used if value is not empty.
-                                  properties:
-                                    name:
-                                      description: |-
-                                        `name` is the name of the AccessGroup .
-                                        Required
-                                      type: string
-                                    namespace:
-                                      description: |-
-                                        `namespace` is the namespace of the AccessGroup.
-                                        Required
-                                      type: string
-                                  required:
-                                  - name
-                                  - namespace
-                                  type: object
-                              type: object
-                            type: array
-                          validCertificate:
-                            description: Any valid certificate will be matched
-                            type: boolean
-                        type: object
-                      type: array
-                    include:
-                      description: Rules evaluated with an OR logical operator. A user
-                        needs to meet only one of the Include rules.
-                      items:
-                        properties:
-                          accessGroups:
-                            description: Reference to other access groups
-                            items:
-                              properties:
-                                value:
-                                  description: |-
-                                    Optional: no more than one of the following may be specified.
-                                    ID of the CloudflareAccessGroup
-                                  type: string
-                                valueFrom:
-                                  description: Source for the CloudflareAccessGroup's
-                                    variable. Cannot be used if value is not empty.
-                                  properties:
-                                    name:
-                                      description: |-
-                                        `name` is the name of the AccessGroup .
-                                        Required
-                                      type: string
-                                    namespace:
-                                      description: |-
-                                        `namespace` is the namespace of the AccessGroup.
-                                        Required
-                                      type: string
-                                  required:
-                                  - name
-                                  - namespace
-                                  type: object
-                              type: object
-                            type: array
-                          anyAccessServiceToken:
-                            description: Matches any valid service token
-                            type: boolean
-                          commonNames:
-                            description: Certificate CNs
-                            items:
-                              type: string
-                            type: array
-                          countries:
-                            description: Countries
-                            items:
-                              type: string
-                            type: array
-                          emailDomains:
-                            description: Matches a specific email Domain
-                            items:
-                              type: string
-                            type: array
-                          emails:
-                            description: Matches a Specific email
-                            items:
-                              type: string
-                            type: array
-                          everyone:
-                            description: Allow Everyone
-                            type: boolean
-                          googleGroups:
-                            description: Matches Google Group
-                            items:
-                              properties:
-                                email:
-                                  description: Google group email
-                                  type: string
-                                identityProviderId:
-                                  description: Identity Provider Id
-                                  type: string
-                              required:
-                              - email
-                              - identityProviderId
-                              type: object
-                            type: array
-                          ipRanges:
-                            description: Matches an IP CIDR block
-                            items:
-                              type: string
-                            type: array
-                          loginMethods:
-                            description: ID of the login method
-                            items:
-                              type: string
-                            type: array
-                          samlGroups:
-                            description: SAML Groups
-                            items:
-                              properties:
-                                identityProviderId:
-                                  description: Identity Provider Id
-                                  type: string
-                                name:
-                                  description: Name of the SAML group
-                                  type: string
-                                value:
-                                  description: Value of the SAML group
-                                  type: string
-                              required:
-                              - identityProviderId
-                              - name
-                              - value
-                              type: object
-                            type: array
-                          oktaGroups:
-                            description: Okta Groups
-                            items:
-                              properties:
-                                identityProviderId:
-                                  description: Identity Provider Id
-                                  type: string
-                                name:
-                                  description: Name of the Okta Group
-                                  type: string
-                              required:
-                              - identityProviderId
-                              - name
-                              type: object
-                            type: array
-                          serviceTokens:
-                            description: Matches a service token
-                            items:
-                              properties:
-                                value:
-                                  description: |-
-                                    Optional: no more than one of the following may be specified.
-                                    ID of the CloudflareServiceToken
-                                  type: string
-                                valueFrom:
-                                  description: Source for the CloudflareServiceToken's
-                                    variable. Cannot be used if value is not empty.
-                                  properties:
-                                    name:
-                                      description: |-
-                                        `name` is the name of the AccessGroup .
-                                        Required
-                                      type: string
-                                    namespace:
-                                      description: |-
-                                        `namespace` is the namespace of the AccessGroup.
-                                        Required
-                                      type: string
-                                  required:
-                                  - name
-                                  - namespace
-                                  type: object
-                              type: object
-                            type: array
-                          validCertificate:
-                            description: Any valid certificate will be matched
-                            type: boolean
-                        type: object
-                      type: array
-                    name:
-                      description: Name of the Cloudflare Access Policy
-                      type: string
-                    require:
-                      description: Rules evaluated with an AND logical operator. To
-                        match the policy, a user must meet all of the Require rules.
-                      items:
-                        properties:
-                          accessGroups:
-                            description: Reference to other access groups
-                            items:
-                              properties:
-                                value:
-                                  description: |-
-                                    Optional: no more than one of the following may be specified.
-                                    ID of the CloudflareAccessGroup
-                                  type: string
-                                valueFrom:
-                                  description: Source for the CloudflareAccessGroup's
-                                    variable. Cannot be used if value is not empty.
-                                  properties:
-                                    name:
-                                      description: |-
-                                        `name` is the name of the AccessGroup .
-                                        Required
-                                      type: string
-                                    namespace:
-                                      description: |-
-                                        `namespace` is the namespace of the AccessGroup.
-                                        Required
-                                      type: string
-                                  required:
-                                  - name
-                                  - namespace
-                                  type: object
-                              type: object
-                            type: array
-                          anyAccessServiceToken:
-                            description: Matches any valid service token
-                            type: boolean
-                          commonNames:
-                            description: Certificate CNs
-                            items:
-                              type: string
-                            type: array
-                          countries:
-                            description: Countries
-                            items:
-                              type: string
-                            type: array
-                          emailDomains:
-                            description: Matches a specific email Domain
-                            items:
-                              type: string
-                            type: array
-                          emails:
-                            description: Matches a Specific email
-                            items:
-                              type: string
-                            type: array
-                          everyone:
-                            description: Allow Everyone
-                            type: boolean
-                          googleGroups:
-                            description: Matches Google Group
-                            items:
-                              properties:
-                                email:
-                                  description: Google group email
-                                  type: string
-                                identityProviderId:
-                                  description: Identity Provider Id
-                                  type: string
-                              required:
-                              - email
-                              - identityProviderId
-                              type: object
-                            type: array
-                          ipRanges:
-                            description: Matches an IP CIDR block
-                            items:
-                              type: string
-                            type: array
-                          loginMethods:
-                            description: ID of the login method
-                            items:
-                              type: string
-                            type: array
-                          samlGroups:
-                            description: SAML Groups
-                            items:
-                              properties:
-                                identityProviderId:
-                                  description: Identity Provider Id
-                                  type: string
-                                name:
-                                  description: Name of the SAML group
-                                  type: string
-                                value:
-                                  description: Value of the SAML group
-                                  type: string
-                              required:
-                              - identityProviderId
-                              - name
-                              - value
-                              type: object
-                            type: array
-                          oktaGroups:
-                            description: Okta Groups
-                            items:
-                              properties:
-                                identityProviderId:
-                                  description: Identity Provider Id
-                                  type: string
-                                name:
-                                  description: Name of the Okta Group
-                                  type: string
-                              required:
-                              - identityProviderId
-                              - name
-                              type: object
-                            type: array
-                          serviceTokens:
-                            description: Matches a service token
-                            items:
-                              properties:
-                                value:
-                                  description: |-
-                                    Optional: no more than one of the following may be specified.
-                                    ID of the CloudflareServiceToken
-                                  type: string
-                                valueFrom:
-                                  description: Source for the CloudflareServiceToken's
-                                    variable. Cannot be used if value is not empty.
-                                  properties:
-                                    name:
-                                      description: |-
-                                        `name` is the name of the AccessGroup .
-                                        Required
-                                      type: string
-                                    namespace:
-                                      description: |-
-                                        `namespace` is the namespace of the AccessGroup.
-                                        Required
-                                      type: string
-                                  required:
-                                  - name
-                                  - namespace
-                                  type: object
-                              type: object
-                            type: array
-                          validCertificate:
-                            description: Any valid certificate will be matched
-                            type: boolean
-                        type: object
-                      type: array
-                  required:
-                  - decision
-                  - name
-                  type: object
+                  type: string
                 type: array
               sessionDuration:
                 default: 24h
@@ -567,11 +112,15 @@ spec:
                 type: string
               type:
                 default: self_hosted
-                description: The application type. defaults to "self_hosted"
+                description: |-
+                  The application type. If omitted, resolves to "self_hosted". Only a bunch of official types are supported.
+  
+                  https://developers.cloudflare.com/api/resources/zero_trust/subresources/access/subresources/applications/models/application_type/
+                enum:
+                - self_hosted
+                - warp
+                - app_launcher
                 type: string
-            required:
-            - domain
-            - name
             type: object
           status:
             description: CloudflareAccessApplicationStatus defines the observed state
@@ -639,10 +188,23 @@ spec:
               createdAt:
                 format: date-time
                 type: string
+              reusablePolicyIds:
+                description: ordered CloudFlare's policies IDs, resolved by controller
+                  from "Spec.PolicyRefs"
+                items:
+                  type: string
+                type: array
               updatedAt:
                 format: date-time
                 type: string
+            required:
+            - createdAt
+            - updatedAt
             type: object
+        required:
+        - metadata
+        - spec
+        - status
         type: object
     served: true
     storage: true

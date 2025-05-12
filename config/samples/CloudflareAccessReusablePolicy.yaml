@@ -1,0 +1,16 @@
+apiVersion: cloudflare.zelic.io/v4alpha1
+kind: CloudflareAccessReusablePolicy
+metadata:
+  labels:
+    app.kubernetes.io/name: cloudflareaccessreusablepolicy
+    app.kubernetes.io/instance: cloudflareaccessreusablepolicy-sample
+    app.kubernetes.io/part-of: bojanzelic-cloudflare-zero-trust-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: bojanzelic-cloudflare-zero-trust-operator
+  name: cloudflareaccessreusablepolicy-sample
+spec:
+  name: my access reusable policy
+  include:
+    - emails:
+      - testemail1@domain.com
+      - testemail2@domain.com

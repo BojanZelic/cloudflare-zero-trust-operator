@@ -68,12 +68,14 @@ spec:
                     default: cloudflareClientId
                     description: |-
                       Key that should store the secret data. Defaults to cloudflareServiceToken.
+  
                       Warning: changing this value will recreate the secret
                     type: string
                   clientSecretKey:
                     default: cloudflareSecretKey
                     description: |-
                       Key that should store the secret data. Defaults to cloudflareServiceToken
+  
                       Warning: changing this value will recreate the secret
                     type: string
                   metadata:
@@ -180,6 +182,8 @@ spec:
                         type: string
                     type: object
                     x-kubernetes-map-type: atomic
+                required:
+                - reference
                 type: object
               serviceTokenId:
                 description: ID of the servicetoken in Cloudflare
@@ -188,7 +192,15 @@ spec:
                 description: Updated timestamp of the resource in Cloudflare
                 format: date-time
                 type: string
+            required:
+            - createdAt
+            - expiresAt
+            - updatedAt
             type: object
+        required:
+        - metadata
+        - spec
+        - status
         type: object
     served: true
     storage: true
