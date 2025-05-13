@@ -30,4 +30,4 @@ Dockerfile.cross
 .env.integration
 *.secret.yaml
 
-cmd/__debug*
+__debug*

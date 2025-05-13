@@ -41,13 +41,13 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			logOutput.Clear()
 
 			By("Creating the Namespace to perform the tests")
-			k8sClient.Create(ctx, namespace)
+			_ = k8sClient.Create(ctx, namespace)
 
-			//Expect(err).To(Not(HaveOccurred()))
+			// Expect(err).To(Not(HaveOccurred()))
 		})
 
 		AfterEach(func() {
-			By("expect no reconcile errors occured")
+			By("expect no reconcile errors occurred")
 			Expect(logOutput.GetErrorCount()).To(Equal(0), logOutput.GetOutput())
 			// By("Deleting the Namespace to perform the tests")
 			// _ = k8sClient.Delete(ctx, namespace)
@@ -56,7 +56,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 		It("should successfully reconcile if a CloudflareAccessGroup AlreadyExists", func() {
 			By("Pre-creating a cloudflare access group")
 
-			ag, err := api.CreateAccessGroup(ctx, &v4alpha1.CloudflareAccessGroup{
+			ag, err := api.CreateAccessGroup(ctx, &v4alpha1.CloudflareAccessGroup{ //nolint:varnamelen
 				Spec: v4alpha1.CloudflareAccessGroupSpec{
 					Name: "existing-access-group",
 					Include: v4alpha1.CloudFlareAccessRules{
@@ -87,7 +87,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func() string {
 				found = &v4alpha1.CloudflareAccessGroup{}
-				k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: group.Namespace}, found)
+				_ = k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: group.Namespace}, found)
 				return found.Status.AccessGroupID
 			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Equal(ag.ID))
 		})
@@ -120,7 +120,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func() string {
 				found = &v4alpha1.CloudflareAccessGroup{}
-				k8sClient.Get(ctx, typeNamespaceName, found)
+				_ = k8sClient.Get(ctx, typeNamespaceName, found)
 				return found.Status.AccessGroupID
 			}).WithTimeout(time.Minute).WithPolling(time.Second).Should(Not(BeEmpty()))
 
@@ -130,8 +130,8 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			Expect(cfResource.Name).To(Equal(found.Spec.Name))
 
 			By("Updating the name of the resource")
-			found.Spec.Name = "updated name"
-			k8sClient.Update(ctx, found)
+			found.Spec.Name = updtdName
+			_ = k8sClient.Update(ctx, found)
 			Expect(err).To(Not(HaveOccurred()))
 
 			By("Cloudflare resource should equal the updated spec")
@@ -162,7 +162,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 
 			By("Make sure the token exists on cloudflare")
 			Eventually(func(g Gomega) {
-				k8sClient.Get(ctx, typeNamespaceName, token)
+				_ = k8sClient.Get(ctx, typeNamespaceName, token)
 				g.Expect(token.Status.ServiceTokenID).ToNot(BeEmpty())
 			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
 

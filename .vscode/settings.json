@@ -1,8 +1,11 @@
 {
+  "ginkgotestexplorer.buildTags": "integration",
+  "ginkgotestexplorer.testEnvFile": "${workspaceFolder}/.env.integration.test",
   "go.buildFlags": ["-tags=integration"],
   "go.lintTool": "golangci-lint-v2",
   "go.lintFlags": [
-    "--path-mode='abs'"
+    "--path-mode='abs'",
+    "--build-tags=integration"
     // "--fast-only"
   ],
   "go.formatTool": "custom",

@@ -63,9 +63,16 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
 
+ENV_INT_TEST_FILE=.env.integration.test
+
+.PHONY: pre-integration-test
+pre-integration-test: envtest ## Run tests.
+	@echo "KUBEBUILDER_ASSETS=$$($(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" > $(ENV_INT_TEST_FILE)
+	@cat .env.integration 2>/dev/null | xargs -n1 >> $(ENV_INT_TEST_FILE)
+
 .PHONY: integration-test
-integration-test: manifests generate fmt vet envtest ## Run integration tests.
-	$(shell cat .env.integration 2>/dev/null | xargs) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -covermode=atomic -coverpkg=all --tags=integration -coverprofile cover.out
+integration-test: manifests generate fmt vet pre-integration-test ## Run integration tests.
+	$(shell cat $(ENV_INT_TEST_FILE) 2>/dev/null | xargs) go test ./... -covermode=atomic -coverpkg=all --tags=integration -coverprofile cover.out
 
 # TODO(maintainer): To use a different vendor for e2e tests, modify the setup under 'tests/e2e'.
 # The default setup assumes Kind is pre-installed and builds/loads the Manager Docker image locally.
@@ -175,8 +182,8 @@ GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.5.0
-CONTROLLER_TOOLS_VERSION ?= v0.16.4
-ENVTEST_VERSION ?= release-0.19
+CONTROLLER_TOOLS_VERSION ?= v0.18.0
+ENVTEST_VERSION ?= latest
 GOLANGCI_LINT_VERSION ?= v2.1.6
 
 

@@ -39,13 +39,13 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			logOutput.Clear()
 
 			By("Creating the Namespace to perform the tests")
-			k8sClient.Create(ctx, namespace)
+			_ = k8sClient.Create(ctx, namespace)
 			// ignore error because of https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
-			//Expect(err).To(Not(HaveOccurred()))
+			// Expect(err).To(Not(HaveOccurred()))
 		})
 
 		AfterEach(func() {
-			By("expect no reconcile errors occured")
+			By("expect no reconcile errors occurred")
 			Expect(logOutput.GetErrorCount()).To(Equal(0), logOutput.GetOutput())
 		})
 
@@ -87,10 +87,9 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 
 		It("should successfully reconcile CloudflareAccessReusablePolicy policies with references", func() {
 			By("pre-create an access group")
-			group := &v4alpha1.CloudflareAccessGroup{}
 			typeNamespaceName := types.NamespacedName{Name: "cloudflare-rp-three", Namespace: cloudflareName}
 
-			group = &v4alpha1.CloudflareAccessGroup{
+			group := &v4alpha1.CloudflareAccessGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      typeNamespaceName.Name,
 					Namespace: typeNamespaceName.Namespace,
@@ -163,7 +162,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func() string {
 				RPFound = &v4alpha1.CloudflareAccessReusablePolicy{}
-				k8sClient.Get(ctx, RPTypeNamespaceName, RPFound)
+				_ = k8sClient.Get(ctx, RPTypeNamespaceName, RPFound)
 				return RPFound.Status.AccessReusablePolicyID
 			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Not(BeEmpty()))
 
@@ -239,14 +238,14 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			By("Get the latest version of the resource")
 			Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 			By("Updating the name of the resource")
-			found.Spec.Name = "updated name"
+			found.Spec.Name = updtdName
 			Expect(k8sClient.Update(ctx, found)).To(Not(HaveOccurred()))
 
 			By("Checking the latest Status should have the update")
 			Eventually(func(g Gomega) {
 				found = &v4alpha1.CloudflareAccessReusablePolicy{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
-				g.Expect(found.Spec.Name).To(Equal("updated name"))
+				g.Expect(found.Spec.Name).To(Equal(updtdName))
 				g.Expect(found.Status.AccessReusablePolicyID).ToNot(BeEmpty())
 			}).WithTimeout(25 * time.Second).WithPolling(time.Second).Should(Succeed())
 
@@ -255,7 +254,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				cfResource, err = api.AccessApplication(ctx, found.Status.AccessReusablePolicyID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource.Name).To(Equal(found.Spec.Name))
-			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), logOutput.GetOutput()) //sometimes this is cached
+			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), logOutput.GetOutput()) // sometimes this is cached
 
 			By("Cloudflare resource should be deleted")
 			Expect(k8sClient.Delete(ctx, apps)).To(Not(HaveOccurred()))
@@ -298,7 +297,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 
 			oldAccessReusablePolicyID := ""
 
-			Eventually(func(g Gomega) {
+			Eventually(func(g Gomega) { //nolint:varnamelen
 				found = &v4alpha1.CloudflareAccessReusablePolicy{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Status.AccessReusablePolicyID).ToNot(BeEmpty())
@@ -314,7 +313,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			Eventually(func(g Gomega) {
 				found = &v4alpha1.CloudflareAccessReusablePolicy{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
-				found.Spec.Name = "updated name"
+				found.Spec.Name = updtdName
 				Expect(k8sClient.Update(ctx, found)).To(Not(HaveOccurred()))
 			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
 
@@ -330,7 +329,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				cfResource, err := api.AccessApplication(ctx, found.Status.AccessReusablePolicyID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource.Name).To(Equal(found.Spec.Name))
-			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), logOutput.GetOutput()) //sometimes this is cached
+			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), logOutput.GetOutput()) // sometimes this is cached
 		})
 	})
 })

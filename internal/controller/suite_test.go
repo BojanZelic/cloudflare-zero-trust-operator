@@ -1,6 +1,3 @@
-//go:build integration
-// +build integration
-
 /*
 Copyright 2025.
 
@@ -45,7 +42,6 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
-	//+kubebuilder:scaffold:imports
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -92,8 +88,6 @@ var _ = BeforeSuite(func() {
 
 	err = cloudflarev4alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
-
-	//+kubebuilder:scaffold:scheme
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
@@ -161,6 +155,10 @@ var _ = BeforeSuite(func() {
 		Expect(err).ToNot(HaveOccurred())
 	}()
 })
+
+//
+//
+//
 
 func NewTestLogger(info logr.RuntimeInfo) *TestLogger {
 	return &TestLogger{

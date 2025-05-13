@@ -14,6 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+const updtdName = "updated name"
+
 var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 	BeforeAll(func() { insertedTracer.ResetCFUUIDs() })
 	AfterAll(func() { insertedTracer.UninstallFromCF(api) })
@@ -39,13 +41,13 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			logOutput.Clear()
 
 			By("Creating the Namespace to perform the tests")
-			k8sClient.Create(ctx, namespace)
+			_ = k8sClient.Create(ctx, namespace)
 			// ignore error because of https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
-			//Expect(err).To(Not(HaveOccurred()))
+			// Expect(err).To(Not(HaveOccurred()))
 		})
 
 		AfterEach(func() {
-			By("expect no reconcile errors occured")
+			By("expect no reconcile errors occurred")
 			Expect(logOutput.GetErrorCount()).To(Equal(0), logOutput.GetOutput())
 		})
 
@@ -80,7 +82,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func() string {
 				RPFound = &v4alpha1.CloudflareAccessReusablePolicy{}
-				k8sClient.Get(ctx, RPTypeNamespaceName, RPFound)
+				_ = k8sClient.Get(ctx, RPTypeNamespaceName, RPFound)
 				return RPFound.Status.AccessReusablePolicyID
 			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Not(BeEmpty()))
 
@@ -111,7 +113,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func() string {
 				found = &v4alpha1.CloudflareAccessApplication{}
-				k8sClient.Get(ctx, typeNamespaceName, found)
+				_ = k8sClient.Get(ctx, typeNamespaceName, found)
 				return found.Status.AccessApplicationID
 			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Not(BeEmpty()))
 
@@ -163,14 +165,15 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			By("Get the latest version of the resource")
 			Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 			By("Updating the name of the resource")
-			found.Spec.Name = "updated name"
+
+			found.Spec.Name = updtdName
 			Expect(k8sClient.Update(ctx, found)).To(Not(HaveOccurred()))
 
 			By("Checking the latest Status should have the update")
 			Eventually(func(g Gomega) {
 				found = &v4alpha1.CloudflareAccessApplication{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
-				g.Expect(found.Spec.Name).To(Equal("updated name"))
+				g.Expect(found.Spec.Name).To(Equal(updtdName))
 				g.Expect(found.Status.AccessApplicationID).ToNot(BeEmpty())
 			}).WithTimeout(25 * time.Second).WithPolling(time.Second).Should(Succeed())
 
@@ -179,7 +182,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				cfResource, err = api.AccessApplication(ctx, found.Status.AccessApplicationID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource.Name).To(Equal(found.Spec.Name))
-			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), logOutput.GetOutput()) //sometimes this is cached
+			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), logOutput.GetOutput()) // sometimes this is cached
 
 			By("Cloudflare resource should be deleted")
 			Expect(k8sClient.Delete(ctx, apps)).To(Not(HaveOccurred()))
@@ -259,7 +262,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			oldAccessApplicationID := ""
 
-			Eventually(func(g Gomega) {
+			Eventually(func(g Gomega) { //nolint:varnamelen
 				found = &v4alpha1.CloudflareAccessApplication{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Status.AccessApplicationID).ToNot(BeEmpty())
@@ -275,7 +278,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Eventually(func(g Gomega) {
 				found = &v4alpha1.CloudflareAccessApplication{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
-				found.Spec.Name = "updated name"
+				found.Spec.Name = updtdName
 				Expect(k8sClient.Update(ctx, found)).To(Not(HaveOccurred()))
 			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
 
@@ -291,7 +294,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				cfResource, err := api.AccessApplication(ctx, found.Status.AccessApplicationID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource.Name).To(Equal(found.Spec.Name))
-			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), logOutput.GetOutput()) //sometimes this is cached
+			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), logOutput.GetOutput()) // sometimes this is cached
 		})
 	})
 })
