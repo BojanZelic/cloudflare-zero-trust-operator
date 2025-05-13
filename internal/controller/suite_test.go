@@ -102,6 +102,8 @@ var _ = BeforeSuite(func() {
 	By("bootstrapping cloudflare api client")
 	config.SetConfigDefaults()
 	cfConfig := config.ParseCloudflareConfig(&v1.ObjectMeta{})
+	_, err = cfConfig.IsValid()
+	Expect(err).NotTo(HaveOccurred())
 
 	insertedTracer = &cfapi.InsertedCFRessourcesTracer{}
 	insertedTracer.ResetCFUUIDs()

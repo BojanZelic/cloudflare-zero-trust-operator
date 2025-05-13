@@ -89,7 +89,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 				found = &v4alpha1.CloudflareAccessGroup{}
 				k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: group.Namespace}, found)
 				return found.Status.AccessGroupID
-			}, time.Second*10, time.Second).Should(Equal(ag.ID))
+			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Equal(ag.ID))
 		})
 
 		It("should successfully reconcile a custom resource for CloudflareAccessGroup", func() {
@@ -114,7 +114,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			Eventually(func() error {
 				found := &v4alpha1.CloudflareAccessGroup{}
 				return k8sClient.Get(ctx, typeNamespaceName, found)
-			}, time.Minute, time.Second).Should(Succeed())
+			}).WithTimeout(time.Minute).WithPolling(time.Second).Should(Succeed())
 
 			found := &v4alpha1.CloudflareAccessGroup{}
 			By("Checking the latest Status should have the ID of the resource")
@@ -122,7 +122,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 				found = &v4alpha1.CloudflareAccessGroup{}
 				k8sClient.Get(ctx, typeNamespaceName, found)
 				return found.Status.AccessGroupID
-			}, time.Minute, time.Second).Should(Not(BeEmpty()))
+			}).WithTimeout(time.Minute).WithPolling(time.Second).Should(Not(BeEmpty()))
 
 			By("Cloudflare resource should equal the spec")
 			cfResource, err := api.AccessGroup(ctx, found.Status.AccessGroupID)
@@ -139,7 +139,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 				cfResource, err = api.AccessGroup(ctx, found.Status.AccessGroupID)
 				return cfResource.Name
 
-			}, time.Minute, time.Second).Should(Equal(found.Spec.Name))
+			}).WithTimeout(time.Minute).WithPolling(time.Second).Should(Equal(found.Spec.Name))
 		})
 
 		It("should successfully reconcile CloudflareAccessApplication policies with references", func() {
@@ -164,7 +164,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			Eventually(func(g Gomega) {
 				k8sClient.Get(ctx, typeNamespaceName, token)
 				g.Expect(token.Status.ServiceTokenID).ToNot(BeEmpty())
-			}, time.Second*10, time.Second).Should(Succeed())
+			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
 
 			group := &v4alpha1.CloudflareAccessGroup{
 				ObjectMeta: metav1.ObjectMeta{
@@ -187,7 +187,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(group.Status.Conditions).ToNot(BeEmpty())
 				g.Expect(group.Status.Conditions[0].Status).To(Equal(metav1.ConditionTrue))
-			}, time.Second*10, time.Second).Should(Succeed())
+			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
 		})
 	})
 })

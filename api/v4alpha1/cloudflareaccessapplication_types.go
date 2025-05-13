@@ -122,8 +122,8 @@ type CloudflareAccessApplicationStatus struct {
 
 	// ordered CloudFlare's policies IDs, resolved by controller from "Spec.PolicyRefs"
 	ReusablePolicyIDs []string    `json:"reusablePolicyIds,omitempty"`
-	CreatedAt         metav1.Time `json:"createdAt"`
-	UpdatedAt         metav1.Time `json:"updatedAt"`
+	CreatedAt         metav1.Time `json:"createdAt,omitzero"`
+	UpdatedAt         metav1.Time `json:"updatedAt,omitzero"`
 
 	// Conditions store the status conditions of the CloudflareAccessApplication
 	//
@@ -139,7 +139,9 @@ type CloudflareAccessApplication struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitzero"`
 
-	Spec   CloudflareAccessApplicationSpec   `json:"spec,omitzero"`
+	Spec CloudflareAccessApplicationSpec `json:"spec,omitzero"`
+
+	// +optional
 	Status CloudflareAccessApplicationStatus `json:"status,omitzero"`
 }
 

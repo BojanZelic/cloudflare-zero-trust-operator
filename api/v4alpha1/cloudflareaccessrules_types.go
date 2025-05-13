@@ -39,12 +39,15 @@ type CloudFlareAccessRules struct {
 	CommonNames []string `json:"commonNames,omitempty"`
 
 	// Allow Everyone; would always be a match
+	// +optional
 	Everyone bool `json:"everyone,omitzero"`
 
 	// Would be a match if using any valid certificate
+	// +optional
 	ValidCertificate bool `json:"validCertificate,omitzero"`
 
 	// Would be a match if using any valid service token
+	// +optional
 	AnyAccessServiceToken bool `json:"anyAccessServiceToken,omitzero"`
 
 	// Would match access groups refs by {name} or {namespace/name} of [CloudflareServiceToken]

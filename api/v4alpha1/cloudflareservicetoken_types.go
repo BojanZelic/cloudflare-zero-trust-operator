@@ -48,7 +48,7 @@ type CloudflareServiceTokenSpec struct {
 	//
 	// +optional
 	// +kubebuilder:default={"metadata": {}}
-	Template SecretTemplateSpec `json:"template"`
+	Template SecretTemplateSpec `json:"template,omitzero"`
 }
 
 type SecretTemplateSpec struct {
@@ -58,7 +58,7 @@ type SecretTemplateSpec struct {
 	// +optional
 	// +nullable
 	// +kubebuilder:validation:XPreserveUnknownFields
-	metav1.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitzero" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Key that should store the secret data. Defaults to cloudflareServiceToken
 	//
@@ -119,7 +119,9 @@ type CloudflareServiceToken struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitzero"`
 
-	Spec   CloudflareServiceTokenSpec   `json:"spec,omitzero"`
+	Spec CloudflareServiceTokenSpec `json:"spec,omitzero"`
+
+	// +optional
 	Status CloudflareServiceTokenStatus `json:"status,omitzero"`
 }
 

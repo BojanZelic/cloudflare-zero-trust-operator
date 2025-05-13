@@ -66,7 +66,9 @@ type CloudflareAccessGroup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitzero"`
 
-	Spec   CloudflareAccessGroupSpec   `json:"spec,omitzero"`
+	Spec CloudflareAccessGroupSpec `json:"spec,omitzero"`
+
+	// +optional
 	Status CloudflareAccessGroupStatus `json:"status,omitzero"`
 }
 

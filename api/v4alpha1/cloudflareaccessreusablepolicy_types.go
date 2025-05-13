@@ -77,7 +77,9 @@ type CloudflareAccessReusablePolicy struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitzero"`
 
-	Spec   CloudflareAccessReusablePolicySpec   `json:"spec,omitzero"`
+	Spec CloudflareAccessReusablePolicySpec `json:"spec,omitzero"`
+
+	// +optional
 	Status CloudflareAccessReusablePolicyStatus `json:"status,omitzero"`
 }
 

@@ -177,10 +177,6 @@ spec:
                   validCertificate:
                     description: Would be a match if using any valid certificate
                     type: boolean
-                required:
-                - anyAccessServiceToken
-                - everyone
-                - validCertificate
                 type: object
               include:
                 description: Rules evaluated with an OR logical operator. A user needs
@@ -308,10 +304,6 @@ spec:
                   validCertificate:
                     description: Would be a match if using any valid certificate
                     type: boolean
-                required:
-                - anyAccessServiceToken
-                - everyone
-                - validCertificate
                 type: object
               name:
                 description: Name of the Cloudflare Access's reusable Policy
@@ -442,10 +434,6 @@ spec:
                   validCertificate:
                     description: Would be a match if using any valid certificate
                     type: boolean
-                required:
-                - anyAccessServiceToken
-                - everyone
-                - validCertificate
                 type: object
             required:
             - decision
@@ -570,7 +558,6 @@ spec:
         required:
         - metadata
         - spec
-        - status
         type: object
     served: true
     storage: true
