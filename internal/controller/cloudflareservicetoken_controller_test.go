@@ -18,20 +18,8 @@ import (
 )
 
 var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
-	//
-	clear := func() {
-		ctx := context.Background()
-
-		By("Removing all existing service tokens")
-		tokens, err := api.ServiceTokens(ctx)
-		Expect(err).To(Not(HaveOccurred()))
-		for _, token := range *tokens {
-			_ = api.DeleteAccessServiceToken(ctx, token.ID)
-			//Expect(err).To(Not(HaveOccurred()))
-		}
-	}
-	BeforeAll(clear)
-	AfterAll(clear)
+	BeforeAll(func() { insertedTracer.ResetCFUUIDs() })
+	AfterAll(func() { insertedTracer.UninstallFromCF(api) })
 
 	//
 	//

@@ -157,33 +157,37 @@ func main() {
 	}
 
 	if err = (&controller.CloudflareAccessReusablePolicyReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Helper: controllerHelper,
+		Client:         mgr.GetClient(),
+		Scheme:         mgr.GetScheme(),
+		Helper:         controllerHelper,
+		OptionalTracer: nil,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudflareAccessReusablePolicy")
 		os.Exit(1)
 	}
 	if err = (&controller.CloudflareAccessGroupReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Helper: controllerHelper,
+		Client:         mgr.GetClient(),
+		Scheme:         mgr.GetScheme(),
+		Helper:         controllerHelper,
+		OptionalTracer: nil,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudflareAccessGroup")
 		os.Exit(1)
 	}
 	if err = (&controller.CloudflareServiceTokenReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Helper: controllerHelper,
+		Client:         mgr.GetClient(),
+		Scheme:         mgr.GetScheme(),
+		Helper:         controllerHelper,
+		OptionalTracer: nil,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudflareServiceToken")
 		os.Exit(1)
 	}
 	if err = (&controller.CloudflareAccessApplicationReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Helper: controllerHelper,
+		Client:         mgr.GetClient(),
+		Scheme:         mgr.GetScheme(),
+		Helper:         controllerHelper,
+		OptionalTracer: nil,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudflareAccessApplication")
 		os.Exit(1)
@@ -234,7 +238,7 @@ func displayAvailableIdentityProviders() {
 	}
 
 	// Initialize Cloudflare's API wrapper
-	api := cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
+	api := cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID, nil)
 	ctx := context.TODO()
 	idProviders, err := api.IdentityProviders(ctx)
 	if err != nil {

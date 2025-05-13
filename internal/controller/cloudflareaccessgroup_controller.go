@@ -41,8 +41,9 @@ import (
 // CloudflareAccessGroupReconciler reconciles a CloudflareAccessGroup object.
 type CloudflareAccessGroupReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	Helper *ctrlhelper.ControllerHelper
+	Scheme         *runtime.Scheme
+	Helper         *ctrlhelper.ControllerHelper
+	OptionalTracer *cfapi.InsertedCFRessourcesTracer
 }
 
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups,verbs=get;list;watch;create;update;patch;delete
@@ -76,7 +77,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, errors.Wrap(err, "invalid config")
 	}
 
-	api = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
+	api = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID, r.OptionalTracer)
 
 	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, accessGroup)
 	if !continueReconcilliation || err != nil {

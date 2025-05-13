@@ -12,11 +12,12 @@ import (
 )
 
 type API struct {
-	CFAccountID string
-	client      *cloudflare.Client
+	CFAccountID    string
+	client         *cloudflare.Client
+	optionalTracer *InsertedCFRessourcesTracer
 }
 
-func New(cfAPIToken string, cfAPIKey string, cfAPIEmail string, cfAccountID string) *API {
+func New(cfAPIToken string, cfAPIKey string, cfAPIEmail string, cfAccountID string, optionalTracer *InsertedCFRessourcesTracer) *API {
 	var api *cloudflare.Client
 
 	if cfAPIToken != "" {
@@ -26,8 +27,9 @@ func New(cfAPIToken string, cfAPIKey string, cfAPIEmail string, cfAccountID stri
 	}
 
 	return &API{
-		CFAccountID: cfAccountID,
-		client:      api,
+		CFAccountID:    cfAccountID,
+		client:         api,
+		optionalTracer: optionalTracer,
 	}
 }
 
@@ -79,6 +81,11 @@ func (a *API) CreateAccessGroup(ctx context.Context, group *v4alpha1.CloudflareA
 	}
 
 	//
+	if a.optionalTracer != nil {
+		a.optionalTracer.GroupInserted(insert.ID)
+	}
+
+	//
 	return a.AccessGroup(ctx, insert.ID)
 }
 
@@ -102,6 +109,11 @@ func (a *API) DeleteAccessGroup(ctx context.Context, groupID string) error {
 	_, err := a.client.ZeroTrust.Access.Groups.Delete(ctx, groupID, zero_trust.AccessGroupDeleteParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
+
+	//
+	if a.optionalTracer != nil && err == nil {
+		a.optionalTracer.GroupDeleted(groupID)
+	}
 
 	return errors.Wrap(err, "unable to update access groups")
 }
@@ -220,6 +232,11 @@ func (a *API) CreateAccessApplication(
 		return nil, errors.Wrap(err, "unable to create access applications")
 	}
 
+	//
+	if a.optionalTracer != nil {
+		a.optionalTracer.ApplicationInserted(cfApp.ID)
+	}
+
 	return a.AccessApplication(ctx, cfApp.ID)
 }
 
@@ -302,6 +319,11 @@ func (a *API) DeleteAccessApplication(ctx context.Context, appID string) error {
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
+	//
+	if a.optionalTracer != nil && err == nil {
+		a.optionalTracer.ApplicationDeleted(appID)
+	}
+
 	return errors.Wrap(err, "unable to create access applications")
 }
 
@@ -332,6 +354,11 @@ func (a *API) CreateAccessReusablePolicy(ctx context.Context, arp *v4alpha1.Clou
 		return nil, errors.Wrap(err, "unable to create access reusable policy")
 	}
 
+	//
+	if a.optionalTracer != nil {
+		a.optionalTracer.ReusablePolicyInserted(rp.ID)
+	}
+
 	return a.AccessReusablePolicy(ctx, rp.ID)
 }
 
@@ -351,6 +378,11 @@ func (a *API) DeleteAccessReusablePolicy(ctx context.Context, policyID string) e
 	_, err := a.client.ZeroTrust.Access.Policies.Delete(ctx, policyID, zero_trust.AccessPolicyDeleteParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
+
+	//
+	if a.optionalTracer != nil && err == nil {
+		a.optionalTracer.ReusablePolicyDeleted(policyID)
+	}
 
 	return errors.Wrap(err, "unable to delete access reusable policy")
 }
@@ -402,6 +434,11 @@ func (a *API) CreateAccessServiceToken(ctx context.Context, token cftypes.Extend
 		},
 	}
 
+	//
+	if a.optionalTracer != nil {
+		a.optionalTracer.ServiceTokenInserted(sToken.ID)
+	}
+
 	return &extendedToken, errors.Wrap(err, "unable to create access service token")
 }
 
@@ -410,6 +447,11 @@ func (a *API) DeleteAccessServiceToken(ctx context.Context, tokenID string) erro
 	_, err := a.client.ZeroTrust.Access.ServiceTokens.Delete(ctx, tokenID, zero_trust.AccessServiceTokenDeleteParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
+
+	//
+	if a.optionalTracer != nil && err == nil {
+		a.optionalTracer.ServiceTokenDeleted(tokenID)
+	}
 
 	return errors.Wrap(err, "unable to update access Policy")
 }

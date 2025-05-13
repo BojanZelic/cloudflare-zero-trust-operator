@@ -42,8 +42,9 @@ import (
 // CloudflareServiceTokenReconciler reconciles a CloudflareServiceToken object.
 type CloudflareServiceTokenReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	Helper *ctrlhelper.ControllerHelper
+	Scheme         *runtime.Scheme
+	Helper         *ctrlhelper.ControllerHelper
+	OptionalTracer *cfapi.InsertedCFRessourcesTracer
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -79,7 +80,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, errors.Wrap(err, "invalid config")
 	}
 
-	api = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
+	api = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID, r.OptionalTracer)
 
 	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, serviceToken)
 	if !continueReconcilliation || err != nil {

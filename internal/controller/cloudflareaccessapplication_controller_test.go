@@ -15,28 +15,8 @@ import (
 )
 
 var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
-	//
-	clear := func() {
-		ctx := context.Background()
-
-		By("Removing all existing access apps")
-		apps, err := api.AccessApplications(ctx)
-		Expect(err).To(Not(HaveOccurred()))
-		for _, app := range *apps {
-			err = api.DeleteAccessApplication(ctx, app.ID)
-			// Expect(err).To(Not(HaveOccurred()))
-		}
-
-		By("Removing all existing reusable policies")
-		rps, err := api.AccessReusablesPolicies(ctx)
-		Expect(err).To(Not(HaveOccurred()))
-		for _, rp := range *rps {
-			err = api.DeleteAccessReusablePolicy(ctx, rp.ID)
-			// Expect(err).To(Not(HaveOccurred()))
-		}
-	}
-	BeforeAll(clear)
-	AfterAll(clear)
+	BeforeAll(func() { insertedTracer.ResetCFUUIDs() })
+	AfterAll(func() { insertedTracer.UninstallFromCF(api) })
 
 	//
 	//

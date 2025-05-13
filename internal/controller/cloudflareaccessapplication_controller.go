@@ -43,8 +43,9 @@ import (
 // CloudflareAccessApplicationReconciler reconciles a CloudflareAccessApplication object.
 type CloudflareAccessApplicationReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	Helper *ctrlhelper.ControllerHelper
+	Scheme         *runtime.Scheme
+	Helper         *ctrlhelper.ControllerHelper
+	OptionalTracer *cfapi.InsertedCFRessourcesTracer
 }
 
 const (
@@ -133,7 +134,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	}
 
 	// Initialize Cloudflare's API wrapper
-	api := cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
+	api := cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID, r.OptionalTracer)
 
 	//
 	// Proceed marked-as pending operations of manifest (if any)

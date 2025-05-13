@@ -15,36 +15,8 @@ import (
 )
 
 var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
-	//
-	clear := func() {
-		ctx := context.Background()
-
-		By("Removing all existing access apps")
-		apps, err := api.AccessApplications(ctx)
-		Expect(err).To(Not(HaveOccurred()))
-		for _, app := range *apps {
-			err = api.DeleteAccessApplication(ctx, app.ID)
-			// Expect(err).To(Not(HaveOccurred()))
-		}
-
-		By("Removing all existing access groups")
-		groups, err := api.AccessGroups(ctx)
-		Expect(err).To(Not(HaveOccurred()))
-		for _, group := range *groups {
-			_ = api.DeleteAccessGroup(ctx, group.ID)
-			//Expect(err).To(Not(HaveOccurred()))
-		}
-
-		By("Removing all existing service tokens")
-		tokens, err := api.ServiceTokens(ctx)
-		Expect(err).To(Not(HaveOccurred()))
-		for _, token := range *tokens {
-			_ = api.DeleteAccessServiceToken(ctx, token.ID)
-			//Expect(err).To(Not(HaveOccurred()))
-		}
-	}
-	BeforeAll(clear)
-	AfterAll(clear)
+	BeforeAll(func() { insertedTracer.ResetCFUUIDs() })
+	AfterAll(func() { insertedTracer.UninstallFromCF(api) })
 
 	//
 	//

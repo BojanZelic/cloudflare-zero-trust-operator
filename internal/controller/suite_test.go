@@ -57,6 +57,11 @@ var testEnv *envtest.Environment
 var api *cfapi.API
 var ctx context.Context
 var cancel context.CancelFunc
+var insertedTracer *cfapi.InsertedCFRessourcesTracer
+
+//
+//
+//
 
 // var logger logr.Logger
 var logOutput *TestLogger
@@ -97,7 +102,10 @@ var _ = BeforeSuite(func() {
 	By("bootstrapping cloudflare api client")
 	config.SetConfigDefaults()
 	cfConfig := config.ParseCloudflareConfig(&v1.ObjectMeta{})
-	api = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
+
+	insertedTracer = &cfapi.InsertedCFRessourcesTracer{}
+	insertedTracer.ResetCFUUIDs()
+	api = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID, insertedTracer)
 
 	logOutput = NewTestLogger(logr.RuntimeInfo{CallDepth: 1})
 
@@ -117,19 +125,28 @@ var _ = BeforeSuite(func() {
 	}
 
 	Expect((&CloudflareAccessGroupReconciler{
-		Client: k8sClient,
-		Scheme: k8sClient.Scheme(),
-		Helper: controllerHelper,
+		Client:         k8sClient,
+		Scheme:         k8sClient.Scheme(),
+		Helper:         controllerHelper,
+		OptionalTracer: insertedTracer,
 	}).SetupWithManager(k8sManager)).ToNot(HaveOccurred())
 	Expect((&CloudflareAccessApplicationReconciler{
-		Client: k8sClient,
-		Scheme: k8sClient.Scheme(),
-		Helper: controllerHelper,
+		Client:         k8sClient,
+		Scheme:         k8sClient.Scheme(),
+		Helper:         controllerHelper,
+		OptionalTracer: insertedTracer,
 	}).SetupWithManager(k8sManager)).ToNot(HaveOccurred())
 	Expect((&CloudflareServiceTokenReconciler{
-		Client: k8sClient,
-		Scheme: k8sClient.Scheme(),
-		Helper: controllerHelper,
+		Client:         k8sClient,
+		Scheme:         k8sClient.Scheme(),
+		Helper:         controllerHelper,
+		OptionalTracer: insertedTracer,
+	}).SetupWithManager(k8sManager)).ToNot(HaveOccurred())
+	Expect((&CloudflareAccessReusablePolicyReconciler{
+		Client:         k8sClient,
+		Scheme:         k8sClient.Scheme(),
+		Helper:         controllerHelper,
+		OptionalTracer: insertedTracer,
 	}).SetupWithManager(k8sManager)).ToNot(HaveOccurred())
 
 	go func() {

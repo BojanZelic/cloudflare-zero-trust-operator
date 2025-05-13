@@ -43,6 +43,9 @@ type CloudflareAccessReusablePolicyReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 	Helper *ctrlhelper.ControllerHelper
+
+	// Mainly used for debug / tests purposes. Should not be instantiated in production run.
+	OptionalTracer *cfapi.InsertedCFRessourcesTracer
 }
 
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessreusablepolicies,verbs=get;list;watch;create;update;patch;delete
@@ -76,7 +79,7 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 		return ctrl.Result{}, errors.Wrap(err, "invalid config")
 	}
 
-	api = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
+	api = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID, r.OptionalTracer)
 
 	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, reusablePolicy)
 	if !continueReconcilliation || err != nil {
