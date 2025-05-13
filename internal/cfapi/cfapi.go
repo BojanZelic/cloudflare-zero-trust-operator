@@ -165,6 +165,7 @@ func (a *API) AccessApplication(ctx context.Context, accessApplicationID string)
 	return cfApp, errors.Wrap(err, "unable to get access application")
 }
 
+//nolint:cyclop
 func (a *API) CreateAccessApplication(
 	ctx context.Context,
 	app *v4alpha1.CloudflareAccessApplication, //nolint:varnamelen
@@ -177,49 +178,66 @@ func (a *API) CreateAccessApplication(
 	switch app.Spec.Type {
 	case string(zero_trust.ApplicationTypeSelfHosted):
 		{
+			body := zero_trust.AccessApplicationNewParamsBodySelfHostedApplication{
+				Name:            cloudflare.F(app.Spec.Name),
+				Domain:          cloudflare.F(app.Spec.Domain),
+				AllowedIdPs:     cloudflare.F(app.Spec.AllowedIdps),
+				Policies:        cloudflare.F(p_new_SH(app.Status.ReusablePolicyIDs)),
+				SessionDuration: cloudflare.F(app.Spec.SessionDuration),
+				LogoURL:         cloudflare.F(app.Spec.LogoURL),
+			}
+			if app.Spec.AppLauncherVisible != nil {
+				body.AppLauncherVisible = cloudflare.Bool(*app.Spec.AppLauncherVisible)
+			}
+			if app.Spec.AutoRedirectToIdentity != nil {
+				body.AutoRedirectToIdentity = cloudflare.Bool(*app.Spec.AutoRedirectToIdentity)
+			}
+			if app.Spec.EnableBindingCookie != nil {
+				body.EnableBindingCookie = cloudflare.Bool(*app.Spec.EnableBindingCookie)
+			}
+			if app.Spec.HTTPOnlyCookieAttribute != nil {
+				body.HTTPOnlyCookieAttribute = cloudflare.Bool(*app.Spec.HTTPOnlyCookieAttribute)
+			}
+
 			cfApp, err = a.client.ZeroTrust.Access.Applications.New(ctx, zero_trust.AccessApplicationNewParams{
 				AccountID: cloudflare.F(a.CFAccountID),
-				Body: zero_trust.AccessApplicationNewParamsBodySelfHostedApplication{
-					Name:                    cloudflare.F(app.Spec.Name),
-					Domain:                  cloudflare.F(app.Spec.Domain),
-					Type:                    cloudflare.F(app.Spec.Type),
-					AppLauncherVisible:      cloudflare.F(*app.Spec.AppLauncherVisible),
-					AllowedIdPs:             cloudflare.F(app.Spec.AllowedIdps),
-					AutoRedirectToIdentity:  cloudflare.F(*app.Spec.AutoRedirectToIdentity),
-					Policies:                cloudflare.F(p_new_SH(app.Status.ReusablePolicyIDs)),
-					SessionDuration:         cloudflare.F(app.Spec.SessionDuration),
-					EnableBindingCookie:     cloudflare.F(*app.Spec.EnableBindingCookie),
-					HTTPOnlyCookieAttribute: cloudflare.F(*app.Spec.HTTPOnlyCookieAttribute),
-					LogoURL:                 cloudflare.F(app.Spec.LogoURL),
-				},
+				Body:      body,
 			})
 		}
 	case string(zero_trust.ApplicationTypeWARP):
 		{
+			body := zero_trust.AccessApplicationNewParamsBodyDeviceEnrollmentPermissionsApplication{
+				Type:               cloudflare.F(zero_trust.ApplicationType(app.Spec.Type)),
+				AllowedIdPs:        cloudflare.F(app.Spec.AllowedIdps),
+				Policies:           cloudflare.F(p_new_DEP(app.Status.ReusablePolicyIDs)),
+				SessionDuration:    cloudflare.F(app.Spec.SessionDuration),
+				AppLauncherLogoURL: cloudflare.F(app.Spec.LogoURL),
+			}
+			if app.Spec.AutoRedirectToIdentity != nil {
+				body.AutoRedirectToIdentity = cloudflare.Bool(*app.Spec.AutoRedirectToIdentity)
+			}
+
 			cfApp, err = a.client.ZeroTrust.Access.Applications.New(ctx, zero_trust.AccessApplicationNewParams{
 				AccountID: cloudflare.F(a.CFAccountID),
-				Body: zero_trust.AccessApplicationNewParamsBodyDeviceEnrollmentPermissionsApplication{
-					Type:                   cloudflare.F(zero_trust.ApplicationType(app.Spec.Type)),
-					AllowedIdPs:            cloudflare.F(app.Spec.AllowedIdps),
-					AutoRedirectToIdentity: cloudflare.F(*app.Spec.AutoRedirectToIdentity),
-					Policies:               cloudflare.F(p_new_DEP(app.Status.ReusablePolicyIDs)),
-					SessionDuration:        cloudflare.F(app.Spec.SessionDuration),
-					AppLauncherLogoURL:     cloudflare.F(app.Spec.LogoURL),
-				},
+				Body:      body,
 			})
 		}
 	case string(zero_trust.ApplicationTypeAppLauncher):
 		{
+			body := zero_trust.AccessApplicationNewParamsBodyAppLauncherApplication{
+				Type:               cloudflare.F(zero_trust.ApplicationType(app.Spec.Type)),
+				AllowedIdPs:        cloudflare.F(app.Spec.AllowedIdps),
+				Policies:           cloudflare.F(p_new_AL(app.Status.ReusablePolicyIDs)),
+				SessionDuration:    cloudflare.F(app.Spec.SessionDuration),
+				AppLauncherLogoURL: cloudflare.F(app.Spec.LogoURL),
+			}
+			if app.Spec.AutoRedirectToIdentity != nil {
+				body.AutoRedirectToIdentity = cloudflare.Bool(*app.Spec.AutoRedirectToIdentity)
+			}
+
 			cfApp, err = a.client.ZeroTrust.Access.Applications.New(ctx, zero_trust.AccessApplicationNewParams{
 				AccountID: cloudflare.F(a.CFAccountID),
-				Body: zero_trust.AccessApplicationNewParamsBodyAppLauncherApplication{
-					Type:                   cloudflare.F(zero_trust.ApplicationType(app.Spec.Type)),
-					AllowedIdPs:            cloudflare.F(app.Spec.AllowedIdps),
-					AutoRedirectToIdentity: cloudflare.F(*app.Spec.AutoRedirectToIdentity),
-					Policies:               cloudflare.F(p_new_AL(app.Status.ReusablePolicyIDs)),
-					SessionDuration:        cloudflare.F(app.Spec.SessionDuration),
-					AppLauncherLogoURL:     cloudflare.F(app.Spec.LogoURL),
-				},
+				Body:      body,
 			})
 		}
 	default:
@@ -252,21 +270,31 @@ func (a *API) UpdateAccessApplication(
 	switch app.Spec.Type {
 	case string(zero_trust.ApplicationTypeSelfHosted):
 		{
+			body := zero_trust.AccessApplicationUpdateParamsBodySelfHostedApplication{
+				Name:            cloudflare.F(app.Spec.Name),
+				Domain:          cloudflare.F(app.Spec.Domain),
+				AllowedIdPs:     cloudflare.F(app.Spec.AllowedIdps),
+				Policies:        cloudflare.F(p_update_SH(app.Status.ReusablePolicyIDs)),
+				SessionDuration: cloudflare.F(app.Spec.SessionDuration),
+				LogoURL:         cloudflare.F(app.Spec.LogoURL),
+			}
+			if app.Spec.AppLauncherVisible != nil {
+				body.AppLauncherVisible = cloudflare.Bool(*app.Spec.AppLauncherVisible)
+			}
+			if app.Spec.AutoRedirectToIdentity != nil {
+				body.AutoRedirectToIdentity = cloudflare.Bool(*app.Spec.AutoRedirectToIdentity)
+			}
+			if app.Spec.EnableBindingCookie != nil {
+				body.EnableBindingCookie = cloudflare.Bool(*app.Spec.EnableBindingCookie)
+			}
+			if app.Spec.HTTPOnlyCookieAttribute != nil {
+				body.HTTPOnlyCookieAttribute = cloudflare.Bool(*app.Spec.HTTPOnlyCookieAttribute)
+			}
+
 			cfApp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, app.Status.AccessApplicationID,
 				zero_trust.AccessApplicationUpdateParams{
 					AccountID: cloudflare.F(a.CFAccountID),
-					Body: zero_trust.AccessApplicationUpdateParamsBodySelfHostedApplication{
-						Name:                    cloudflare.F(app.Spec.Name),
-						Domain:                  cloudflare.F(app.Spec.Domain),
-						AppLauncherVisible:      cloudflare.F(*app.Spec.AppLauncherVisible),
-						AllowedIdPs:             cloudflare.F(app.Spec.AllowedIdps),
-						AutoRedirectToIdentity:  cloudflare.F(*app.Spec.AutoRedirectToIdentity),
-						Policies:                cloudflare.F(p_update_SH(app.Status.ReusablePolicyIDs)),
-						SessionDuration:         cloudflare.F(app.Spec.SessionDuration),
-						EnableBindingCookie:     cloudflare.F(*app.Spec.EnableBindingCookie),
-						HTTPOnlyCookieAttribute: cloudflare.F(*app.Spec.HTTPOnlyCookieAttribute),
-						LogoURL:                 cloudflare.F(app.Spec.LogoURL),
-					},
+					Body:      body,
 				},
 			)
 		}

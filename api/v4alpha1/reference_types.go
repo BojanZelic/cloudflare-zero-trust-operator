@@ -36,7 +36,7 @@ type GithubOrganization struct {
 	Name string `json:"name"`
 	// The name of the team, if restricting to it.
 	// +optional
-	Team string `json:"team,omitempty"`
+	Team string `json:"team,omitzero"`
 	// An Identity Provider UUID of a "github" type Identity Provider (https://developers.cloudflare.com/api/resources/zero_trust/subresources/identity_providers/methods/get/)
 	IdentityProviderID string `json:"identityProviderId"`
 }

@@ -166,6 +166,10 @@ spec:
                   validCertificate:
                     description: Would be a match if using any valid certificate
                     type: boolean
+                required:
+                - anyAccessServiceToken
+                - everyone
+                - validCertificate
                 type: object
               include:
                 description: Rules evaluated with an OR logical operator. A user needs
@@ -293,6 +297,10 @@ spec:
                   validCertificate:
                     description: Would be a match if using any valid certificate
                     type: boolean
+                required:
+                - anyAccessServiceToken
+                - everyone
+                - validCertificate
                 type: object
               name:
                 description: Name of the Cloudflare Access Group
@@ -423,6 +431,10 @@ spec:
                   validCertificate:
                     description: Would be a match if using any valid certificate
                     type: boolean
+                required:
+                - anyAccessServiceToken
+                - everyone
+                - validCertificate
                 type: object
             required:
             - exclude
@@ -539,6 +551,7 @@ spec:
                 format: date-time
                 type: string
             required:
+            - accessGroupId
             - createdAt
             - resolvedCfIds
             - updatedAt

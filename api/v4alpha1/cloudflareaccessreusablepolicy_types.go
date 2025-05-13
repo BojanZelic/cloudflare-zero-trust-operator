@@ -52,16 +52,16 @@ type CloudflareAccessReusablePolicySpec struct {
 // CloudflareAccessReusablePolicyStatus defines the observed state of CloudflareAccessReusablePolicy.
 type CloudflareAccessReusablePolicyStatus struct {
 	// AccessReusablePolicyID is the ID of the reference in Cloudflare
-	AccessReusablePolicyID string `json:"accessReusablePolicyId,omitempty"`
+	AccessReusablePolicyID string `json:"accessReusablePolicyId,omitzero"`
 
 	// Creation timestamp of the resource in Cloudflare
-	CreatedAt metav1.Time `json:"createdAt"`
+	CreatedAt metav1.Time `json:"createdAt,omitzero"`
 
 	// Updated timestamp of the resource in Cloudflare
-	UpdatedAt metav1.Time `json:"updatedAt"`
+	UpdatedAt metav1.Time `json:"updatedAt,omitzero"`
 
 	//
-	ResolvedIdpsFromRefs RulerResolvedCloudflareIDs `json:"resolvedCfIds"`
+	ResolvedIdpsFromRefs RulerResolvedCloudflareIDs `json:"resolvedCfIds,omitzero"`
 
 	// Conditions store the status conditions of the CloudflareAccessApplication
 	//
@@ -75,10 +75,10 @@ type CloudflareAccessReusablePolicyStatus struct {
 // CloudflareAccessReusablePolicy is the Schema for the cloudflareaccessreusablepolicies API.
 type CloudflareAccessReusablePolicy struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata"`
+	metav1.ObjectMeta `json:"metadata,omitzero"`
 
-	Spec   CloudflareAccessReusablePolicySpec   `json:"spec"`
-	Status CloudflareAccessReusablePolicyStatus `json:"status"`
+	Spec   CloudflareAccessReusablePolicySpec   `json:"spec,omitzero"`
+	Status CloudflareAccessReusablePolicyStatus `json:"status,omitzero"`
 }
 
 func (c *CloudflareAccessReusablePolicy) GetType() string {
@@ -117,7 +117,7 @@ func (c CloudflareAccessReusablePolicy) GetRequireCfIds() *ResolvedCloudflareIDs
 // CloudflareAccessReusablePolicyList contains a list of CloudflareAccessReusablePolicy.
 type CloudflareAccessReusablePolicyList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
+	metav1.ListMeta `json:"metadata,omitzero"`
 	Items           []CloudflareAccessReusablePolicy `json:"items"`
 }
 

@@ -249,7 +249,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 		It("can export any serviceTokens to the cloudflare object", func() {
 			validServiceToken := true
 			accessGroup.Spec.Include = v4alpha1.CloudFlareAccessRules{
-				AnyAccessServiceToken: &validServiceToken,
+				AnyAccessServiceToken: validServiceToken,
 			}
 
 			include := accessGroup.Spec.Include.ToAccessRules(accessGroup.Status.ResolvedIdpsFromRefs.Include)
@@ -264,7 +264,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 		It("can export validCertificate to the cloudflare object", func() {
 			validCert := true
 			accessGroup.Spec.Include = v4alpha1.CloudFlareAccessRules{
-				ValidCertificate: &validCert,
+				ValidCertificate: validCert,
 			}
 
 			include := accessGroup.Spec.Include.ToAccessRules(accessGroup.Status.ResolvedIdpsFromRefs.Include)
@@ -279,7 +279,7 @@ var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGrou
 		It("can export everyone to the cloudflare object", func() {
 			everyone := true
 			accessGroup.Spec.Include = v4alpha1.CloudFlareAccessRules{
-				Everyone: &everyone,
+				Everyone: everyone,
 			}
 
 			include := accessGroup.Spec.Include.ToAccessRules(accessGroup.Status.ResolvedIdpsFromRefs.Include)

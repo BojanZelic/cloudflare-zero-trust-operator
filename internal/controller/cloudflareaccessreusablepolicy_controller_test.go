@@ -64,7 +64,8 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 					Namespace: namespace.Name,
 				},
 				Spec: v4alpha1.CloudflareAccessReusablePolicySpec{
-					Name: "bad-reference policies",
+					Name:     "bad-reference policies",
+					Decision: "allow",
 					Include: v4alpha1.CloudFlareAccessRules{
 						AccessGroupRefs: []string{
 							"inanynamespace/idontexist",
@@ -134,7 +135,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			//
 
 			By("Creating the custom resource for the Kind CloudflareAccessReusablePolicy")
-			RPTypeNamespaceName := types.NamespacedName{Name: "reference_test_manifest", Namespace: cloudflareName}
+			RPTypeNamespaceName := types.NamespacedName{Name: "reference-test-manifest", Namespace: cloudflareName}
 
 			reusablePolicy := &v4alpha1.CloudflareAccessReusablePolicy{
 				ObjectMeta: metav1.ObjectMeta{

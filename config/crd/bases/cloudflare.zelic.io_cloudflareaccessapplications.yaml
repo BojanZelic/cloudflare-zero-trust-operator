@@ -195,6 +195,7 @@ spec:
                 format: date-time
                 type: string
             required:
+            - accessApplicationId
             - createdAt
             - updatedAt
             type: object

@@ -39,13 +39,13 @@ type CloudFlareAccessRules struct {
 	CommonNames []string `json:"commonNames,omitempty"`
 
 	// Allow Everyone; would always be a match
-	Everyone *bool `json:"everyone,omitempty"`
+	Everyone bool `json:"everyone,omitzero"`
 
 	// Would be a match if using any valid certificate
-	ValidCertificate *bool `json:"validCertificate,omitempty"`
+	ValidCertificate bool `json:"validCertificate,omitzero"`
 
 	// Would be a match if using any valid service token
-	AnyAccessServiceToken *bool `json:"anyAccessServiceToken,omitempty"`
+	AnyAccessServiceToken bool `json:"anyAccessServiceToken,omitzero"`
 
 	// Would match access groups refs by {name} or {namespace/name} of [CloudflareServiceToken]
 	ServiceTokenRefs []string `json:"serviceTokenRefs,omitempty"`
@@ -72,11 +72,11 @@ type CloudFlareAccessRules struct {
 
 type RulerResolvedCloudflareIDs struct {
 	// +optional
-	Include ResolvedCloudflareIDs `json:"include"`
+	Include ResolvedCloudflareIDs `json:"include,omitzero"`
 	// +optional
-	Require ResolvedCloudflareIDs `json:"require"`
+	Require ResolvedCloudflareIDs `json:"require,omitzero"`
 	// +optional
-	Exclude ResolvedCloudflareIDs `json:"exclude"`
+	Exclude ResolvedCloudflareIDs `json:"exclude,omitzero"`
 }
 
 type ResolvedCloudflareIDs struct {

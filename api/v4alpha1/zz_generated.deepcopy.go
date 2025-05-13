@@ -58,21 +58,6 @@ func (in *CloudFlareAccessRules) DeepCopyInto(out *CloudFlareAccessRules) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.Everyone != nil {
-		in, out := &in.Everyone, &out.Everyone
-		*out = new(bool)
-		**out = **in
-	}
-	if in.ValidCertificate != nil {
-		in, out := &in.ValidCertificate, &out.ValidCertificate
-		*out = new(bool)
-		**out = **in
-	}
-	if in.AnyAccessServiceToken != nil {
-		in, out := &in.AnyAccessServiceToken, &out.AnyAccessServiceToken
-		*out = new(bool)
-		**out = **in
-	}
 	if in.ServiceTokenRefs != nil {
 		in, out := &in.ServiceTokenRefs, &out.ServiceTokenRefs
 		*out = make([]string, len(*in))
@@ -533,11 +518,7 @@ func (in *CloudflareServiceTokenStatus) DeepCopyInto(out *CloudflareServiceToken
 	in.CreatedAt.DeepCopyInto(&out.CreatedAt)
 	in.UpdatedAt.DeepCopyInto(&out.UpdatedAt)
 	in.ExpiresAt.DeepCopyInto(&out.ExpiresAt)
-	if in.SecretRef != nil {
-		in, out := &in.SecretRef, &out.SecretRef
-		*out = new(SecretRef)
-		**out = **in
-	}
+	out.SecretRef = in.SecretRef
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]v1.Condition, len(*in))

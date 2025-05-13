@@ -56,7 +56,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 		It("should successfully reconcile CloudflareAccessApplication with reusable policy", func() {
 			By("Creating the custom resource for the Kind CloudflareAccessReusablePolicy")
-			RPTypeNamespaceName := types.NamespacedName{Name: "integration_test_manifest", Namespace: cloudflareName}
+			RPTypeNamespaceName := types.NamespacedName{Name: "integration-test-manifest", Namespace: cloudflareName}
 
 			reusablePolicy := &v4alpha1.CloudflareAccessReusablePolicy{
 				ObjectMeta: metav1.ObjectMeta{

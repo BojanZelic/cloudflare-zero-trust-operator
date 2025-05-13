@@ -33,14 +33,14 @@ type CloudflareAccessApplicationSpec struct {
 	// +optional
 	// +kubebuilder:default=self_hosted
 	// +kubebuilder:validation:Enum=self_hosted;warp;app_launcher
-	Type string `json:"type,omitempty"`
+	Type string `json:"type,omitzero"`
 
 	// Name of the Cloudflare Access Application.
 	//
 	// Meaningless for "warp" and "app_launcher" app types. Required for "self_hosted".
 	//
 	// +optional
-	Name string `json:"name,omitempty"`
+	Name string `json:"name,omitzero"`
 
 	// The domain and path that Access will secure.
 	//
@@ -49,7 +49,7 @@ type CloudflareAccessApplicationSpec struct {
 	// ex: "test.example.com/admin"
 	//
 	// +optional
-	Domain string `json:"domain,omitempty"`
+	Domain string `json:"domain,omitzero"`
 
 	// Specify if the application will be visible in the App Launcher.
 	//
@@ -85,7 +85,7 @@ type CloudflareAccessApplicationSpec struct {
 	//
 	// +optional
 	// +kubebuilder:default="24h"
-	SessionDuration string `json:"sessionDuration,omitempty"`
+	SessionDuration string `json:"sessionDuration,omitzero"`
 
 	// Enables the binding cookie, which increases security against compromised authorization tokens and CSRF attacks.
 	//
@@ -106,7 +106,7 @@ type CloudflareAccessApplicationSpec struct {
 	// The image URL for the logo shown in the App Launcher dashboard
 	//
 	// +optional
-	LogoURL string `json:"logoUrl,omitempty"`
+	LogoURL string `json:"logoUrl,omitzero"`
 }
 
 func (spec *CloudflareAccessApplicationSpec) GetNamespacedPolicyRefs(contextNamespace string) ([]types.NamespacedName, error) {
@@ -118,7 +118,7 @@ type CloudflareAccessApplicationStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	AccessApplicationID string `json:"accessApplicationId,omitempty"`
+	AccessApplicationID string `json:"accessApplicationId,omitzero"`
 
 	// ordered CloudFlare's policies IDs, resolved by controller from "Spec.PolicyRefs"
 	ReusablePolicyIDs []string    `json:"reusablePolicyIds,omitempty"`
@@ -137,10 +137,10 @@ type CloudflareAccessApplicationStatus struct {
 // CloudflareAccessApplication is the Schema for the cloudflareaccessapplications API.
 type CloudflareAccessApplication struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata"`
+	metav1.ObjectMeta `json:"metadata,omitzero"`
 
-	Spec   CloudflareAccessApplicationSpec   `json:"spec"`
-	Status CloudflareAccessApplicationStatus `json:"status"`
+	Spec   CloudflareAccessApplicationSpec   `json:"spec,omitzero"`
+	Status CloudflareAccessApplicationStatus `json:"status,omitzero"`
 }
 
 func (c *CloudflareAccessApplication) GetType() string {

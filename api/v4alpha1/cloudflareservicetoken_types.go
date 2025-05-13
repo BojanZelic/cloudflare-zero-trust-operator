@@ -37,12 +37,12 @@ type CloudflareServiceTokenSpec struct {
 	//
 	// +optional
 	// +kubebuilder:default="0"
-	MinTimeBeforeRenewal string `json:"minTimeBeforeRenewal,omitempty"`
+	MinTimeBeforeRenewal string `json:"minTimeBeforeRenewal,omitzero"`
 
 	// Recreate the token if the secret with the service token value is missing or doesn't exist
 	//
 	// +kubebuilder:default=true
-	RecreateMissing bool `json:"recreateMissing,omitempty"`
+	RecreateMissing bool `json:"recreateMissing,omitzero"`
 
 	// Template to apply for the generated secret
 	//
@@ -66,7 +66,7 @@ type SecretTemplateSpec struct {
 	//
 	// +optional
 	// +kubebuilder:default=cloudflareSecretKey
-	ClientSecretKey string `json:"clientSecretKey,omitempty"`
+	ClientSecretKey string `json:"clientSecretKey,omitzero"`
 
 	// Key that should store the secret data. Defaults to cloudflareServiceToken.
 	//
@@ -74,28 +74,27 @@ type SecretTemplateSpec struct {
 	//
 	// +optional
 	// +kubebuilder:default=cloudflareClientId
-	ClientIDKey string `json:"clientIdKey,omitempty"`
+	ClientIDKey string `json:"clientIdKey,omitzero"`
 }
 
 // CloudflareServiceTokenStatus defines the observed state of CloudflareServiceToken.
 type CloudflareServiceTokenStatus struct {
 	// ID of the servicetoken in Cloudflare
-	ServiceTokenID string `json:"serviceTokenId,omitempty"`
+	ServiceTokenID string `json:"serviceTokenId,omitzero"`
 
 	// Creation timestamp of the resource in Cloudflare
-	CreatedAt metav1.Time `json:"createdAt"`
+	CreatedAt metav1.Time `json:"createdAt,omitzero"`
 
 	// Updated timestamp of the resource in Cloudflare
-	UpdatedAt metav1.Time `json:"updatedAt"`
+	UpdatedAt metav1.Time `json:"updatedAt,omitzero"`
 
 	// Updated timestamp of the resource in Cloudflare
-	ExpiresAt metav1.Time `json:"expiresAt"`
+	ExpiresAt metav1.Time `json:"expiresAt,omitzero"`
 
 	// SecretRef is the reference to the secret
 	//
 	// +optional
-	// +nullable
-	SecretRef *SecretRef `json:"secretRef,omitempty"`
+	SecretRef SecretRef `json:"secretRef,omitzero"`
 
 	// Conditions store the status conditions of the CloudflareAccessApplication
 	//
@@ -105,11 +104,11 @@ type CloudflareServiceTokenStatus struct {
 
 type SecretRef struct {
 	// reference to the secret
-	corev1.LocalObjectReference `json:"reference"`
+	corev1.LocalObjectReference `json:"reference,omitzero"`
 	// Key that stores the secret data.
-	ClientSecretKey string `json:"clientSecretKey,omitempty"`
+	ClientSecretKey string `json:"clientSecretKey,omitzero"`
 	// Key that stores the secret data.
-	ClientIDKey string `json:"clientIdKey,omitempty"`
+	ClientIDKey string `json:"clientIdKey,omitzero"`
 }
 
 // +kubebuilder:object:root=true
@@ -118,10 +117,10 @@ type SecretRef struct {
 // CloudflareServiceToken is the Schema for the cloudflareservicetokens API.
 type CloudflareServiceToken struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata"`
+	metav1.ObjectMeta `json:"metadata,omitzero"`
 
-	Spec   CloudflareServiceTokenSpec   `json:"spec"`
-	Status CloudflareServiceTokenStatus `json:"status"`
+	Spec   CloudflareServiceTokenSpec   `json:"spec,omitzero"`
+	Status CloudflareServiceTokenStatus `json:"status,omitzero"`
 }
 
 func (c *CloudflareServiceToken) GetType() string {
@@ -153,7 +152,7 @@ func (c *CloudflareServiceToken) ToExtendedToken() cftypes.ExtendedServiceToken 
 // CloudflareServiceTokenList contains a list of CloudflareServiceToken.
 type CloudflareServiceTokenList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
+	metav1.ListMeta `json:"metadata,omitzero"`
 	Items           []CloudflareServiceToken `json:"items"`
 }
 

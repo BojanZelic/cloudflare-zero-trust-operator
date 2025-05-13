@@ -41,16 +41,16 @@ type CloudflareAccessGroupSpec struct {
 // CloudflareAccessGroupStatus defines the observed state of CloudflareAccessGroup.
 type CloudflareAccessGroupStatus struct {
 	// AccessGroupID is the ID of the reference in Cloudflare
-	AccessGroupID string `json:"accessGroupId,omitempty"`
+	AccessGroupID string `json:"accessGroupId,omitzero"`
 
 	// Creation timestamp of the resource in Cloudflare
-	CreatedAt metav1.Time `json:"createdAt"`
+	CreatedAt metav1.Time `json:"createdAt,omitzero"`
 
 	// Updated timestamp of the resource in Cloudflare
-	UpdatedAt metav1.Time `json:"updatedAt"`
+	UpdatedAt metav1.Time `json:"updatedAt,omitzero"`
 
 	//
-	ResolvedIdpsFromRefs RulerResolvedCloudflareIDs `json:"resolvedCfIds"`
+	ResolvedIdpsFromRefs RulerResolvedCloudflareIDs `json:"resolvedCfIds,omitzero"`
 
 	// Conditions store the status conditions of the CloudflareAccessApplication
 	//
@@ -64,10 +64,10 @@ type CloudflareAccessGroupStatus struct {
 // CloudflareAccessGroup is the Schema for the cloudflareaccessgroups API.
 type CloudflareAccessGroup struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata"`
+	metav1.ObjectMeta `json:"metadata,omitzero"`
 
-	Spec   CloudflareAccessGroupSpec   `json:"spec"`
-	Status CloudflareAccessGroupStatus `json:"status"`
+	Spec   CloudflareAccessGroupSpec   `json:"spec,omitzero"`
+	Status CloudflareAccessGroupStatus `json:"status,omitzero"`
 }
 
 func (c CloudflareAccessGroup) GetType() string {
@@ -106,7 +106,7 @@ func (c CloudflareAccessGroup) GetRequireCfIds() *ResolvedCloudflareIDs {
 // CloudflareAccessGroupList contains a list of CloudflareAccessGroup.
 type CloudflareAccessGroupList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
+	metav1.ListMeta `json:"metadata,omitzero"`
 	Items           []CloudflareAccessGroup `json:"items"`
 }
 

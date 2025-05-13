@@ -84,6 +84,7 @@ spec:
                 type: object
             required:
             - name
+            - recreateMissing
             type: object
           status:
             description: CloudflareServiceTokenStatus defines the observed state of
@@ -156,7 +157,6 @@ spec:
                 type: string
               secretRef:
                 description: SecretRef is the reference to the secret
-                nullable: true
                 properties:
                   clientIdKey:
                     description: Key that stores the secret data.
@@ -179,6 +179,8 @@ spec:
                     type: object
                     x-kubernetes-map-type: atomic
                 required:
+                - clientIdKey
+                - clientSecretKey
                 - reference
                 type: object
               serviceTokenId:
@@ -191,6 +193,7 @@ spec:
             required:
             - createdAt
             - expiresAt
+            - serviceTokenId
             - updatedAt
             type: object
         required:

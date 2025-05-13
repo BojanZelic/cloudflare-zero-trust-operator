@@ -72,17 +72,17 @@ func (rules *CloudFlareAccessRules) ToAccessRuleParams(resolvedCfIds ResolvedClo
 		})
 	}
 
-	if rules.AnyAccessServiceToken != nil && *rules.AnyAccessServiceToken {
+	if rules.AnyAccessServiceToken {
 		out = append(out, zero_trust.AnyValidServiceTokenRuleParam{
 			AnyValidServiceToken: cloudflare.F(zero_trust.AnyValidServiceTokenRuleAnyValidServiceTokenParam{}),
 		})
 	}
-	if rules.Everyone != nil && *rules.Everyone {
+	if rules.Everyone {
 		out = append(out, zero_trust.EveryoneRuleParam{
 			Everyone: cloudflare.F(zero_trust.EveryoneRuleEveryoneParam{}),
 		})
 	}
-	if rules.ValidCertificate != nil && *rules.ValidCertificate {
+	if rules.ValidCertificate {
 		out = append(out, zero_trust.CertificateRuleParam{
 			Certificate: cloudflare.F(zero_trust.CertificateRuleCertificateParam{}),
 		})
@@ -205,17 +205,17 @@ func (rules *CloudFlareAccessRules) ToAccessRules(resolvedCfIds ResolvedCloudfla
 		})
 	}
 
-	if rules.AnyAccessServiceToken != nil && *rules.AnyAccessServiceToken {
+	if rules.AnyAccessServiceToken {
 		out = append(out, zero_trust.AccessRule{
 			AnyValidServiceToken: zero_trust.AnyValidServiceTokenRuleAnyValidServiceToken{},
 		})
 	}
-	if rules.Everyone != nil && *rules.Everyone {
+	if rules.Everyone {
 		out = append(out, zero_trust.AccessRule{
 			Everyone: zero_trust.EveryoneRuleEveryone{},
 		})
 	}
-	if rules.ValidCertificate != nil && *rules.ValidCertificate {
+	if rules.ValidCertificate {
 		out = append(out, zero_trust.AccessRule{
 			Certificate: zero_trust.CertificateRuleCertificate{},
 		})
