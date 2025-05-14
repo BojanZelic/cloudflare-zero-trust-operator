@@ -90,10 +90,8 @@ func PopulateWithCloudflareUUIDs(
 			//
 			if accessGroup.Status.AccessGroupID == "" {
 				//
-				log.Error(
-					errors.Errorf("Undefined UUID; CloudflareAccessGroup %s - %s not ready yet", accessGroupRef.Name, accessGroupRef.Namespace),
-					"Issue while checking defined Cloudflare UUID",
-				)
+				err := errors.Errorf("Undefined UUID; CloudflareAccessGroup %s - %s not ready yet", accessGroupRef.Name, accessGroupRef.Namespace)
+				log.Error(err, "Issue while checking defined Cloudflare UUID")
 
 				// will retry later (setting error here would trigger immediate retry)
 				return &ctrl.Result{RequeueAfter: 10 * time.Second}, nil
@@ -126,10 +124,8 @@ func PopulateWithCloudflareUUIDs(
 			//
 			if serviceToken.Status.ServiceTokenID == "" {
 				//
-				log.Error(
-					errors.Errorf("Undefined UUID; CloudflareServiceToken %s - %s not ready yet", tokenRef.Name, tokenRef.Namespace),
-					"Issue while checking defined Cloudflare UUID",
-				)
+				err := errors.Errorf("Undefined UUID; CloudflareServiceToken %s - %s not ready yet", tokenRef.Name, tokenRef.Namespace)
+				log.Error(err, "Issue while checking defined Cloudflare UUID")
 
 				// will retry later (setting error here would trigger immediate retry)
 				return &ctrl.Result{RequeueAfter: 10 * time.Second}, nil

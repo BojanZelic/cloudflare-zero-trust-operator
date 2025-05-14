@@ -27,6 +27,7 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -38,13 +39,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // CloudflareAccessApplicationReconciler reconciles a CloudflareAccessApplication object.
 type CloudflareAccessApplicationReconciler struct {
+	CloudflareAccessReconciler
 	client.Client
-	Scheme         *runtime.Scheme
-	Helper         *ctrlhelper.ControllerHelper
+	Scheme *runtime.Scheme
+	Helper *ctrlhelper.ControllerHelper
+
+	// Mainly used for debug / tests purposes. Should not be instantiated in production run.
 	OptionalTracer *cfapi.InsertedCFRessourcesTracer
 }
 
@@ -59,9 +64,13 @@ const (
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications/finalizers,verbs=update
 
+func (r *CloudflareAccessApplicationReconciler) GetReconcilierLogger(ctx context.Context) logr.Logger {
+	return logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::Reconcile")
+}
+
 //nolint:maintidx,cyclop,gocognit,gocyclo,varnamelen
 func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::Reconcile")
+	log := r.GetReconcilierLogger(ctx)
 	app := &v4alpha1.CloudflareAccessApplication{}
 	var err error
 
@@ -77,7 +86,6 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		}
 
 		// Else, return with failure
-		log.Error(err, "Failed to get CloudflareAccessApplication")
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessApplication") // will retry immediately
 	}
 
@@ -146,11 +154,8 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	// Attempt pending deletions on CRD Manifest
 	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, app)
 	if !continueReconcilliation || err != nil {
-		if err != nil {
-			log.Error(err, "unable to reconcile deletion")
-		}
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion")
+		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion for application")
 	}
 
 	//
@@ -241,7 +246,9 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 			}
 
 			// well, Application ID we had do not exist anymore; lets recreate the app in CF
-			log.Info("access application ID linked to manifest not found - recreating remote resource...", "accessApplicationID", app.Status.AccessApplicationID)
+			log.Info("access application ID linked to manifest not found - recreating remote resource...",
+				"accessApplicationID", app.Status.AccessApplicationID,
+			)
 			app.Status.AccessApplicationID = ""
 		}
 	}
@@ -251,7 +258,10 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	//
 
 	if cfAccessApp == nil {
-		log.Info("app is missing - creating...", "name", app.Spec.Name, "domain", app.Spec.Domain)
+		log.Info("app is missing - creating...",
+			"name", app.Spec.Name,
+			"domain", app.Spec.Domain,
+		)
 		cfAccessApp, err = api.CreateAccessApplication(ctx, app)
 		if err != nil {
 			// will retry immediately
@@ -264,7 +274,10 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 			return ctrl.Result{}, errors.Wrap(err, "issue updating status")
 		}
 	} else if needsUpdate := !cfcompare.AreAccessApplicationsEquivalent(cfAccessApp, app); needsUpdate {
-		log.Info("app has changed - updating...", "name", app.Spec.Name, "domain", app.Spec.Domain)
+		log.Info("app has changed - updating...",
+			"name", app.Spec.Name,
+			"domain", app.Spec.Domain,
+		)
 		cfAccessApp, err = api.UpdateAccessApplication(ctx, app)
 		if err != nil {
 			// will retry immediately
@@ -321,9 +334,13 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Cont
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CloudflareAccessApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *CloudflareAccessApplicationReconciler) SetupWithManager(mgr ctrl.Manager, override reconcile.Reconciler) error {
+	if override == nil {
+		override = r
+	}
+
 	//nolint:wrapcheck
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v4alpha1.CloudflareAccessApplication{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
-		Complete(r)
+		Complete(override)
 }

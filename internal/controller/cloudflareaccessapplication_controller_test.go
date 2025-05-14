@@ -38,6 +38,8 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 		}
 
 		BeforeEach(func() {
+			ctrlErrors.Clear()
+
 			By("Creating the Namespace to perform the tests")
 			_ = k8sClient.Create(ctx, namespace)
 			// ignore error because of https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
@@ -46,13 +48,14 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 		AfterEach(func() {
 			By("expect no reconcile errors occurred")
-			Expect(logOutput.GetErrorCount()).To(Equal(0), logOutput.GetOutput())
+			Expect(ctrlErrors).To(BeEmpty())
+			// 	By("Deleting the Namespace to perform the tests")
+			// 	//_ = k8sClient.Delete(ctx, namespace)
 		})
 
-		// AfterEach(func() {
-		// 	By("Deleting the Namespace to perform the tests")
-		// 	//_ = k8sClient.Delete(ctx, namespace)
-		// })
+		//
+		//
+		//
 
 		It("should successfully reconcile CloudflareAccessApplication with reusable policy", func() {
 			By("Creating the custom resource for the Kind CloudflareAccessReusablePolicy")
@@ -180,7 +183,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				cfResource, err = api.AccessApplication(ctx, found.Status.AccessApplicationID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource.Name).To(Equal(found.Spec.Name))
-			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), logOutput.GetOutput()) // sometimes this is cached
+			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), ctrlErrors) // sometimes this is cached
 
 			By("Cloudflare resource should be deleted")
 			Expect(k8sClient.Delete(ctx, apps)).To(Not(HaveOccurred()))
@@ -292,7 +295,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				cfResource, err := api.AccessApplication(ctx, found.Status.AccessApplicationID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource.Name).To(Equal(found.Spec.Name))
-			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), logOutput.GetOutput()) // sometimes this is cached
+			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), ctrlErrors) // sometimes this is cached
 		})
 	})
 })

@@ -24,6 +24,7 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -37,13 +38,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // CloudflareServiceTokenReconciler reconciles a CloudflareServiceToken object.
 type CloudflareServiceTokenReconciler struct {
+	CloudflareAccessReconciler
 	client.Client
-	Scheme         *runtime.Scheme
-	Helper         *ctrlhelper.ControllerHelper
+	Scheme *runtime.Scheme
+	Helper *ctrlhelper.ControllerHelper
+
+	// Mainly used for debug / tests purposes. Should not be instantiated in production run.
 	OptionalTracer *cfapi.InsertedCFRessourcesTracer
 }
 
@@ -52,13 +57,17 @@ type CloudflareServiceTokenReconciler struct {
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/finalizers,verbs=update
 
+func (r *CloudflareServiceTokenReconciler) GetReconcilierLogger(ctx context.Context) logr.Logger {
+	return logger.FromContext(ctx).WithName("CloudflareServiceTokenController::Reconcile")
+}
+
 //nolint:gocognit,cyclop,gocyclo,maintidx
 func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	var existingServiceToken *cftypes.ExtendedServiceToken
 	var api *cfapi.API
 
-	log := logger.FromContext(ctx).WithName("CloudflareServiceTokenController")
+	log := r.GetReconcilierLogger(ctx)
 
 	serviceToken := &v4alpha1.CloudflareServiceToken{}
 
@@ -70,10 +79,8 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 			return ctrl.Result{}, nil
 		}
 
-		log.Error(err, "Failed to get CloudflareServiceToken", "CloudflareServiceToken.Name", req.Name)
-
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareServiceToken")
+		return ctrl.Result{}, errors.Wrapf(err, "Failed to get CloudflareServiceToken '%s'", req.Name)
 	}
 
 	cfConfig := config.ParseCloudflareConfig(serviceToken)
@@ -87,12 +94,8 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 
 	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, serviceToken)
 	if !continueReconcilliation || err != nil {
-		if err != nil {
-			log.Error(err, "unable to reconcile deletion for service token")
-		}
-
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion")
+		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion for service token")
 	}
 
 	_, err = controllerutil.CreateOrPatch(ctx, r.Client, serviceToken, func() error {
@@ -132,7 +135,10 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		secret = &secretList.Items[0]
 
 		if len(secretList.Items) > 1 {
-			log.Info("Found multiple secrets with the same owner label", "label", v4alpha1.LabelOwnedBy, "owner", serviceToken.Name)
+			log.Info("Found multiple secrets with the same owner label",
+				"label", v4alpha1.LabelOwnedBy,
+				"owner", serviceToken.Name,
+			)
 		}
 	}
 
@@ -153,7 +159,9 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 
 	if existingServiceToken == nil {
 		token, err := api.CreateAccessServiceToken(ctx, serviceToken.ToExtendedToken())
-		log.Info("created access service token", "token_id", token.ID)
+		log.Info("created access service token",
+			"token_id", token.ID,
+		)
 		existingServiceToken = token
 		if err != nil {
 			// will retry immediately
@@ -250,7 +258,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 
 	if secretToDelete != nil {
 		if err := r.Delete(ctx, secretToDelete); err != nil {
-			log.Error(nil, "failed to remove old secret")
+			log.Error(err, "failed to remove old secret")
 		} else {
 			log.Info("removed old secret")
 		}
@@ -322,10 +330,14 @@ func (r *CloudflareServiceTokenReconciler) ReconcileStatus(ctx context.Context, 
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CloudflareServiceTokenReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *CloudflareServiceTokenReconciler) SetupWithManager(mgr ctrl.Manager, override reconcile.Reconciler) error {
+	if override == nil {
+		override = r
+	}
+
 	//nolint:wrapcheck
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v4alpha1.CloudflareServiceToken{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Owns(&corev1.Secret{}).
-		Complete(r)
+		Complete(override)
 }

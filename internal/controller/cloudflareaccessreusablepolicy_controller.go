@@ -25,6 +25,7 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -36,10 +37,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // CloudflareAccessReusablePolicyReconciler reconciles a CloudflareAccessReusablePolicy object.
 type CloudflareAccessReusablePolicyReconciler struct {
+	CloudflareAccessReconciler
 	client.Client
 	Scheme *runtime.Scheme
 	Helper *ctrlhelper.ControllerHelper
@@ -52,13 +55,17 @@ type CloudflareAccessReusablePolicyReconciler struct {
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessreusablepolicies/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessreusablepolicies/finalizers,verbs=update
 
+func (r *CloudflareAccessReusablePolicyReconciler) GetReconcilierLogger(ctx context.Context) logr.Logger {
+	return logger.FromContext(ctx).WithName("CloudflareAccessReusablePolicyController::Reconcile")
+}
+
 //nolint:cyclop,gocognit
 func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	var existingCfRP *zero_trust.AccessPolicyGetResponse
 	var api *cfapi.API
 
-	log := logger.FromContext(ctx).WithName("CloudflareAccessReusablePolicyController")
+	log := r.GetReconcilierLogger(ctx)
 
 	reusablePolicy := &v4alpha1.CloudflareAccessReusablePolicy{}
 
@@ -69,10 +76,8 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 			return ctrl.Result{}, nil
 		}
 
-		log.Error(err, "Failed to get CloudflareAccessReusablePolicy", "CloudflareAccessReusablePolicy.Name", req.Name)
-
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessReusablePolicy")
+		return ctrl.Result{}, errors.Wrapf(err, "Failed to get CloudflareAccessReusablePolicy '%s'", req.Name)
 	}
 
 	cfConfig := config.ParseCloudflareConfig(reusablePolicy)
@@ -86,12 +91,8 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 
 	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, reusablePolicy)
 	if !continueReconcilliation || err != nil {
-		if err != nil {
-			log.Error(err, "unable to reconcile deletion for reusable policy")
-		}
-
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion")
+		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion for reusable policy")
 	}
 
 	_, err = controllerutil.CreateOrPatch(ctx, r.Client, reusablePolicy, func() error {
@@ -244,9 +245,13 @@ func (r *CloudflareAccessReusablePolicyReconciler) ReconcileStatus(
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CloudflareAccessReusablePolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *CloudflareAccessReusablePolicyReconciler) SetupWithManager(mgr ctrl.Manager, override reconcile.Reconciler) error {
+	if override == nil {
+		override = r
+	}
+
 	//nolint:wrapcheck
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v4alpha1.CloudflareAccessReusablePolicy{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
-		Complete(r)
+		Complete(override)
 }

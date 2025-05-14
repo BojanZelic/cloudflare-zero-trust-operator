@@ -38,20 +38,24 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 		typeNamespaceName := types.NamespacedName{Name: cloudflareName, Namespace: cloudflareName}
 
 		BeforeEach(func() {
-			logOutput.Clear()
+			ctrlErrors.Clear()
 
 			By("Creating the Namespace to perform the tests")
 			_ = k8sClient.Create(ctx, namespace)
-
+			// ignore error because of https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
 			// Expect(err).To(Not(HaveOccurred()))
 		})
 
 		AfterEach(func() {
 			By("expect no reconcile errors occurred")
-			Expect(logOutput.GetErrorCount()).To(Equal(0), logOutput.GetOutput())
+			Expect(ctrlErrors).To(BeEmpty())
 			// By("Deleting the Namespace to perform the tests")
 			// _ = k8sClient.Delete(ctx, namespace)
 		})
+
+		//
+		//
+		//
 
 		It("should successfully reconcile if a CloudflareAccessGroup AlreadyExists", func() {
 			By("Pre-creating a cloudflare access group")

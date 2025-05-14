@@ -25,6 +25,7 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -36,13 +37,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // CloudflareAccessGroupReconciler reconciles a CloudflareAccessGroup object.
 type CloudflareAccessGroupReconciler struct {
+	CloudflareAccessReconciler
 	client.Client
-	Scheme         *runtime.Scheme
-	Helper         *ctrlhelper.ControllerHelper
+	Scheme *runtime.Scheme
+	Helper *ctrlhelper.ControllerHelper
+
+	// Mainly used for debug / tests purposes. Should not be instantiated in production run.
 	OptionalTracer *cfapi.InsertedCFRessourcesTracer
 }
 
@@ -50,13 +55,17 @@ type CloudflareAccessGroupReconciler struct {
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups/finalizers,verbs=update
 
+func (r *CloudflareAccessGroupReconciler) GetReconcilierLogger(ctx context.Context) logr.Logger {
+	return logger.FromContext(ctx).WithName("CloudflareAccessGroupController::Reconcile")
+}
+
 //nolint:cyclop,gocognit
 func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	var existingCfAG *zero_trust.AccessGroupGetResponse
 	var api *cfapi.API
 
-	log := logger.FromContext(ctx).WithName("CloudflareAccessGroupController")
+	log := r.GetReconcilierLogger(ctx)
 
 	accessGroup := &v4alpha1.CloudflareAccessGroup{}
 
@@ -66,11 +75,8 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 			// will stop
 			return ctrl.Result{}, nil
 		}
-
-		log.Error(err, "Failed to get CloudflareAccessGroup", "CloudflareAccessGroup.Name", req.Name)
-
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessGroup")
+		return ctrl.Result{}, errors.Wrapf(err, "Failed to get CloudflareAccessGroup '%s'", req.Name)
 	}
 
 	cfConfig := config.ParseCloudflareConfig(accessGroup)
@@ -84,12 +90,8 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 
 	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, accessGroup)
 	if !continueReconcilliation || err != nil {
-		if err != nil {
-			log.Error(err, "unable to reconcile deletion for access group")
-		}
-
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion")
+		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion for access group")
 	}
 
 	_, err = controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
@@ -119,7 +121,10 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 			return ctrl.Result{}, errors.Wrap(err, "unable to get access group")
 		}
 		if existingCfAG != nil {
-			log.Info("access group already exists. importing...", "accessGroup", existingCfAG.Name, "accessGroupID", existingCfAG.ID)
+			log.Info("access group already exists. importing...",
+				"accessGroup", existingCfAG.Name,
+				"accessGroupID", existingCfAG.ID,
+			)
 		}
 		err = r.ReconcileStatus(ctx, existingCfAG, accessGroup)
 		if err != nil {
@@ -253,9 +258,13 @@ func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, c
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CloudflareAccessGroupReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *CloudflareAccessGroupReconciler) SetupWithManager(mgr ctrl.Manager, override reconcile.Reconciler) error {
+	if override == nil {
+		override = r
+	}
+
 	//nolint:wrapcheck
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v4alpha1.CloudflareAccessGroup{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
-		Complete(r)
+		Complete(override)
 }

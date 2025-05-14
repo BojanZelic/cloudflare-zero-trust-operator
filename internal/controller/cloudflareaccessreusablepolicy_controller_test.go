@@ -36,7 +36,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 		}
 
 		BeforeEach(func() {
-			logOutput.Clear()
+			ctrlErrors.Clear()
 
 			By("Creating the Namespace to perform the tests")
 			_ = k8sClient.Create(ctx, namespace)
@@ -46,13 +46,14 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 
 		AfterEach(func() {
 			By("expect no reconcile errors occurred")
-			Expect(logOutput.GetErrorCount()).To(Equal(0), logOutput.GetOutput())
+			Expect(ctrlErrors).To(BeEmpty())
+			// 	By("Deleting the Namespace to perform the tests")
+			// 	//_ = k8sClient.Delete(ctx, namespace)
 		})
 
-		// AfterEach(func() {
-		// 	By("Deleting the Namespace to perform the tests")
-		// 	//_ = k8sClient.Delete(ctx, namespace)
-		// })
+		//
+		//
+		//
 
 		It("should fail to reconcile CloudflareAccessReusablePolicy policies with bad references", func() {
 			typeNamespaceName := types.NamespacedName{Name: "cloudflare-rp-four", Namespace: cloudflareName}
@@ -254,7 +255,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				cfResource, err = api.AccessApplication(ctx, found.Status.AccessReusablePolicyID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource.Name).To(Equal(found.Spec.Name))
-			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), logOutput.GetOutput()) // sometimes this is cached
+			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), ctrlErrors) // sometimes this is cached
 
 			By("Cloudflare resource should be deleted")
 			Expect(k8sClient.Delete(ctx, apps)).To(Not(HaveOccurred()))
@@ -329,7 +330,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				cfResource, err := api.AccessApplication(ctx, found.Status.AccessReusablePolicyID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource.Name).To(Equal(found.Spec.Name))
-			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), logOutput.GetOutput()) // sometimes this is cached
+			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), ctrlErrors) // sometimes this is cached
 		})
 	})
 })

@@ -17,12 +17,10 @@ type ControllerHelper struct {
 	R client.Client
 }
 
-func (h *ControllerHelper) EnsureFinalizer(
+func (h *ControllerHelper) ensureFinalizer(
 	ctx context.Context,
 	c CloudflareCR, //nolint:varnamelen
 ) error {
-	log := logger.FromContext(ctx).WithName("finalizerHelper::CloudflareAccessGroupController")
-
 	annotations := c.GetAnnotations()
 	preventDestroy := false
 	if annotationPreventDestroy, ok := annotations[v4alpha1.AnnotationPreventDestroy]; ok {
@@ -32,15 +30,11 @@ func (h *ControllerHelper) EnsureFinalizer(
 	if preventDestroy && controllerutil.ContainsFinalizer(c, v4alpha1.FinalizerDeletion) {
 		controllerutil.RemoveFinalizer(c, v4alpha1.FinalizerDeletion)
 		if err := h.R.Update(ctx, c); err != nil {
-			log.Error(err, "unable to remove finalizer")
-
 			return errors.Wrap(err, "unable to remove finalizer")
 		}
 	} else if !preventDestroy && !controllerutil.ContainsFinalizer(c, v4alpha1.FinalizerDeletion) {
 		controllerutil.AddFinalizer(c, v4alpha1.FinalizerDeletion)
 		if err := h.R.Update(ctx, c); err != nil {
-			log.Error(err, "unable to add finalizer")
-
 			return errors.Wrap(err, "unable to add finalizer")
 		}
 	}
@@ -58,7 +52,7 @@ func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 
 	// examine DeletionTimestamp to determine if object is under deletion
 	if !k8sCR.UnderDeletion() {
-		if err := h.EnsureFinalizer(ctx, k8sCR); err != nil {
+		if err := h.ensureFinalizer(ctx, k8sCR); err != nil {
 			return false, errors.Wrap(err, "unable to reconcile finalizer")
 		}
 
@@ -91,8 +85,6 @@ func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 				if errors.As(err, &cfErr) && cfErr.StatusCode == 404 {
 					log.Info("unable to remove resource from cloudflare - appears to be already deleted")
 				} else {
-					log.Error(err, "unable to delete")
-
 					return false, errors.Wrap(err, "unable to delete")
 				}
 			} else {
@@ -103,8 +95,6 @@ func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 		// remove our finalizer from the list and update it.
 		controllerutil.RemoveFinalizer(k8sCR, v4alpha1.FinalizerDeletion)
 		if err := h.R.Update(ctx, k8sCR); err != nil {
-			log.Error(err, "unable to remove finalizer")
-
 			return false, errors.Wrap(err, "unable to remove finalizer")
 		}
 	}

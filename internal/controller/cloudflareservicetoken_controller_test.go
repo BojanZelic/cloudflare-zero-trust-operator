@@ -37,20 +37,24 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 		}
 
 		BeforeEach(func() {
-			logOutput.Clear()
+			ctrlErrors.Clear()
 
 			By("Creating the Namespace to perform the tests")
 			_ = k8sClient.Create(ctx, namespace)
-
+			// ignore error because of https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
 			// Expect(err).To(Not(HaveOccurred()))
 		})
 
 		AfterEach(func() {
 			By("expect no reconcile errors occurred")
-			Expect(logOutput.GetErrorCount()).To(Equal(0), logOutput.GetOutput())
+			Expect(ctrlErrors).To(BeEmpty())
 			// By("Deleting the Namespace to perform the tests")
 			// _ = k8sClient.Delete(ctx, namespace)
 		})
+
+		//
+		//
+		//
 
 		It("should successfully reconcile a custom resource for CloudflareServiceToken", func() {
 			typeNamespaceName := types.NamespacedName{Name: "token1", Namespace: nsName}
