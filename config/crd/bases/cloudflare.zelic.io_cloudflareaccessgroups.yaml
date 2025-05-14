@@ -425,10 +425,8 @@ spec:
                     type: boolean
                 type: object
             required:
-            - exclude
             - include
             - name
-            - require
             type: object
           status:
             description: CloudflareAccessGroupStatus defines the observed state of
@@ -533,16 +531,13 @@ spec:
                           type: string
                         type: array
                     type: object
+                required:
+                - include
                 type: object
               updatedAt:
                 description: Updated timestamp of the resource in Cloudflare
                 format: date-time
                 type: string
-            required:
-            - accessGroupId
-            - createdAt
-            - resolvedCfIds
-            - updatedAt
             type: object
         required:
         - metadata

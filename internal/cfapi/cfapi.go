@@ -419,6 +419,19 @@ func (a *API) DeleteAccessReusablePolicy(ctx context.Context, policyID string) e
 //
 //
 
+func (a *API) ServiceToken(ctx context.Context, tokenId string) (*cftypes.ExtendedServiceToken, error) {
+
+	token, err := a.client.ZeroTrust.Access.ServiceTokens.Get(ctx, tokenId, zero_trust.AccessServiceTokenGetParams{
+		AccountID: cloudflare.F(a.CFAccountID),
+	})
+
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get service token")
+	}
+
+	return &cftypes.ExtendedServiceToken{ServiceToken: *token}, nil
+}
+
 func (a *API) ServiceTokens(ctx context.Context) (*[]cftypes.ExtendedServiceToken, error) {
 
 	iter := a.client.ZeroTrust.Access.ServiceTokens.ListAutoPaging(ctx, zero_trust.AccessServiceTokenListParams{

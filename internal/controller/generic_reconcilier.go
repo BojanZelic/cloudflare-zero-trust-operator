@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
+	gink "github.com/onsi/ginkgo/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -39,14 +40,26 @@ type CloudflareAccessReconciler interface {
 //
 //
 
+// Its purpose is to store all errors that happened during controllers reconciliations.
 type ReconcilierErrorTracker []error
 
-// Clears errors tracked
+// Clears all errors tracked
 func (rt *ReconcilierErrorTracker) Clear() {
 	if rt != nil {
 		*rt = (*rt)[:0]
 	}
 }
+
+// Ginkgo Only: tests if [ReconcilierErrorTracker] contains tracked errors from reconciliers. If so, Fails().
+func (rt *ReconcilierErrorTracker) TestEmpty() {
+	if len(*rt) > 0 {
+		gink.Fail("Reconciliation failed")
+	}
+}
+
+//
+//
+//
 
 // Allows to intercept all inner errors and push them into logger
 type ReconcilerWithLoggedErrors struct {

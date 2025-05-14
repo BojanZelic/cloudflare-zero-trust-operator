@@ -1,4 +1,4 @@
-//go:build integration
+// TODO: add back //go:build integration
 
 package controller
 
@@ -82,6 +82,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			RPFound := &v4alpha1.CloudflareAccessReusablePolicy{}
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func() string {
+				// ctrlErrors.TestEmpty()
 				RPFound = &v4alpha1.CloudflareAccessReusablePolicy{}
 				_ = k8sClient.Get(ctx, RPTypeNamespaceName, RPFound)
 				return RPFound.Status.AccessReusablePolicyID
@@ -113,6 +114,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			found := &v4alpha1.CloudflareAccessApplication{}
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func() string {
+				// ctrlErrors.TestEmpty()
 				found = &v4alpha1.CloudflareAccessApplication{}
 				_ = k8sClient.Get(ctx, typeNamespaceName, found)
 				return found.Status.AccessApplicationID
@@ -145,13 +147,15 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			By("Checking if the custom resource was successfully created")
 			Eventually(func() error {
+				// ctrlErrors.TestEmpty()
 				found := &v4alpha1.CloudflareAccessApplication{}
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
 
 			found := &v4alpha1.CloudflareAccessApplication{}
 			By("Checking the latest Status should have the ID of the resource")
-			Eventually(func(g Gomega) {
+			Eventually(func(g Gomega) { //nolint:varnamelen
+				// ctrlErrors.TestEmpty()
 				found = &v4alpha1.CloudflareAccessApplication{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Status.AccessApplicationID).ToNot(BeEmpty())
@@ -171,7 +175,8 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Expect(k8sClient.Update(ctx, found)).To(Not(HaveOccurred()))
 
 			By("Checking the latest Status should have the update")
-			Eventually(func(g Gomega) {
+			Eventually(func(g Gomega) { //nolint:varnamelen
+				// ctrlErrors.TestEmpty()
 				found = &v4alpha1.CloudflareAccessApplication{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Spec.Name).To(Equal(updtdName))
@@ -179,7 +184,8 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			}).WithTimeout(25 * time.Second).WithPolling(time.Second).Should(Succeed())
 
 			By("Cloudflare resource should equal the updated spec")
-			Eventually(func(g Gomega) {
+			Eventually(func(g Gomega) { //nolint:varnamelen
+				// ctrlErrors.TestEmpty()
 				cfResource, err = api.AccessApplication(ctx, found.Status.AccessApplicationID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource.Name).To(Equal(found.Spec.Name))
@@ -190,6 +196,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			By("Checking if the custom resource was successfully deleted")
 			Eventually(func() error {
+				// ctrlErrors.TestEmpty()
 				return k8sClient.Get(ctx, typeNamespaceName, apps)
 			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Not(Succeed()))
 		})
@@ -214,13 +221,15 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			By("Checking if the custom resource was successfully created")
 			Eventually(func() error {
+				// ctrlErrors.TestEmpty()
 				found := &v4alpha1.CloudflareAccessApplication{}
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}).WithTimeout(time.Minute).WithPolling(time.Second).Should(Succeed())
 
 			found := &v4alpha1.CloudflareAccessApplication{}
 			By("Checking the latest Status should have the ID of the resource")
-			Eventually(func(g Gomega) {
+			Eventually(func(g Gomega) { //nolint:varnamelen
+				// ctrlErrors.TestEmpty()
 				found = &v4alpha1.CloudflareAccessApplication{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Status.AccessApplicationID).ToNot(BeEmpty())
@@ -254,6 +263,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			By("Checking if the custom resource was successfully created")
 			Eventually(func() error {
+				// ctrlErrors.TestEmpty()
 				found := &v4alpha1.CloudflareAccessApplication{}
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}).WithTimeout(time.Minute).WithPolling(time.Second).Should(Succeed())
@@ -264,6 +274,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			oldAccessApplicationID := ""
 
 			Eventually(func(g Gomega) { //nolint:varnamelen
+				// ctrlErrors.TestEmpty()
 				found = &v4alpha1.CloudflareAccessApplication{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Status.AccessApplicationID).ToNot(BeEmpty())
@@ -276,7 +287,8 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Expect(api.DeleteAccessApplication(ctx, found.Status.AccessApplicationID)).To(Not(HaveOccurred()))
 
 			By("re-trigger reconcile by updating access application")
-			Eventually(func(g Gomega) {
+			Eventually(func(g Gomega) { //nolint:varnamelen
+				// ctrlErrors.TestEmpty()
 				found = &v4alpha1.CloudflareAccessApplication{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				found.Spec.Name = updtdName
@@ -284,14 +296,16 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
 
 			By("Checking the latest Status should have the ID of the resource")
-			Eventually(func(g Gomega) {
+			Eventually(func(g Gomega) { //nolint:varnamelen
+				// ctrlErrors.TestEmpty()
 				found = &v4alpha1.CloudflareAccessApplication{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Status.AccessApplicationID).ToNot(Equal(oldAccessApplicationID))
 			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
 
 			By("Cloudflare resource should equal the updated spec")
-			Eventually(func(g Gomega) {
+			Eventually(func(g Gomega) { //nolint:varnamelen
+				// ctrlErrors.TestEmpty()
 				cfResource, err := api.AccessApplication(ctx, found.Status.AccessApplicationID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource.Name).To(Equal(found.Spec.Name))

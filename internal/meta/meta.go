@@ -1,4 +1,4 @@
-package v4alpha1
+package meta
 
 //nolint:gosec
 const (

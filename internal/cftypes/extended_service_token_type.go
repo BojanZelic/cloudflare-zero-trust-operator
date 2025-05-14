@@ -3,6 +3,7 @@ package cftypes
 import (
 	"errors"
 
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/meta"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -26,40 +27,49 @@ type ExtendedServiceToken struct {
 	}
 }
 
-func (s *ExtendedServiceToken) SetSecretValues(secret corev1.Secret) error {
-	if _, ok := secret.Annotations["cloudflare.zelic.io/client-id-key"]; !ok {
+// Updates ExtendedServiceToken with values
+func (st *ExtendedServiceToken) SetSecretValues(secret corev1.Secret) error {
+	//
+	// Check Annotations
+	//
+	clientIDKey, ok := secret.Annotations[meta.AnnotationClientIDKey] //nolint:varnamelen
+	if !ok {
 		return ErrMissingAnnotationClientIDKey
 	}
-
-	if _, ok := secret.Annotations["cloudflare.zelic.io/client-secret-key"]; !ok {
+	clientSecretKey, ok := secret.Annotations[meta.AnnotationClientSecretKey] //nolint:varnamelen
+	if !ok {
 		return ErrMissingAnnotationClientSecretKey
 	}
-
-	if _, ok := secret.Annotations["cloudflare.zelic.io/token-id-key"]; !ok {
+	if _, ok := secret.Annotations[meta.AnnotationTokenIDKey]; !ok { //nolint:varnamelen
 		return ErrMissingAnnotationTokenIDKey
 	}
 
-	clientIDKey := secret.Annotations["cloudflare.zelic.io/client-id-key"]
-	clientSecretKey := secret.Annotations["cloudflare.zelic.io/client-secret-key"]
-
-	if _, ok := secret.Data[clientIDKey]; !ok {
+	//
+	// Check Data
+	//
+	clientID, ok := secret.Data[clientIDKey] //nolint:varnamelen
+	if !ok {
 		return ErrMissingClientIDKey
 	}
-
-	if _, ok := secret.Data[clientSecretKey]; !ok {
+	clientSecret, ok := secret.Data[clientSecretKey] //nolint:varnamelen
+	if !ok {
 		return ErrMissingClientSecretKey
 	}
 
-	s.ClientID = string(secret.Data[clientIDKey])
-	s.ClientSecret = string(secret.Data[clientSecretKey])
-	s.SetSecretReference(clientIDKey, clientSecretKey, secret)
+	//
+	// Bind
+	//
+
+	st.ClientID = string(clientID)
+	st.ClientSecret = string(clientSecret)
+	st.SetSecretReference(clientIDKey, clientSecretKey, secret)
 
 	return nil
 }
 
-// depricated.
-func (s *ExtendedServiceToken) SetSecretReference(clientIDKey, clientSecretKey string, secret corev1.Secret) {
-	s.K8sSecretRef.ClientIDKey = clientIDKey
-	s.K8sSecretRef.ClientSecretKey = clientSecretKey
-	s.K8sSecretRef.SecretName = secret.Name
+// deprecated.
+func (st *ExtendedServiceToken) SetSecretReference(clientIDKey, clientSecretKey string, secret corev1.Secret) {
+	st.K8sSecretRef.ClientIDKey = clientIDKey
+	st.K8sSecretRef.ClientSecretKey = clientSecretKey
+	st.K8sSecretRef.SecretName = secret.Name
 }

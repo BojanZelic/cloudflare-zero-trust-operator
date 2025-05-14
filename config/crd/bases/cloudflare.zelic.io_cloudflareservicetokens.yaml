@@ -56,8 +56,6 @@ spec:
                   value is missing or doesn't exist
                 type: boolean
               template:
-                default:
-                  metadata: {}
                 description: Template to apply for the generated secret
                 properties:
                   clientIdKey:
@@ -76,7 +74,7 @@ spec:
                     type: string
                   metadata:
                     description: |-
-                      Standard object's metadata.
+                      Standard object's metadata, for secret definition.
                       More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
                     nullable: true
                     type: object
@@ -190,11 +188,6 @@ spec:
                 description: Updated timestamp of the resource in Cloudflare
                 format: date-time
                 type: string
-            required:
-            - createdAt
-            - expiresAt
-            - serviceTokenId
-            - updatedAt
             type: object
         required:
         - metadata

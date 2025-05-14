@@ -544,16 +544,13 @@ spec:
                           type: string
                         type: array
                     type: object
+                required:
+                - include
                 type: object
               updatedAt:
                 description: Updated timestamp of the resource in Cloudflare
                 format: date-time
                 type: string
-            required:
-            - accessReusablePolicyId
-            - createdAt
-            - resolvedCfIds
-            - updatedAt
             type: object
         required:
         - metadata

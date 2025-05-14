@@ -1,3 +1,5 @@
+// TODO: add back //go:build integration
+
 /*
 Copyright 2025.
 
@@ -45,7 +47,7 @@ var api *cfapi.API
 
 var insertedTracer cfapi.InsertedCFRessourcesTracer
 
-// will store all errors that happened during testing. Might get cleared between test sets
+// @dev Might get cleared between test sets
 var ctrlErrors ReconcilierErrorTracker
 
 func TestAPIs(t *testing.T) {

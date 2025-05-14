@@ -42,7 +42,6 @@ spec:
               of CloudflareAccessApplication.
             properties:
               allowedIdps:
-                default: []
                 description: |-
                   The identity providers your users can select when connecting to this application. Defaults to all IdPs configured in your account.
 
@@ -51,14 +50,12 @@ spec:
                   type: string
                 type: array
               appLauncherVisible:
-                default: true
                 description: |-
                   Specify if the application will be visible in the App Launcher.
 
                   Meaningless for "warp" and "app_launcher" app types.
                 type: boolean
               autoRedirectToIdentity:
-                default: false
                 description: |-
                   When set to true, users skip the identity provider selection step during login.
                   You must specify only one identity provider in allowed_idps.
@@ -72,14 +69,12 @@ spec:
                   ex: "test.example.com/admin"
                 type: string
               enableBindingCookie:
-                default: false
                 description: |-
                   Enables the binding cookie, which increases security against compromised authorization tokens and CSRF attacks.
 
                   Meaningless for "warp" and "app_launcher" app types.
                 type: boolean
               httpOnlyCookieAttribute:
-                default: true
                 description: |-
                   Enables the HttpOnly cookie attribute, which increases security against XSS attacks.
 
@@ -104,7 +99,6 @@ spec:
                   type: string
                 type: array
               sessionDuration:
-                default: 24h
                 description: SessionDuration is the length of the session duration.
                 type: string
               type:
@@ -118,12 +112,15 @@ spec:
                 - warp
                 - app_launcher
                 type: string
+            required:
+            - type
             type: object
           status:
             description: CloudflareAccessApplicationStatus defines the observed state
               of CloudflareAccessApplication.
             properties:
               accessApplicationId:
+                description: Will contain CloudFlare's UUID of resource once resolved
                 type: string
               conditions:
                 description: Conditions store the status conditions of the CloudflareAccessApplication
@@ -183,6 +180,7 @@ spec:
                   type: object
                 type: array
               createdAt:
+                description: Creation date of Cloudflare's associated resource
                 format: date-time
                 type: string
               reusablePolicyIds:
@@ -192,12 +190,9 @@ spec:
                   type: string
                 type: array
               updatedAt:
+                description: Update date of Cloudflare's associated resource
                 format: date-time
                 type: string
-            required:
-            - accessApplicationId
-            - createdAt
-            - updatedAt
             type: object
         required:
         - metadata

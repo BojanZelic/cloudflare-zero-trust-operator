@@ -1,4 +1,4 @@
-//go:build integration
+// TODO: add back //go:build integration
 
 package controller
 
@@ -90,6 +90,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			found := &v4alpha1.CloudflareAccessGroup{}
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func() string {
+				// ctrlErrors.TestEmpty()
 				found = &v4alpha1.CloudflareAccessGroup{}
 				_ = k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: group.Namespace}, found)
 				return found.Status.AccessGroupID
@@ -116,6 +117,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 
 			By("Checking if the custom resource was successfully created")
 			Eventually(func() error {
+				// ctrlErrors.TestEmpty()
 				found := &v4alpha1.CloudflareAccessGroup{}
 				return k8sClient.Get(ctx, typeNamespaceName, found)
 			}).WithTimeout(time.Minute).WithPolling(time.Second).Should(Succeed())
@@ -123,6 +125,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			found := &v4alpha1.CloudflareAccessGroup{}
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func() string {
+				// ctrlErrors.TestEmpty()
 				found = &v4alpha1.CloudflareAccessGroup{}
 				_ = k8sClient.Get(ctx, typeNamespaceName, found)
 				return found.Status.AccessGroupID
@@ -140,6 +143,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 
 			By("Cloudflare resource should equal the updated spec")
 			Eventually(func() string {
+				// ctrlErrors.TestEmpty()
 				cfResource, err = api.AccessGroup(ctx, found.Status.AccessGroupID)
 				return cfResource.Name
 
@@ -165,7 +169,8 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			Expect(k8sClient.Get(ctx, typeNamespaceName, token)).To(Not(HaveOccurred()))
 
 			By("Make sure the token exists on cloudflare")
-			Eventually(func(g Gomega) {
+			Eventually(func(g Gomega) { //nolint:varnamelen
+				// ctrlErrors.TestEmpty()
 				_ = k8sClient.Get(ctx, typeNamespaceName, token)
 				g.Expect(token.Status.ServiceTokenID).ToNot(BeEmpty())
 			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
@@ -186,7 +191,8 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, group)).To(Not(HaveOccurred()))
 
 			By("Checking the Status")
-			Eventually(func(g Gomega) {
+			Eventually(func(g Gomega) { //nolint:varnamelen
+				// ctrlErrors.TestEmpty()
 				err := k8sClient.Get(ctx, typeNamespaceName, group)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(group.Status.Conditions).ToNot(BeEmpty())
