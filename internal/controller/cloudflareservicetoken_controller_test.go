@@ -1,5 +1,3 @@
-//go:build integration
-
 package controller
 
 import (
@@ -77,8 +75,9 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 
 			By("Checking if the secret was successfully created")
 			sec := &corev1.Secret{}
+			expectedSecondarySecIdentity := types.NamespacedName{Name: serviceToken.Spec.Template.Name, Namespace: serviceToken.Namespace}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, types.NamespacedName{Name: serviceToken.Spec.Template.Name, Namespace: serviceToken.Namespace}, sec)
+				return k8sClient.Get(ctx, expectedSecondarySecIdentity, sec)
 			}).WithTimeout(20 * time.Second).WithPolling(time.Second).Should(Succeed())
 
 			By("Make sure the status ref is what we expect")

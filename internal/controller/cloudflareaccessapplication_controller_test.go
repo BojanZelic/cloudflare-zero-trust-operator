@@ -38,8 +38,6 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 		}
 
 		BeforeEach(func() {
-			logOutput.Clear()
-
 			By("Creating the Namespace to perform the tests")
 			_ = k8sClient.Create(ctx, namespace)
 			// ignore error because of https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation

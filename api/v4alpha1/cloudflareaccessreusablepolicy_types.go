@@ -26,6 +26,8 @@ import (
 // CloudflareAccessReusablePolicySpec defines the desired state of CloudflareAccessReusablePolicy.
 type CloudflareAccessReusablePolicySpec struct {
 	// Name of the Cloudflare Access's reusable Policy
+	//
+	// +required
 	Name string `json:"name"`
 
 	// The action Access will take if a user matches this policy. Infrastructure application policies can only use the Allow action.
@@ -36,31 +38,38 @@ type CloudflareAccessReusablePolicySpec struct {
 
 	// Rules evaluated with an OR logical operator. A user needs to meet only one of the Include rules.
 	//
+	// +required
 	Include CloudFlareAccessRules `json:"include"`
 
 	// Rules evaluated with an AND logical operator. To match the policy, a user must meet all of the Require rules.
 	//
 	// +optional
-	Require CloudFlareAccessRules `json:"require"`
+	Require CloudFlareAccessRules `json:"require,omitzero"`
 
 	// Rules evaluated with a NOT logical operator. To match the policy, a user cannot meet any of the Exclude rules.
 	//
 	// +optional
-	Exclude CloudFlareAccessRules `json:"exclude"`
+	Exclude CloudFlareAccessRules `json:"exclude,omitzero"`
 }
 
 // CloudflareAccessReusablePolicyStatus defines the observed state of CloudflareAccessReusablePolicy.
 type CloudflareAccessReusablePolicyStatus struct {
 	// AccessReusablePolicyID is the ID of the reference in Cloudflare
+	//
+	// +optional
 	AccessReusablePolicyID string `json:"accessReusablePolicyId,omitzero"`
 
 	// Creation timestamp of the resource in Cloudflare
+	//
+	// +optional
 	CreatedAt metav1.Time `json:"createdAt,omitzero"`
 
 	// Updated timestamp of the resource in Cloudflare
+	//
+	// +optional
 	UpdatedAt metav1.Time `json:"updatedAt,omitzero"`
 
-	//
+	// +optional
 	ResolvedIdpsFromRefs RulerResolvedCloudflareIDs `json:"resolvedCfIds,omitzero"`
 
 	// Conditions store the status conditions of the CloudflareAccessApplication
@@ -77,7 +86,8 @@ type CloudflareAccessReusablePolicy struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitzero"`
 
-	Spec CloudflareAccessReusablePolicySpec `json:"spec,omitzero"`
+	// +required
+	Spec CloudflareAccessReusablePolicySpec `json:"spec"`
 
 	// +optional
 	Status CloudflareAccessReusablePolicyStatus `json:"status,omitzero"`

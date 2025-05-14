@@ -66,17 +66,20 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
+			// will stop
 			return ctrl.Result{}, nil
 		}
 
 		log.Error(err, "Failed to get CloudflareServiceToken", "CloudflareServiceToken.Name", req.Name)
 
+		// will retry immediately
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareServiceToken")
 	}
 
 	cfConfig := config.ParseCloudflareConfig(serviceToken)
 	validConfig, err := cfConfig.IsValid()
 	if !validConfig {
+		// will retry immediately
 		return ctrl.Result{}, errors.Wrap(err, "invalid config")
 	}
 
@@ -88,6 +91,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 			log.Error(err, "unable to reconcile deletion for service token")
 		}
 
+		// will retry immediately
 		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion")
 	}
 
@@ -107,6 +111,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	})
 
 	if err != nil {
+		// will retry immediately
 		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareServiceToken status")
 	}
 
@@ -116,6 +121,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		client.MatchingLabels{v4alpha1.LabelOwnedBy: serviceToken.Name},
 		client.InNamespace(serviceToken.Namespace),
 	); err != nil {
+		// will retry immediately
 		return ctrl.Result{}, errors.Wrap(err, "unable to list created secrets")
 	}
 
@@ -133,6 +139,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	if !secret.CreationTimestamp.IsZero() {
 		allTokens, err := api.ServiceTokens(ctx)
 		if err != nil {
+			// will retry immediately
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access service token")
 		}
 		for i, token := range *allTokens {
@@ -149,6 +156,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		log.Info("created access service token", "token_id", token.ID)
 		existingServiceToken = token
 		if err != nil {
+			// will retry immediately
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access service token")
 		}
 	}
@@ -156,6 +164,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	// update object with secret ref
 	if !secret.CreationTimestamp.IsZero() {
 		if err := existingServiceToken.SetSecretValues(*secret); err != nil {
+			// will retry immediately
 			return ctrl.Result{}, errors.Wrap(err, "failed to set secret")
 		}
 	}
@@ -229,6 +238,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		return nil
 	})
 	if err != nil {
+		// will retry immediately
 		return ctrl.Result{}, errors.Wrap(err, "Failed to create/update Secret")
 	}
 	switch op {
@@ -247,6 +257,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	}
 
 	if err := existingServiceToken.SetSecretValues(*secret); err != nil {
+		// will retry immediately
 		return ctrl.Result{}, errors.Wrap(err, "failed to set secret")
 	}
 
@@ -254,6 +265,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 
 	err = r.ReconcileStatus(ctx, existingServiceToken, serviceToken)
 	if err != nil {
+		// will retry immediately
 		return ctrl.Result{}, errors.Wrap(err, "unable to set status")
 	}
 
@@ -269,9 +281,11 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 
 		return nil
 	}); err != nil {
+		// will retry immediately
 		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareServiceToken status")
 	}
 
+	// will stop normally
 	return ctrl.Result{}, nil
 }
 

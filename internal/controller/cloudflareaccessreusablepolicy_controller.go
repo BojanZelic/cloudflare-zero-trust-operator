@@ -65,17 +65,20 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 	err = r.Get(ctx, req.NamespacedName, reusablePolicy)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
+			// will stop
 			return ctrl.Result{}, nil
 		}
 
 		log.Error(err, "Failed to get CloudflareAccessReusablePolicy", "CloudflareAccessReusablePolicy.Name", req.Name)
 
+		// will retry immediately
 		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessReusablePolicy")
 	}
 
 	cfConfig := config.ParseCloudflareConfig(reusablePolicy)
 	validConfig, err := cfConfig.IsValid()
 	if !validConfig {
+		// will retry immediately
 		return ctrl.Result{}, errors.Wrap(err, "invalid config")
 	}
 
@@ -87,6 +90,7 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 			log.Error(err, "unable to reconcile deletion for reusable policy")
 		}
 
+		// will retry immediately
 		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion")
 	}
 
@@ -106,20 +110,34 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 	})
 
 	if err != nil {
+		// will retry immediately
 		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessReusablePolicy status")
 	}
 
 	if reusablePolicy.Status.AccessReusablePolicyID != "" {
 		existingCfRP, err = api.AccessReusablePolicy(ctx, reusablePolicy.Status.AccessReusablePolicyID)
 		if err != nil {
+			// will retry immediately
 			return ctrl.Result{}, errors.Wrap(err, "unable to get reusable policies")
 		}
 	}
 
 	//
-	if popRes, err := v4alpha1.PopulateWithCloudflareUUIDs(ctx, req.Namespace, r.Client, reusablePolicy); err != nil {
-		// mark as failed
-		_, err = controllerutil.CreateOrPatch(ctx, r.Client, reusablePolicy, func() error {
+	//
+	//
+
+	// populate UUIDs; if failure:
+	popRes, err := v4alpha1.PopulateWithCloudflareUUIDs(ctx, req.Namespace, &log, r.Client, reusablePolicy)
+
+	// if any result returned, return it to reconcilier along w/ err (if any)
+	if popRes != nil {
+		return *popRes, errors.Wrap(err, "Failed to populate CF UUIDs")
+	} else if err != nil {
+		//
+		log.Info("failed to update access policy's referenced CloudFlare UUIDs")
+
+		// patch with status updated
+		_, errPatch := controllerutil.CreateOrPatch(ctx, r.Client, reusablePolicy, func() error {
 			meta.SetStatusCondition(&reusablePolicy.Status.Conditions,
 				metav1.Condition{
 					Type:    statusDegraded,
@@ -128,28 +146,32 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 					Message: err.Error(),
 				},
 			)
-
 			return nil
 		})
 
-		//
-		log.Info("failed to update access policy's referenced CloudFlare UUIDs")
-		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessReusablePolicy status")
+		if errPatch != nil {
+			// will retry immediately
+			return ctrl.Result{}, errors.Wrap(errPatch, "Failed to update CloudflareAccessReusablePolicy Status, after a CF UUIDs population failure")
 		}
 
-		// might requeue !
-		return popRes, nil
+		// will retry immediately
+		return ctrl.Result{}, errors.Wrap(err, "Failed to populate CF UUIDs")
 	}
+
+	//
+	//
+	//
 
 	if existingCfRP == nil {
 		//nolint:varnamelen
 		existingCfRP, err = api.CreateAccessReusablePolicy(ctx, reusablePolicy)
 		if err != nil {
+			// will retry immediately
 			return ctrl.Result{}, errors.Wrap(err, "unable to create reusable policy")
 		}
 		err = r.ReconcileStatus(ctx, existingCfRP, reusablePolicy)
 		if err != nil {
+			// will retry immediately
 			return ctrl.Result{}, errors.Wrap(err, "unable to set reusable policy status")
 		}
 	} else if mustUpdate := !cfcompare.AreAccessReusablePoliciesEquivalent(existingCfRP, reusablePolicy); mustUpdate {
@@ -157,6 +179,7 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 
 		err := api.UpdateAccessReusablePolicy(ctx, reusablePolicy)
 		if err != nil {
+			// will retry immediately
 			return ctrl.Result{}, errors.Wrap(err, "unable to update reusable policies")
 		}
 	}
@@ -175,11 +198,13 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 	})
 
 	if err != nil {
+		// will retry immediately
 		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessReusablePolicy status")
 	}
 
 	log.Info("reconciled successfully")
 
+	// will stop normally
 	return ctrl.Result{}, nil
 }
 

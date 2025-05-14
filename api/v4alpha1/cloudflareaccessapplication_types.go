@@ -30,10 +30,9 @@ type CloudflareAccessApplicationSpec struct {
 	//
 	// https://developers.cloudflare.com/api/resources/zero_trust/subresources/access/subresources/applications/models/application_type/
 	//
-	// +optional
 	// +kubebuilder:default=self_hosted
 	// +kubebuilder:validation:Enum=self_hosted;warp;app_launcher
-	Type string `json:"type,omitzero"`
+	Type string `json:"type"`
 
 	// Name of the Cloudflare Access Application.
 	//
@@ -56,7 +55,6 @@ type CloudflareAccessApplicationSpec struct {
 	// Meaningless for "warp" and "app_launcher" app types.
 	//
 	// +optional
-	// +kubebuilder:default=true
 	AppLauncherVisible *bool `json:"appLauncherVisible,omitempty"`
 
 	// The identity providers your users can select when connecting to this application. Defaults to all IdPs configured in your account.
@@ -64,14 +62,12 @@ type CloudflareAccessApplicationSpec struct {
 	// ex: ["699d98642c564d2e855e9661899b7252"]
 	//
 	// +optional
-	// +kubebuilder:default={}
 	AllowedIdps []string `json:"allowedIdps,omitempty"`
 
 	// When set to true, users skip the identity provider selection step during login.
 	// You must specify only one identity provider in allowed_idps.
 	//
 	// +optional
-	// +kubebuilder:default=false
 	AutoRedirectToIdentity *bool `json:"autoRedirectToIdentity,omitempty"`
 
 	// PolicyRefs is an ordered slice of names or {namespace/name} referencing [CloudflareAccessReusablePolicy].
@@ -84,7 +80,6 @@ type CloudflareAccessApplicationSpec struct {
 	// SessionDuration is the length of the session duration.
 	//
 	// +optional
-	// +kubebuilder:default="24h"
 	SessionDuration string `json:"sessionDuration,omitzero"`
 
 	// Enables the binding cookie, which increases security against compromised authorization tokens and CSRF attacks.
@@ -92,7 +87,6 @@ type CloudflareAccessApplicationSpec struct {
 	// Meaningless for "warp" and "app_launcher" app types.
 	//
 	// +optional
-	// +kubebuilder:default=false
 	EnableBindingCookie *bool `json:"enableBindingCookie,omitempty"`
 
 	// Enables the HttpOnly cookie attribute, which increases security against XSS attacks.
@@ -100,7 +94,6 @@ type CloudflareAccessApplicationSpec struct {
 	// Meaningless for "warp" and "app_launcher" app types.
 	//
 	// +optional
-	// +kubebuilder:default=true
 	HTTPOnlyCookieAttribute *bool `json:"httpOnlyCookieAttribute,omitempty"`
 
 	// The image URL for the logo shown in the App Launcher dashboard
@@ -118,12 +111,25 @@ type CloudflareAccessApplicationStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	// Will contain CloudFlare's UUID of resource once resolved
+	//
+	// +optional
 	AccessApplicationID string `json:"accessApplicationId,omitzero"`
 
 	// ordered CloudFlare's policies IDs, resolved by controller from "Spec.PolicyRefs"
-	ReusablePolicyIDs []string    `json:"reusablePolicyIds,omitempty"`
-	CreatedAt         metav1.Time `json:"createdAt,omitzero"`
-	UpdatedAt         metav1.Time `json:"updatedAt,omitzero"`
+	//
+	// +optional
+	ReusablePolicyIDs []string `json:"reusablePolicyIds,omitempty"`
+
+	// Creation date of Cloudflare's associated resource
+	//
+	// +optional
+	CreatedAt metav1.Time `json:"createdAt,omitzero"`
+
+	// Update date of Cloudflare's associated resource
+	//
+	// +optional
+	UpdatedAt metav1.Time `json:"updatedAt,omitzero"`
 
 	// Conditions store the status conditions of the CloudflareAccessApplication
 	//
@@ -139,6 +145,7 @@ type CloudflareAccessApplication struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitzero"`
 
+	// +required
 	Spec CloudflareAccessApplicationSpec `json:"spec,omitzero"`
 
 	// +optional

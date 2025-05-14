@@ -26,30 +26,44 @@ import (
 // CloudflareAccessGroupSpec defines the desired state of CloudflareAccessGroup.
 type CloudflareAccessGroupSpec struct {
 	// Name of the Cloudflare Access Group
+	//
+	// +required
 	Name string `json:"name"`
 
 	// Rules evaluated with an OR logical operator. A user needs to meet only one of the Include rules.
+	//
+	// +required
 	Include CloudFlareAccessRules `json:"include"`
 
 	// Rules evaluated with an AND logical operator. To match the policy, a user must meet all the Require rules.
+	//
+	// +optional
 	Require CloudFlareAccessRules `json:"require"`
 
 	// Rules evaluated with a NOT logical operator. To match the policy, a user cannot meet any of the Exclude rules.
+	//
+	// +optional
 	Exclude CloudFlareAccessRules `json:"exclude"`
 }
 
 // CloudflareAccessGroupStatus defines the observed state of CloudflareAccessGroup.
 type CloudflareAccessGroupStatus struct {
 	// AccessGroupID is the ID of the reference in Cloudflare
+	//
+	// +optional
 	AccessGroupID string `json:"accessGroupId,omitzero"`
 
 	// Creation timestamp of the resource in Cloudflare
+	//
+	// +optional
 	CreatedAt metav1.Time `json:"createdAt,omitzero"`
 
 	// Updated timestamp of the resource in Cloudflare
+	//
+	// +optional
 	UpdatedAt metav1.Time `json:"updatedAt,omitzero"`
 
-	//
+	// +optional
 	ResolvedIdpsFromRefs RulerResolvedCloudflareIDs `json:"resolvedCfIds,omitzero"`
 
 	// Conditions store the status conditions of the CloudflareAccessApplication
@@ -66,7 +80,8 @@ type CloudflareAccessGroup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitzero"`
 
-	Spec CloudflareAccessGroupSpec `json:"spec,omitzero"`
+	// +required
+	Spec CloudflareAccessGroupSpec `json:"spec,"`
 
 	// +optional
 	Status CloudflareAccessGroupStatus `json:"status,omitzero"`

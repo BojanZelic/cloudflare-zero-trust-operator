@@ -29,6 +29,8 @@ import (
 // CloudflareServiceTokenSpec defines the desired state of CloudflareServiceToken.
 type CloudflareServiceTokenSpec struct {
 	// Name of the Cloudflare Access Group
+	//
+	// +required
 	Name string `json:"name"`
 
 	// Time before the token should be automatically renewed. Defaults to "0"
@@ -47,12 +49,11 @@ type CloudflareServiceTokenSpec struct {
 	// Template to apply for the generated secret
 	//
 	// +optional
-	// +kubebuilder:default={"metadata": {}}
 	Template SecretTemplateSpec `json:"template,omitzero"`
 }
 
 type SecretTemplateSpec struct {
-	// Standard object's metadata.
+	// Standard object's metadata, for secret definition.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
 	//
 	// +optional
@@ -80,15 +81,23 @@ type SecretTemplateSpec struct {
 // CloudflareServiceTokenStatus defines the observed state of CloudflareServiceToken.
 type CloudflareServiceTokenStatus struct {
 	// ID of the servicetoken in Cloudflare
+	//
+	// +optional
 	ServiceTokenID string `json:"serviceTokenId,omitzero"`
 
 	// Creation timestamp of the resource in Cloudflare
+	//
+	// +optional
 	CreatedAt metav1.Time `json:"createdAt,omitzero"`
 
 	// Updated timestamp of the resource in Cloudflare
+	//
+	// +optional
 	UpdatedAt metav1.Time `json:"updatedAt,omitzero"`
 
 	// Updated timestamp of the resource in Cloudflare
+	//
+	// +optional
 	ExpiresAt metav1.Time `json:"expiresAt,omitzero"`
 
 	// SecretRef is the reference to the secret
@@ -119,7 +128,8 @@ type CloudflareServiceToken struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitzero"`
 
-	Spec CloudflareServiceTokenSpec `json:"spec,omitzero"`
+	// +required
+	Spec CloudflareServiceTokenSpec `json:"spec"`
 
 	// +optional
 	Status CloudflareServiceTokenStatus `json:"status,omitzero"`
