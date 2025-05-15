@@ -90,7 +90,10 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			By("Make sure the status ref is what we expect")
 			Eventually(func(g Gomega) { //nolint:varnamelen
 				// ctrlErrors.TestEmpty()
-				g.Expect(k8sClient.Get(ctx, typeNamespaceName, serviceToken)).ToNot(HaveOccurred())
+				err := k8sClient.Get(ctx, typeNamespaceName, serviceToken)
+				g.Expect(err).ToNot(HaveOccurred())
+
+				//
 				g.Expect(serviceToken.Status.ServiceTokenID).ToNot(BeEmpty())
 				g.Expect(serviceToken.Status.SecretRef).ToNot(BeNil())
 				g.Expect(serviceToken.Status.SecretRef.ClientIDKey).ToNot(BeEmpty())
@@ -98,25 +101,34 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 				g.Expect(serviceToken.Status.SecretRef.Name).To(Equal(sec.Name))
 			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
+			expectedID := string(sec.Data[sec.Annotations[meta.AnnotationTokenIDKey]])
+			expectedClientID := string(sec.Data[sec.Annotations[meta.AnnotationClientIDKey]])
+
 			By("Checking if the resource exists in cloudflare")
-			tokens, err := api.AccesServiceTokens(ctx)
+			cfst, err := api.AccessServiceToken(ctx, expectedID)
 			Expect(err).To(Not(HaveOccurred()))
+			Expect(cfst.ID).To(Equal(expectedID))
+			Expect(cfst.ClientID).To(Equal(expectedClientID))
 
 			By("Renaming the secret")
 			serviceToken.Spec.Name = "updated_secret_name"
-			Expect(k8sClient.Update(ctx, serviceToken)).Should(Succeed())
+			err = k8sClient.Update(ctx, serviceToken)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Awaiting update instruction being acknoledged")
+			Eventually(func(g Gomega) { //nolint:varnamelen
+				// ctrlErrors.TestEmpty()
+				tmp := &v4alpha1.CloudflareServiceToken{}
+				err := k8sClient.Get(ctx, typeNamespaceName, tmp)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(tmp.Status.UpdatedAt.Time).To(BeTemporally(">", serviceToken.Status.UpdatedAt.Time))
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			//
-			expectedID := string(sec.Data[sec.Annotations[meta.AnnotationTokenIDKey]])
-			expectedClientID := string(sec.Data[sec.Annotations[meta.AnnotationClientIDKey]])
-			tokenfound := false
-			for _, token := range *tokens {
-				if serviceToken.Spec.Name == token.Name && expectedID == token.ID && expectedClientID == token.ClientID {
-					tokenfound = true
-					break
-				}
-			}
-			Expect(tokenfound).To(BeTrue(), "token not found")
+			By("Expecting changes NOT to happen in CF Service Token name (Updates not implemented)")
+			cfst, err = api.AccessServiceToken(ctx, expectedID)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(cfst.Name).To(Equal(serviceToken.Spec.Name))
 		})
 
 		It("should successfully reconcile a custom resource for CloudflareServiceToken", func() {
@@ -176,7 +188,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			By("Checking if the resource exists in cloudflare")
-			tokens, err := api.AccesServiceTokens(ctx)
+			tokens, err := api.AccessServiceTokens(ctx)
 			Expect(err).To(Not(HaveOccurred()))
 
 			secretFound := false
@@ -329,7 +341,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			By("Make sure the service token exists on cloudflare")
-			tokens, err := api.AccesServiceTokens(ctx)
+			tokens, err := api.AccessServiceTokens(ctx)
 			Expect(err).To(Not(HaveOccurred()))
 			var foundToken *cftypes.ExtendedServiceToken
 			for _, cfToken := range *tokens {
@@ -346,7 +358,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			By("Expecting that the token is removed from cloudflare")
 			Eventually(func(g Gomega) { //nolint:varnamelen
 				// ctrlErrors.TestEmpty()
-				tokens, _ := api.AccesServiceTokens(ctx)
+				tokens, _ := api.AccessServiceTokens(ctx)
 				var foundToken *cftypes.ExtendedServiceToken
 				for _, cfToken := range *tokens {
 					if cfToken.ID == token.Status.ServiceTokenID {
@@ -397,7 +409,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			By("Make sure the service token exists on cloudflare")
-			tokens, err := api.AccesServiceTokens(ctx)
+			tokens, err := api.AccessServiceTokens(ctx)
 			Expect(err).To(Not(HaveOccurred()))
 			var foundToken *cftypes.ExtendedServiceToken
 			for _, cfToken := range *tokens {
@@ -412,7 +424,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			_ = k8sClient.Delete(ctx, token)
 
 			By("Make sure the service token exists on cloudflare")
-			tokens, err = api.AccesServiceTokens(ctx)
+			tokens, err = api.AccessServiceTokens(ctx)
 			Expect(err).To(Not(HaveOccurred()))
 			foundToken = nil
 			for _, cfToken := range *tokens {

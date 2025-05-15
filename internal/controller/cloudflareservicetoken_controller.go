@@ -167,7 +167,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	if associatedSecret != nil {
 		// CF UUID bound to Secret
 		cfTokenID := string(associatedSecret.Data[associatedSecret.Annotations[meta.AnnotationTokenIDKey]])
-		existingServiceToken, err = api.AccesServiceToken(ctx, cfTokenID)
+		existingServiceToken, err = api.AccessServiceToken(ctx, cfTokenID)
 
 		if err != nil {
 			log.Info("Secret bound to CloudflareServiceToken does not refer to an existing Cloudflare Service Token. Recreating.")
