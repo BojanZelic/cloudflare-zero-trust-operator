@@ -86,7 +86,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				RPFound = &v4alpha1.CloudflareAccessReusablePolicy{}
 				_ = k8sClient.Get(ctx, RPTypeNamespaceName, RPFound)
 				return RPFound.Status.AccessReusablePolicyID
-			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Not(BeEmpty()))
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Not(BeEmpty()))
 
 			//
 			//
@@ -118,7 +118,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				found = &v4alpha1.CloudflareAccessApplication{}
 				_ = k8sClient.Get(ctx, typeNamespaceName, found)
 				return found.Status.AccessApplicationID
-			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Not(BeEmpty()))
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Not(BeEmpty()))
 
 			//
 			//
@@ -150,7 +150,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				// ctrlErrors.TestEmpty()
 				found := &v4alpha1.CloudflareAccessApplication{}
 				return k8sClient.Get(ctx, typeNamespaceName, found)
-			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			found := &v4alpha1.CloudflareAccessApplication{}
 			By("Checking the latest Status should have the ID of the resource")
@@ -160,7 +160,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Status.AccessApplicationID).ToNot(BeEmpty())
 				g.Expect(found.Status.CreatedAt.Time).To(Equal(found.Status.UpdatedAt.Time))
-			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			By("Cloudflare resource should equal the spec")
 			cfResource, err := api.AccessApplication(ctx, found.Status.AccessApplicationID)
@@ -181,7 +181,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Spec.Name).To(Equal(updtdName))
 				g.Expect(found.Status.AccessApplicationID).ToNot(BeEmpty())
-			}).WithTimeout(25 * time.Second).WithPolling(time.Second).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			By("Cloudflare resource should equal the updated spec")
 			Eventually(func(g Gomega) { //nolint:varnamelen
@@ -189,7 +189,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				cfResource, err = api.AccessApplication(ctx, found.Status.AccessApplicationID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource.Name).To(Equal(found.Spec.Name))
-			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), ctrlErrors) // sometimes this is cached
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed(), ctrlErrors) // sometimes this is cached
 
 			By("Cloudflare resource should be deleted")
 			Expect(k8sClient.Delete(ctx, apps)).To(Not(HaveOccurred()))
@@ -198,7 +198,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Eventually(func() error {
 				// ctrlErrors.TestEmpty()
 				return k8sClient.Get(ctx, typeNamespaceName, apps)
-			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Not(Succeed()))
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Not(Succeed()))
 		})
 
 		It("should be able to set a LogoURL for CloudflareAccessApplication", func() {
@@ -224,7 +224,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				// ctrlErrors.TestEmpty()
 				found := &v4alpha1.CloudflareAccessApplication{}
 				return k8sClient.Get(ctx, typeNamespaceName, found)
-			}).WithTimeout(time.Minute).WithPolling(time.Second).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			found := &v4alpha1.CloudflareAccessApplication{}
 			By("Checking the latest Status should have the ID of the resource")
@@ -234,7 +234,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Status.AccessApplicationID).ToNot(BeEmpty())
 				g.Expect(found.Status.CreatedAt.Time).To(Equal(found.Status.UpdatedAt.Time))
-			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			By("Cloudflare resource should equal the spec")
 			cfResource, err := api.AccessApplication(ctx, found.Status.AccessApplicationID)
@@ -266,7 +266,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				// ctrlErrors.TestEmpty()
 				found := &v4alpha1.CloudflareAccessApplication{}
 				return k8sClient.Get(ctx, typeNamespaceName, found)
-			}).WithTimeout(time.Minute).WithPolling(time.Second).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			found := &v4alpha1.CloudflareAccessApplication{}
 			By("Checking the latest Status should have the ID of the resource")
@@ -282,7 +282,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				g.Expect(found.Status.CreatedAt.Time).To(Equal(found.Status.UpdatedAt.Time))
 				g.Expect(found.Status.CreatedAt.Time.After(previousCreatedAndUpdatedDate.Time)).To(BeTrue())
 				g.Expect(found.Status.UpdatedAt.Time.After(previousCreatedAndUpdatedDate.Time)).To(BeTrue())
-			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			Expect(api.DeleteAccessApplication(ctx, found.Status.AccessApplicationID)).To(Not(HaveOccurred()))
 
@@ -293,7 +293,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				found.Spec.Name = updtdName
 				Expect(k8sClient.Update(ctx, found)).To(Not(HaveOccurred()))
-			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func(g Gomega) { //nolint:varnamelen
@@ -301,7 +301,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				found = &v4alpha1.CloudflareAccessApplication{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Status.AccessApplicationID).ToNot(Equal(oldAccessApplicationID))
-			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			By("Cloudflare resource should equal the updated spec")
 			Eventually(func(g Gomega) { //nolint:varnamelen
@@ -309,7 +309,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				cfResource, err := api.AccessApplication(ctx, found.Status.AccessApplicationID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource.Name).To(Equal(found.Spec.Name))
-			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), ctrlErrors) // sometimes this is cached
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed(), ctrlErrors) // sometimes this is cached
 		})
 	})
 })

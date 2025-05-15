@@ -4,6 +4,7 @@ run:
 linters:
   default: none
   enable:
+    - recvcheck
     - copyloopvar
     - dupl
     - errcheck

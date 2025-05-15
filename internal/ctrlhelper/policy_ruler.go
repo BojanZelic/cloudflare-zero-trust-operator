@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v4alpha1
+package ctrlhelper
 
 import (
 	"context"
 	"time"
 
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,14 +31,18 @@ import (
 
 // must be implemented by [CloudflareAccessReusablePolicy] / [CloudflareAccessGroup]
 type GenericAccessPolicyRuler interface {
-	GetIncludeRules() *CloudFlareAccessRules
-	GetExcludeRules() *CloudFlareAccessRules
-	GetRequireRules() *CloudFlareAccessRules
+	GetIncludeRules() *v4alpha1.CloudFlareAccessRules
+	GetExcludeRules() *v4alpha1.CloudFlareAccessRules
+	GetRequireRules() *v4alpha1.CloudFlareAccessRules
 
-	GetIncludeCfIds() *ResolvedCloudflareIDs
-	GetExcludeCfIds() *ResolvedCloudflareIDs
-	GetRequireCfIds() *ResolvedCloudflareIDs
+	GetIncludeCfIds() *v4alpha1.ResolvedCloudflareIDs
+	GetExcludeCfIds() *v4alpha1.ResolvedCloudflareIDs
+	GetRequireCfIds() *v4alpha1.ResolvedCloudflareIDs
 }
+
+//
+//
+//
 
 // - Will navigate through [policyList] accessRules
 // - Find named references of CRDs defined resources, which correspond to uniquely identified Cloudflare API objects (like Service Tokens, Groups...)
@@ -54,32 +59,30 @@ func PopulateWithCloudflareUUIDs(
 	policyRuler GenericAccessPolicyRuler,
 ) (*ctrl.Result, error) {
 	// declare index align rules sets with status
-	managedCFRules := []*CloudFlareAccessRules{
-		policyRuler.GetIncludeRules(),
-		policyRuler.GetExcludeRules(),
-		policyRuler.GetRequireRules(),
-	}
-	managedCFIds := []*ResolvedCloudflareIDs{
-		policyRuler.GetIncludeCfIds(),
-		policyRuler.GetExcludeCfIds(),
-		policyRuler.GetRequireCfIds(),
+	ruleSets := []struct {
+		rules *v4alpha1.CloudFlareAccessRules
+		ids   *v4alpha1.ResolvedCloudflareIDs
+	}{
+		{policyRuler.GetIncludeRules(), policyRuler.GetIncludeCfIds()},
+		{policyRuler.GetExcludeRules(), policyRuler.GetExcludeCfIds()},
+		{policyRuler.GetRequireRules(), policyRuler.GetRequireCfIds()},
 	}
 
 	//
-	for i, rulesType := range managedCFRules { //nolint:varnamelen
+	for _, ruleSet := range ruleSets { //nolint:varnamelen
 
 		//
 		//
 		//
 
-		accessGroupRefs, err := rulesType.GetNamespacedGroupRefs(contextNamespace)
+		accessGroupRefs, err := ruleSet.rules.GetNamespacedGroupRefs(contextNamespace)
 		if err != nil {
 			// will retry immediately
 			return nil, errors.Wrapf(err, "issue while extracting group refs")
 		}
 		for _, accessGroupRef := range accessGroupRefs {
 			//
-			accessGroup := &CloudflareAccessGroup{}
+			accessGroup := &v4alpha1.CloudflareAccessGroup{}
 
 			//
 			if err := k8sCli.Get(ctx, accessGroupRef, accessGroup); err != nil {
@@ -98,7 +101,7 @@ func PopulateWithCloudflareUUIDs(
 			}
 
 			//
-			managedCFIds[i].AccessGroupRefCfIds = append(managedCFIds[i].AccessGroupRefCfIds, accessGroup.Status.AccessGroupID)
+			ruleSet.ids.AccessGroupRefCfIds = append(ruleSet.ids.AccessGroupRefCfIds, accessGroup.Status.AccessGroupID)
 		}
 
 		//
@@ -106,14 +109,14 @@ func PopulateWithCloudflareUUIDs(
 		//
 
 		//
-		tokenRefs, err := rulesType.GetNamespacedServiceTokenRefs(contextNamespace)
+		tokenRefs, err := ruleSet.rules.GetNamespacedServiceTokenRefs(contextNamespace)
 		if err != nil {
 			// will retry immediately
 			return nil, errors.Wrapf(err, "issue while extracting service token refs")
 		}
 		for _, tokenRef := range tokenRefs {
 			//
-			serviceToken := &CloudflareServiceToken{}
+			serviceToken := &v4alpha1.CloudflareServiceToken{}
 
 			//
 			if err := k8sCli.Get(ctx, tokenRef, serviceToken); err != nil {
@@ -132,7 +135,7 @@ func PopulateWithCloudflareUUIDs(
 			}
 
 			//
-			managedCFIds[i].ServiceTokenRefCfIds = append(managedCFIds[i].ServiceTokenRefCfIds, serviceToken.Status.ServiceTokenID)
+			ruleSet.ids.ServiceTokenRefCfIds = append(ruleSet.ids.ServiceTokenRefCfIds, serviceToken.Status.ServiceTokenID)
 		}
 	}
 

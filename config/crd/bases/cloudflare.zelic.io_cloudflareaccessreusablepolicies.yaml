@@ -544,8 +544,6 @@ spec:
                           type: string
                         type: array
                     type: object
-                required:
-                - include
                 type: object
               updatedAt:
                 description: Updated timestamp of the resource in Cloudflare

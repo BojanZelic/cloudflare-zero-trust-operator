@@ -22,6 +22,7 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -49,6 +50,11 @@ var insertedTracer cfapi.InsertedCFRessourcesTracer
 
 // @dev Might get cleared between test sets
 var ctrlErrors ReconcilierErrorTracker
+
+const (
+	defaultTimeout  = 10 * time.Second
+	defaultPoolRate = 2 * time.Second
+)
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)

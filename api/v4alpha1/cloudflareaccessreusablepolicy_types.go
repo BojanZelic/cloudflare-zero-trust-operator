@@ -105,22 +105,22 @@ func (c *CloudflareAccessReusablePolicy) UnderDeletion() bool {
 	return !c.DeletionTimestamp.IsZero()
 }
 
-func (c CloudflareAccessReusablePolicy) GetIncludeRules() *CloudFlareAccessRules {
+func (c *CloudflareAccessReusablePolicy) GetIncludeRules() *CloudFlareAccessRules {
 	return &c.Spec.Include
 }
-func (c CloudflareAccessReusablePolicy) GetExcludeRules() *CloudFlareAccessRules {
+func (c *CloudflareAccessReusablePolicy) GetExcludeRules() *CloudFlareAccessRules {
 	return &c.Spec.Exclude
 }
-func (c CloudflareAccessReusablePolicy) GetRequireRules() *CloudFlareAccessRules {
+func (c *CloudflareAccessReusablePolicy) GetRequireRules() *CloudFlareAccessRules {
 	return &c.Spec.Require
 }
-func (c CloudflareAccessReusablePolicy) GetIncludeCfIds() *ResolvedCloudflareIDs {
+func (c *CloudflareAccessReusablePolicy) GetIncludeCfIds() *ResolvedCloudflareIDs {
 	return &c.Status.ResolvedIdpsFromRefs.Include
 }
-func (c CloudflareAccessReusablePolicy) GetExcludeCfIds() *ResolvedCloudflareIDs {
+func (c *CloudflareAccessReusablePolicy) GetExcludeCfIds() *ResolvedCloudflareIDs {
 	return &c.Status.ResolvedIdpsFromRefs.Exclude
 }
-func (c CloudflareAccessReusablePolicy) GetRequireCfIds() *ResolvedCloudflareIDs {
+func (c *CloudflareAccessReusablePolicy) GetRequireCfIds() *ResolvedCloudflareIDs {
 	return &c.Status.ResolvedIdpsFromRefs.Require
 }
 

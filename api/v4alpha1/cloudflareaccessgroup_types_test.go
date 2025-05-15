@@ -1,19 +1,12 @@
 package v4alpha1_test
 
 import (
-	"testing"
-
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	// +kubebuilder:scaffold:imports
 )
-
-func TestBooks(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "CloudflareAccessGroup Suite")
-}
 
 var _ = Describe("Creating a CloudflareAccessGroup", Label("CloudflareAccessGroup"), func() {
 	var accessGroup *v4alpha1.CloudflareAccessGroup

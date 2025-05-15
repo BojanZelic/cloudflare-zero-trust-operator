@@ -101,7 +101,7 @@ type CloudFlareAccessRules struct {
 //
 
 type RulerResolvedCloudflareIDs struct {
-	// +required
+	// +optional
 	Include ResolvedCloudflareIDs `json:"include,omitzero"`
 	// +optional
 	Require ResolvedCloudflareIDs `json:"require,omitzero"`

@@ -44,14 +44,13 @@ func (a *API) AccessGroupByName(ctx context.Context, name string) (*zero_trust.A
 		Name:      cloudflare.F(name),
 	})
 
-	//
-	iter.Next()
-	if iter.Err() != nil {
-		empty := zero_trust.AccessGroupGetResponse{}
-		return &empty, errors.Wrap(iter.Err(), "unable to get access applications")
+	for iter.Next() {
+		// return first
+		return a.AccessGroup(ctx, iter.Current().ID)
 	}
 
-	return a.AccessGroup(ctx, iter.Current().ID)
+	//
+	return nil, errors.Wrap(iter.Err(), "unable to get access group by name")
 }
 
 func (a *API) AccessGroup(ctx context.Context, accessGroupID string) (*zero_trust.AccessGroupGetResponse, error) {
@@ -77,7 +76,7 @@ func (a *API) CreateAccessGroup(ctx context.Context, group *v4alpha1.CloudflareA
 
 	//
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create access groups")
+		return nil, errors.Wrap(err, "unable to create access group")
 	}
 
 	//
@@ -101,7 +100,7 @@ func (a *API) UpdateAccessGroup(ctx context.Context, group *v4alpha1.CloudflareA
 		},
 	)
 
-	return errors.Wrap(err, "unable to update access groups")
+	return errors.Wrap(err, "unable to update access group")
 }
 
 func (a *API) DeleteAccessGroup(ctx context.Context, groupID string) error {
@@ -115,7 +114,7 @@ func (a *API) DeleteAccessGroup(ctx context.Context, groupID string) error {
 		a.optionalTracer.GroupDeleted(groupID)
 	}
 
-	return errors.Wrap(err, "unable to update access groups")
+	return errors.Wrap(err, "unable to delete access group")
 }
 
 //
@@ -129,13 +128,12 @@ func (a *API) FindAccessApplicationByDomain(ctx context.Context, domain string) 
 		Domain:    cloudflare.F(domain),
 	})
 
-	iter.Next()
-
-	if iter.Err() != nil {
-		return nil, errors.Wrap(iter.Err(), "unable to get access applications")
+	for iter.Next() {
+		// return first
+		return a.AccessApplication(ctx, iter.Current().ID)
 	}
 
-	return a.AccessApplication(ctx, iter.Current().ID)
+	return nil, errors.Wrap(iter.Err(), "unable to get access application by domain")
 }
 
 func (a *API) FindFirstAccessApplicationOfType(ctx context.Context, app_type string) (*zero_trust.AccessApplicationGetResponse, error) {
@@ -144,16 +142,17 @@ func (a *API) FindFirstAccessApplicationOfType(ctx context.Context, app_type str
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
+	//
 	for iter.Next() {
-		if iter.Current().Type != app_type {
+		current := iter.Current()
+		if current.Type != app_type {
+			// keep searching until we find correct type
 			continue
 		}
-
-		//
-		return a.AccessApplication(ctx, iter.Current().ID)
+		return a.AccessApplication(ctx, current.ID)
 	}
 
-	return nil, errors.Wrap(iter.Err(), "unable to get access applications")
+	return nil, errors.Wrap(iter.Err(), "unable to get access application of type")
 }
 
 func (a *API) AccessApplication(ctx context.Context, accessApplicationID string) (*zero_trust.AccessApplicationGetResponse, error) {
@@ -247,7 +246,7 @@ func (a *API) CreateAccessApplication(
 	}
 
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create access applications")
+		return nil, errors.Wrap(err, "unable to create access application")
 	}
 
 	//
@@ -330,12 +329,12 @@ func (a *API) UpdateAccessApplication(
 		}
 	default:
 		{
-			return nil, errors.Errorf("Unhandled application creation for '%s' app type. Contact the developers.", app.Spec.Type)
+			return nil, errors.Errorf("Unhandled application update for '%s' app type. Contact the developers.", app.Spec.Type)
 		}
 	}
 
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create access applications")
+		return nil, errors.Wrap(err, "unable to update access application")
 	}
 
 	return a.AccessApplication(ctx, cfApp.ID)
@@ -352,7 +351,7 @@ func (a *API) DeleteAccessApplication(ctx context.Context, appID string) error {
 		a.optionalTracer.ApplicationDeleted(appID)
 	}
 
-	return errors.Wrap(err, "unable to create access applications")
+	return errors.Wrap(err, "unable to delete access application")
 }
 
 //
@@ -419,20 +418,20 @@ func (a *API) DeleteAccessReusablePolicy(ctx context.Context, policyID string) e
 //
 //
 
-func (a *API) ServiceToken(ctx context.Context, tokenId string) (*cftypes.ExtendedServiceToken, error) {
+func (a *API) AccesServiceToken(ctx context.Context, tokenId string) (*cftypes.ExtendedServiceToken, error) {
 
 	token, err := a.client.ZeroTrust.Access.ServiceTokens.Get(ctx, tokenId, zero_trust.AccessServiceTokenGetParams{
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to get service token")
+		return nil, errors.Wrap(err, "unable to get access service token")
 	}
 
 	return &cftypes.ExtendedServiceToken{ServiceToken: *token}, nil
 }
 
-func (a *API) ServiceTokens(ctx context.Context) (*[]cftypes.ExtendedServiceToken, error) {
+func (a *API) AccesServiceTokens(ctx context.Context) (*[]cftypes.ExtendedServiceToken, error) {
 
 	iter := a.client.ZeroTrust.Access.ServiceTokens.ListAutoPaging(ctx, zero_trust.AccessServiceTokenListParams{
 		AccountID: cloudflare.F(a.CFAccountID),
@@ -445,7 +444,7 @@ func (a *API) ServiceTokens(ctx context.Context) (*[]cftypes.ExtendedServiceToke
 		})
 	}
 
-	return &extendedTokens, errors.Wrap(iter.Err(), "unable to get service tokens")
+	return &extendedTokens, errors.Wrap(iter.Err(), "unable to get access service tokens")
 }
 
 func (a *API) CreateAccessServiceToken(ctx context.Context, token cftypes.ExtendedServiceToken) (*cftypes.ExtendedServiceToken, error) {
@@ -494,5 +493,5 @@ func (a *API) DeleteAccessServiceToken(ctx context.Context, tokenID string) erro
 		a.optionalTracer.ServiceTokenDeleted(tokenID)
 	}
 
-	return errors.Wrap(err, "unable to update access Policy")
+	return errors.Wrap(err, "unable to delete access service token")
 }

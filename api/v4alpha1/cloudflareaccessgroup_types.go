@@ -87,34 +87,34 @@ type CloudflareAccessGroup struct {
 	Status CloudflareAccessGroupStatus `json:"status,omitzero"`
 }
 
-func (c CloudflareAccessGroup) GetType() string {
+func (c *CloudflareAccessGroup) GetType() string {
 	return "CloudflareAccessGroup"
 }
 
-func (c CloudflareAccessGroup) GetID() string {
+func (c *CloudflareAccessGroup) GetID() string {
 	return c.Status.AccessGroupID
 }
 
-func (c CloudflareAccessGroup) UnderDeletion() bool {
+func (c *CloudflareAccessGroup) UnderDeletion() bool {
 	return !c.DeletionTimestamp.IsZero()
 }
 
-func (c CloudflareAccessGroup) GetIncludeRules() *CloudFlareAccessRules {
+func (c *CloudflareAccessGroup) GetIncludeRules() *CloudFlareAccessRules {
 	return &c.Spec.Include
 }
-func (c CloudflareAccessGroup) GetExcludeRules() *CloudFlareAccessRules {
+func (c *CloudflareAccessGroup) GetExcludeRules() *CloudFlareAccessRules {
 	return &c.Spec.Exclude
 }
-func (c CloudflareAccessGroup) GetRequireRules() *CloudFlareAccessRules {
+func (c *CloudflareAccessGroup) GetRequireRules() *CloudFlareAccessRules {
 	return &c.Spec.Require
 }
-func (c CloudflareAccessGroup) GetIncludeCfIds() *ResolvedCloudflareIDs {
+func (c *CloudflareAccessGroup) GetIncludeCfIds() *ResolvedCloudflareIDs {
 	return &c.Status.ResolvedIdpsFromRefs.Include
 }
-func (c CloudflareAccessGroup) GetExcludeCfIds() *ResolvedCloudflareIDs {
+func (c *CloudflareAccessGroup) GetExcludeCfIds() *ResolvedCloudflareIDs {
 	return &c.Status.ResolvedIdpsFromRefs.Exclude
 }
-func (c CloudflareAccessGroup) GetRequireCfIds() *ResolvedCloudflareIDs {
+func (c *CloudflareAccessGroup) GetRequireCfIds() *ResolvedCloudflareIDs {
 	return &c.Status.ResolvedIdpsFromRefs.Require
 }
 

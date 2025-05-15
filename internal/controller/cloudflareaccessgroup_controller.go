@@ -135,7 +135,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		existingCfAG, err = api.AccessGroup(ctx, accessGroup.Status.AccessGroupID)
 		if err != nil {
 			// will retry immediately
-			return ctrl.Result{}, errors.Wrap(err, "unable to get access groups")
+			return ctrl.Result{}, errors.Wrap(err, "unable to get access group")
 		}
 	}
 
@@ -144,7 +144,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	//
 
 	// populate UUIDs;
-	popRes, err := v4alpha1.PopulateWithCloudflareUUIDs(ctx, req.Namespace, &log, r.Client, accessGroup)
+	popRes, err := ctrlhelper.PopulateWithCloudflareUUIDs(ctx, req.Namespace, &log, r.Client, accessGroup)
 
 	// if any result returned, return it to reconcilier along w/ err (if any)
 	if popRes != nil {

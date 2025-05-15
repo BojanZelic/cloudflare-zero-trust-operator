@@ -84,7 +84,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(apps.Status.Conditions).ToNot(BeEmpty())
 				g.Expect(apps.Status.Conditions[len(apps.Status.Conditions)-1].Status).To(Equal(metav1.ConditionFalse))
-			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 		})
 
 		It("should successfully reconcile CloudflareAccessReusablePolicy policies with references", func() {
@@ -167,7 +167,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				RPFound = &v4alpha1.CloudflareAccessReusablePolicy{}
 				_ = k8sClient.Get(ctx, RPTypeNamespaceName, RPFound)
 				return RPFound.Status.AccessReusablePolicyID
-			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Not(BeEmpty()))
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Not(BeEmpty()))
 
 			//
 			//
@@ -197,7 +197,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(apps.Status.Conditions).ToNot(BeEmpty())
 				g.Expect(apps.Status.Conditions[0].Status).To(Equal(metav1.ConditionTrue))
-			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 		})
 
 		It("should successfully reconcile a custom resource for CloudflareAccessReusablePolicy", func() {
@@ -224,7 +224,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				// ctrlErrors.TestEmpty()
 				found := &v4alpha1.CloudflareAccessReusablePolicy{}
 				return k8sClient.Get(ctx, typeNamespaceName, found)
-			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			found := &v4alpha1.CloudflareAccessReusablePolicy{}
 			By("Checking the latest Status should have the ID of the resource")
@@ -234,7 +234,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Status.AccessReusablePolicyID).ToNot(BeEmpty())
 				g.Expect(found.Status.CreatedAt.Time).To(Equal(found.Status.UpdatedAt.Time))
-			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			By("Cloudflare resource should equal the spec")
 			cfResource, err := api.AccessApplication(ctx, found.Status.AccessReusablePolicyID)
@@ -254,7 +254,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Spec.Name).To(Equal(updtdName))
 				g.Expect(found.Status.AccessReusablePolicyID).ToNot(BeEmpty())
-			}).WithTimeout(25 * time.Second).WithPolling(time.Second).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			By("Cloudflare resource should equal the updated spec")
 			Eventually(func(g Gomega) { //nolint:varnamelen
@@ -262,7 +262,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				cfResource, err = api.AccessApplication(ctx, found.Status.AccessReusablePolicyID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource.Name).To(Equal(found.Spec.Name))
-			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), ctrlErrors) // sometimes this is cached
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed(), ctrlErrors) // sometimes this is cached
 
 			By("Cloudflare resource should be deleted")
 			Expect(k8sClient.Delete(ctx, apps)).To(Not(HaveOccurred()))
@@ -271,7 +271,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			Eventually(func() error {
 				// ctrlErrors.TestEmpty()
 				return k8sClient.Get(ctx, typeNamespaceName, apps)
-			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Not(Succeed()))
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Not(Succeed()))
 		})
 
 		It("should successfully reconcile CloudflareAccessReusablePolicy whose AccessReusablePolicyID references a missing Reusable Policy", func() {
@@ -300,7 +300,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				// ctrlErrors.TestEmpty()
 				found := &v4alpha1.CloudflareAccessReusablePolicy{}
 				return k8sClient.Get(ctx, typeNamespaceName, found)
-			}).WithTimeout(time.Minute).WithPolling(time.Second).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			found := &v4alpha1.CloudflareAccessReusablePolicy{}
 			By("Checking the latest Status should have the ID of the resource")
@@ -316,7 +316,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				g.Expect(found.Status.CreatedAt.Time).To(Equal(found.Status.UpdatedAt.Time))
 				g.Expect(found.Status.CreatedAt.Time.After(previousCreatedAndUpdatedDate.Time)).To(BeTrue())
 				g.Expect(found.Status.UpdatedAt.Time.After(previousCreatedAndUpdatedDate.Time)).To(BeTrue())
-			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			Expect(api.DeleteAccessApplication(ctx, found.Status.AccessReusablePolicyID)).To(Not(HaveOccurred()))
 
@@ -327,7 +327,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				found.Spec.Name = updtdName
 				Expect(k8sClient.Update(ctx, found)).To(Not(HaveOccurred()))
-			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			By("Checking the latest Status should have the ID of the resource")
 			Eventually(func(g Gomega) { //nolint:varnamelen
@@ -335,7 +335,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				found = &v4alpha1.CloudflareAccessReusablePolicy{}
 				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 				g.Expect(found.Status.AccessReusablePolicyID).ToNot(Equal(oldAccessReusablePolicyID))
-			}).WithTimeout(10 * time.Second).WithPolling(time.Second).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 
 			By("Cloudflare resource should equal the updated spec")
 			Eventually(func(g Gomega) { //nolint:varnamelen
@@ -343,7 +343,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				cfResource, err := api.AccessApplication(ctx, found.Status.AccessReusablePolicyID)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(cfResource.Name).To(Equal(found.Spec.Name))
-			}).WithTimeout(45*time.Second).WithPolling(time.Second).Should(Succeed(), ctrlErrors) // sometimes this is cached
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed(), ctrlErrors) // sometimes this is cached
 		})
 	})
 })

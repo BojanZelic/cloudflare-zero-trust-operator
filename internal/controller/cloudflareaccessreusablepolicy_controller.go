@@ -128,7 +128,7 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 	//
 
 	// populate UUIDs; if failure:
-	popRes, err := v4alpha1.PopulateWithCloudflareUUIDs(ctx, req.Namespace, &log, r.Client, reusablePolicy)
+	popRes, err := ctrlhelper.PopulateWithCloudflareUUIDs(ctx, req.Namespace, &log, r.Client, reusablePolicy)
 
 	// if any result returned, return it to reconcilier along w/ err (if any)
 	if popRes != nil {

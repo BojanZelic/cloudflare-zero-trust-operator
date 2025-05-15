@@ -49,6 +49,7 @@ type CloudflareServiceTokenSpec struct {
 	// Template to apply for the generated secret
 	//
 	// +optional
+	// +kubebuilder:default={"metadata": {}}
 	Template SecretTemplateSpec `json:"template,omitzero"`
 }
 
