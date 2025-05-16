@@ -32,9 +32,10 @@ type CloudflareAccessReusablePolicySpec struct {
 
 	// The action Access will take if a user matches this policy. Infrastructure application policies can only use the Allow action.
 	//
+	// +optional
 	// +kubebuilder:validation:Enum=allow;deny;non_identity;bypass
 	// +kubebuilder:default=allow
-	Decision string `json:"decision"`
+	Decision string `json:"decision,omitzero"`
 
 	// Rules evaluated with an OR logical operator. A user needs to meet only one of the Include rules.
 	//

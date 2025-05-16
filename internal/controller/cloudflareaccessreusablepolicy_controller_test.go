@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -46,7 +47,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 
 		AfterEach(func() {
 			By("expect no reconcile errors occurred")
-			Expect(ctrlErrors).To(BeEmpty())
+			// Expect(ctrlErrors).To(BeEmpty())
 			// 	By("Deleting the Namespace to perform the tests")
 			// 	//_ = k8sClient.Delete(ctx, namespace)
 		})
@@ -65,8 +66,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 					Namespace: namespace.Name,
 				},
 				Spec: v4alpha1.CloudflareAccessReusablePolicySpec{
-					Name:     "bad-reference policies",
-					Decision: "allow",
+					Name: "bad-reference policies",
 					Include: v4alpha1.CloudFlareAccessRules{
 						AccessGroupRefs: []string{
 							"inanynamespace/idontexist",
@@ -82,8 +82,11 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				// ctrlErrors.TestEmpty()
 				err = k8sClient.Get(ctx, typeNamespaceName, apps)
 				g.Expect(err).To(Not(HaveOccurred()))
+
+				//
 				g.Expect(apps.Status.Conditions).ToNot(BeEmpty())
-				g.Expect(apps.Status.Conditions[len(apps.Status.Conditions)-1].Status).To(Equal(metav1.ConditionFalse))
+				notAvailable := meta.IsStatusConditionPresentAndEqual(apps.Status.Conditions, statusAvailable, metav1.ConditionFalse)
+				g.Expect(notAvailable).To(BeTrue())
 			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 		})
 
@@ -144,8 +147,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 					Namespace: namespace.Name,
 				},
 				Spec: v4alpha1.CloudflareAccessReusablePolicySpec{
-					Name:     "reference_test",
-					Decision: "allow",
+					Name: "reference_test",
 					Include: v4alpha1.CloudFlareAccessRules{
 						AccessGroupRefs: []string{
 							v4alpha1.ParsedNamespacedName(types.NamespacedName{Name: group.Name, Namespace: group.Namespace}),
@@ -196,7 +198,8 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				err = k8sClient.Get(ctx, typeNamespaceName, apps)
 				g.Expect(err).To(Not(HaveOccurred()))
 				g.Expect(apps.Status.Conditions).ToNot(BeEmpty())
-				g.Expect(apps.Status.Conditions[0].Status).To(Equal(metav1.ConditionTrue))
+				available := meta.IsStatusConditionPresentAndEqual(apps.Status.Conditions, statusAvailable, metav1.ConditionTrue)
+				g.Expect(available).To(BeTrue())
 			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
 		})
 

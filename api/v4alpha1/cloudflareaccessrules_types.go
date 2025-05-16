@@ -16,7 +16,11 @@ limitations under the License.
 
 package v4alpha1
 
-import "k8s.io/apimachinery/pkg/types"
+import (
+	"context"
+
+	"k8s.io/apimachinery/pkg/types"
+)
 
 // CloudFlareAccessRules defines the rules used in CloudflareAccessGroup / CloudflareAccessReusablePolicy
 type CloudFlareAccessRules struct {
@@ -120,10 +124,10 @@ type ResolvedCloudflareIDs struct {
 //
 //
 
-func (rules *CloudFlareAccessRules) GetNamespacedServiceTokenRefs(contextNamespace string) ([]types.NamespacedName, error) {
-	return parseNamespacedNames(rules.ServiceTokenRefs, contextNamespace)
+func (rules *CloudFlareAccessRules) GetNamespacedServiceTokenRefs(ctx context.Context, contextNamespace string) ([]types.NamespacedName, error) {
+	return parseNamespacedNames(ctx, rules.ServiceTokenRefs, contextNamespace)
 }
 
-func (rules *CloudFlareAccessRules) GetNamespacedGroupRefs(contextNamespace string) ([]types.NamespacedName, error) {
-	return parseNamespacedNames(rules.AccessGroupRefs, contextNamespace)
+func (rules *CloudFlareAccessRules) GetNamespacedGroupRefs(ctx context.Context, contextNamespace string) ([]types.NamespacedName, error) {
+	return parseNamespacedNames(ctx, rules.AccessGroupRefs, contextNamespace)
 }

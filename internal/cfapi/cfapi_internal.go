@@ -7,9 +7,10 @@ package cfapi
 import (
 	"context"
 
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fmsg"
 	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
-	"github.com/pkg/errors"
 )
 
 func (a *API) IdentityProviders(ctx context.Context) (*[]zero_trust.IdentityProviderListResponse, error) {
@@ -24,5 +25,5 @@ func (a *API) IdentityProviders(ctx context.Context) (*[]zero_trust.IdentityProv
 	}
 
 	//
-	return &idProviders, errors.Wrap(iter.Err(), "unable to get identity providers")
+	return &idProviders, fault.Wrap(iter.Err(), fmsg.With("unable to get identity providers"))
 }

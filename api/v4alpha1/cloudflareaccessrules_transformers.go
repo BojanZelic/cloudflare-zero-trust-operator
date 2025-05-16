@@ -31,17 +31,19 @@ func (rules *CloudFlareAccessRules) ToAccessRuleParams(resolvedCfIds ResolvedClo
 	//
 	//
 
-	for _, token := range resolvedCfIds.ServiceTokenRefCfIds {
+	for _, sTokenId := range resolvedCfIds.ServiceTokenRefCfIds {
 		out = append(out, zero_trust.ServiceTokenRuleParam{
 			ServiceToken: cloudflare.F(zero_trust.ServiceTokenRuleServiceTokenParam{
-				TokenID: cloudflare.F(token),
+				TokenID: cloudflare.F(sTokenId),
 			}),
 		})
 	}
-	for _, group := range rules.AccessGroupRefs {
+
+	// TODO
+	for _, groupId := range rules.AccessGroupRefs {
 		out = append(out, zero_trust.GroupRuleParam{
 			Group: cloudflare.F(zero_trust.GroupRuleGroupParam{
-				ID: cloudflare.F(group),
+				ID: cloudflare.F(groupId),
 			}),
 		})
 	}

@@ -19,6 +19,9 @@ package controller
 import (
 	"context"
 
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fctx"
+	"github.com/Southclaws/fault/fmsg"
 	v4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
@@ -26,7 +29,6 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/meta"
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav2 "k8s.io/apimachinery/pkg/api/meta"
@@ -36,7 +38,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	logger "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -58,7 +59,7 @@ type CloudflareServiceTokenReconciler struct {
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/finalizers,verbs=update
 
 func (r *CloudflareServiceTokenReconciler) GetReconcilierLogger(ctx context.Context) logr.Logger {
-	return logger.FromContext(ctx).WithName("CloudflareServiceTokenController::Reconcile")
+	return ctrl.LoggerFrom(ctx).WithName("CloudflareServiceTokenController::Reconcile")
 }
 
 //nolint:gocognit,cyclop,gocyclo,maintidx
@@ -81,7 +82,10 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		}
 
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrapf(err, "Failed to get CloudflareServiceToken '%s'", req.Name)
+		return ctrl.Result{}, fault.Wrap(err,
+			fmsg.With("Failed to get CloudflareServiceToken"),
+			fctx.With(ctx, "serviceTokenName", req.Name),
+		)
 	}
 
 	//
@@ -92,9 +96,9 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	validConfig, err := cfConfig.IsValid()
 	if !validConfig {
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "invalid config")
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("invalid config"))
 	}
-	api = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID, r.OptionalTracer)
+	api = cfapi.FromConfig(ctx, cfConfig, r.OptionalTracer)
 
 	//
 	//
@@ -103,7 +107,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, serviceToken)
 	if !continueReconcilliation || err != nil {
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion for service token")
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to reconcile deletion for service token"))
 	}
 
 	//
@@ -126,7 +130,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	})
 	if err != nil {
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareServiceToken status")
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareServiceToken status"))
 	}
 
 	//
@@ -140,7 +144,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		client.InNamespace(serviceToken.Namespace),
 	); err != nil {
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "unable to list secrets associated with a CloudflareServiceToken")
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to list secrets associated with a CloudflareServiceToken"))
 	}
 
 	// should not happen
@@ -182,7 +186,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		existingServiceToken, err = api.CreateAccessServiceToken(ctx, serviceToken.ToExtendedToken())
 		if err != nil {
 			// will retry immediately
-			return ctrl.Result{}, errors.Wrap(err, "unable to create access service token")
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to create access service token"))
 		}
 
 		log.Info("created access service token",
@@ -197,7 +201,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	if associatedSecret != nil {
 		if err := existingServiceToken.SetSecretValues(*associatedSecret); err != nil {
 			// will retry immediately
-			return ctrl.Result{}, errors.Wrap(err, "failed to set Secret values, associated to CloudflareServiceToken")
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("failed to set Secret values, associated to CloudflareServiceToken"))
 		}
 	}
 
@@ -278,11 +282,11 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		//
 
 		if err := existingServiceToken.SetSecretValues(*associatedSecret); err != nil {
-			return errors.Wrap(err, "unable to CreateOrUpdate Secret associated to CloudflareServiceToken")
+			return fault.Wrap(err, fmsg.With("unable to CreateOrUpdate Secret associated to CloudflareServiceToken"))
 		}
 
 		if err := ctrl.SetControllerReference(serviceToken, associatedSecret, r.Scheme); err != nil {
-			return errors.Wrap(err, "unable to set Secret owner reference, associated to CloudflareServiceToken")
+			return fault.Wrap(err, fmsg.With("unable to set Secret owner reference, associated to CloudflareServiceToken"))
 		}
 
 		return nil
@@ -290,7 +294,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 
 	if err != nil {
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "Failed to create/update Secret associated to CloudflareServiceToken")
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to create/update Secret associated to CloudflareServiceToken"))
 	}
 
 	switch op {
@@ -319,7 +323,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	err = r.ReconcileStatus(ctx, existingServiceToken, serviceToken)
 	if err != nil {
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "unable to set status")
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to set status"))
 	}
 
 	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, serviceToken, func() error {
@@ -335,7 +339,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		return nil
 	}); err != nil {
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareServiceToken status")
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareServiceToken status"))
 	}
 
 	// will stop normally
@@ -368,7 +372,7 @@ func (r *CloudflareServiceTokenReconciler) ReconcileStatus(
 
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "Failed to update CloudflareServiceToken")
+		return fault.Wrap(err, fmsg.With("Failed to update CloudflareServiceToken"))
 	}
 
 	// CreateOrPatch re-fetches the object from k8s which removes any changes we've made that override them

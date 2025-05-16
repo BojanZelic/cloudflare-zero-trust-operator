@@ -1,8 +1,7 @@
 package config
 
 import (
-	"errors"
-
+	"github.com/Southclaws/fault"
 	"github.com/spf13/viper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -15,8 +14,8 @@ type ZeroTrustConfig struct {
 }
 
 var (
-	ErrMissingCFFields  = errors.New("missing one of CLOUDFLARE_API_TOKEN or (CLOUDFLARE_API_EMAIL and CLOUDFLARE_API_KEY) needs to be set")
-	ErrMissingAccountID = errors.New("missing CLOUDFLARE_ACCOUNT_ID needs to be set")
+	ErrMissingCFFields  = fault.New("missing one of CLOUDFLARE_API_TOKEN or (CLOUDFLARE_API_EMAIL and CLOUDFLARE_API_KEY) needs to be set")
+	ErrMissingAccountID = fault.New("missing CLOUDFLARE_ACCOUNT_ID needs to be set")
 )
 
 func SetConfigDefaults() {

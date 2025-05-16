@@ -2,20 +2,28 @@ package ctrlhelper
 
 import (
 	"context"
+	"errors"
 	"strconv"
+	"time"
 
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fmsg"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/meta"
 	cloudflare "github.com/cloudflare/cloudflare-go/v4"
-	"github.com/pkg/errors"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	logger "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type ControllerHelper struct {
 	R client.Client
+
+	// Determines requeue delays on "normal", errorless requeue attempt, mostly for awaiting other ressources to be ready.
+	//
+	// You might want to get that lower on tests
+	NormalRequeueDelay time.Duration
 }
 
 func (h *ControllerHelper) ensureFinalizer(
@@ -31,12 +39,12 @@ func (h *ControllerHelper) ensureFinalizer(
 	if preventDestroy && controllerutil.ContainsFinalizer(c, meta.FinalizerDeletion) {
 		controllerutil.RemoveFinalizer(c, meta.FinalizerDeletion)
 		if err := h.R.Update(ctx, c); err != nil {
-			return errors.Wrap(err, "unable to remove finalizer")
+			return fault.Wrap(err, fmsg.With("unable to remove finalizer"))
 		}
 	} else if !preventDestroy && !controllerutil.ContainsFinalizer(c, meta.FinalizerDeletion) {
 		controllerutil.AddFinalizer(c, meta.FinalizerDeletion)
 		if err := h.R.Update(ctx, c); err != nil {
-			return errors.Wrap(err, "unable to add finalizer")
+			return fault.Wrap(err, fmsg.With("unable to add finalizer"))
 		}
 	}
 
@@ -45,7 +53,7 @@ func (h *ControllerHelper) ensureFinalizer(
 
 //nolint:cyclop
 func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API, k8sCR CloudflareCR) (bool, error) {
-	log := logger.FromContext(ctx).WithName("finalizerHelper::ReconcileDeletion").WithValues(
+	log := ctrl.LoggerFrom(ctx).WithName("finalizerHelper::ReconcileDeletion").WithValues(
 		"type", k8sCR.GetType(),
 		"name", k8sCR.GetName(),
 		"namespace", k8sCR.GetNamespace(),
@@ -54,7 +62,7 @@ func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 	// examine DeletionTimestamp to determine if object is under deletion
 	if !k8sCR.UnderDeletion() {
 		if err := h.ensureFinalizer(ctx, k8sCR); err != nil {
-			return false, errors.Wrap(err, "unable to reconcile finalizer")
+			return false, fault.Wrap(err, fmsg.With("unable to reconcile finalizer"))
 		}
 
 		return true, nil
@@ -78,7 +86,7 @@ func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 			case *v4alpha1.CloudflareAccessReusablePolicy:
 				err = api.DeleteAccessReusablePolicy(ctx, k8sCR.GetID())
 			default:
-				return false, errors.Errorf("unknown type %T", k8sCR)
+				return false, fault.Newf("unknown type %T", k8sCR)
 			}
 
 			if err != nil {
@@ -86,7 +94,7 @@ func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 				if errors.As(err, &cfErr) && cfErr.StatusCode == 404 {
 					log.Info("unable to remove resource from cloudflare - appears to be already deleted")
 				} else {
-					return false, errors.Wrap(err, "unable to delete")
+					return false, fault.Wrap(err, fmsg.With("unable to delete"))
 				}
 			} else {
 				log.Info("resource removed in Cloudflare")
@@ -96,7 +104,7 @@ func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 		// remove our finalizer from the list and update it.
 		controllerutil.RemoveFinalizer(k8sCR, meta.FinalizerDeletion)
 		if err := h.R.Update(ctx, k8sCR); err != nil {
-			return false, errors.Wrap(err, "unable to remove finalizer")
+			return false, fault.Wrap(err, fmsg.With("unable to remove finalizer"))
 		}
 	}
 

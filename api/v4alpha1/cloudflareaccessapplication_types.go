@@ -17,6 +17,8 @@ limitations under the License.
 package v4alpha1
 
 import (
+	"context"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -30,9 +32,10 @@ type CloudflareAccessApplicationSpec struct {
 	//
 	// https://developers.cloudflare.com/api/resources/zero_trust/subresources/access/subresources/applications/models/application_type/
 	//
+	// +optional
 	// +kubebuilder:default=self_hosted
 	// +kubebuilder:validation:Enum=self_hosted;warp;app_launcher
-	Type string `json:"type"`
+	Type string `json:"type,omitzero"`
 
 	// Name of the Cloudflare Access Application.
 	//
@@ -102,8 +105,8 @@ type CloudflareAccessApplicationSpec struct {
 	LogoURL string `json:"logoUrl,omitzero"`
 }
 
-func (spec *CloudflareAccessApplicationSpec) GetNamespacedPolicyRefs(contextNamespace string) ([]types.NamespacedName, error) {
-	return parseNamespacedNames(spec.PolicyRefs, contextNamespace)
+func (spec *CloudflareAccessApplicationSpec) GetNamespacedPolicyRefs(ctx context.Context, contextNamespace string) ([]types.NamespacedName, error) {
+	return parseNamespacedNames(ctx, spec.PolicyRefs, contextNamespace)
 }
 
 // CloudflareAccessApplicationStatus defines the observed state of CloudflareAccessApplication.

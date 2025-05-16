@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"os"
+	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, SAML, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -79,11 +80,14 @@ func main() {
 
 	// Configure logger
 	opts := zap.Options{
+		// TODO missing fctx, customize encoder ?
 		Development: true,
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
-	rootLogger := zap.New(zap.UseFlagOptions(&opts))
+	rootLogger := zap.New(
+		zap.UseFlagOptions(&opts),
+	)
 	ctrl.SetLogger(rootLogger)
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
@@ -155,7 +159,8 @@ func main() {
 	displayAvailableIdentityProviders()
 
 	controllerHelper := &ctrlhelper.ControllerHelper{
-		R: mgr.GetClient(),
+		R:                  mgr.GetClient(),
+		NormalRequeueDelay: 10 * time.Second,
 	}
 
 	if err = (&controller.ReconcilerWithLoggedErrors{
@@ -256,8 +261,8 @@ func displayAvailableIdentityProviders() {
 	}
 
 	// Initialize Cloudflare's API wrapper
-	api := cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID, nil)
 	ctx := context.TODO()
+	api := cfapi.FromConfig(ctx, cfConfig, nil)
 	idProviders, err := api.IdentityProviders(ctx)
 	if err != nil {
 		setupLog.Error(err, "failed to fetch env account identity providers")
@@ -265,22 +270,29 @@ func displayAvailableIdentityProviders() {
 	}
 
 	if len(*idProviders) == 0 {
-		setupLog.Info("No identity providers found; "+
-			"you might want to enable some through CloudFlare's dashboard "+
-			"to leverage most of this operator's features.",
+		setupLog.Info(
+			//
+			"No identity providers found; "+
+				"you might want to enable some through CloudFlare's dashboard "+
+				"to leverage most of this operator's features.",
+			//
 			"moreInfosAt", "https://developers.cloudflare.com/cloudflare-one/identity/",
 		)
 		return
 	}
 
 	//
-	setupLog.Info("Enumerating found identity providers; "+
-		"please use their UUID as reference within this operator :",
+	setupLog.Info(
+		//
+		"Enumerating found identity providers; "+
+			"please use their UUID as reference within this operator, as listed below.",
+		//
 		"AvailableIDPs", len(*idProviders),
 	)
 
 	for i, idProvider := range *idProviders {
 		setupLog.Info("Found IdentityProvider",
+			//
 			"order", i,
 			"type", idProvider.Type,
 			"name", idProvider.Name,

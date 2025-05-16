@@ -26,6 +26,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/zap/zapcore"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -64,7 +65,12 @@ func TestAPIs(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	// configure logger
-	outLogger := zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))
+	outLogger := zap.New(
+		zap.WriteTo(GinkgoWriter),
+		zap.UseDevMode(true),
+		// TODO missing fctx, customize encoder ?
+		zap.StacktraceLevel(zapcore.DPanicLevel), // only print stacktraces for panics and fatal
+	)
 	ctrl.SetLogger(outLogger)
 
 	By("bootstrapping test environment")
@@ -92,7 +98,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	insertedTracer.ResetCFUUIDs()
-	api = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID, &insertedTracer)
+	ctx := context.TODO()
+	api = cfapi.FromConfig(ctx, cfConfig, &insertedTracer)
 
 	By("bootstrapping managers")
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
@@ -106,7 +113,8 @@ var _ = BeforeSuite(func() {
 	//
 
 	controllerHelper := &ctrlhelper.ControllerHelper{
-		R: k8sClient,
+		R:                  k8sClient,
+		NormalRequeueDelay: 2 * time.Second,
 	}
 	ctrlErrors = ReconcilierErrorTracker{}
 
@@ -156,7 +164,6 @@ var _ = BeforeSuite(func() {
 		defer GinkgoRecover()
 
 		//
-		ctx := context.TODO()
 		err := k8sManager.Start(ctx)
 		Expect(err).ToNot(HaveOccurred())
 

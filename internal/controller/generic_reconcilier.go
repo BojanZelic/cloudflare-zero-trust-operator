@@ -85,6 +85,7 @@ func (rw *ReconcilerWithLoggedErrors) Reconcile(ctx context.Context, req reconci
 		log := rw.Inner.GetReconcilierLogger(ctx)
 
 		//
+		log.Info("CACA")
 		log.Error(err, "reconciliation failed")
 
 		//

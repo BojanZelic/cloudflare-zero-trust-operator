@@ -112,8 +112,6 @@ spec:
                 - warp
                 - app_launcher
                 type: string
-            required:
-            - type
             type: object
           status:
             description: CloudflareAccessApplicationStatus defines the observed state

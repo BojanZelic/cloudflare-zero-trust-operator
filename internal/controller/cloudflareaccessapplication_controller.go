@@ -18,8 +18,11 @@ package controller
 
 import (
 	"context"
-	"time"
+	"errors"
 
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fctx"
+	"github.com/Southclaws/fault/fmsg"
 	v4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcompare"
@@ -28,7 +31,6 @@ import (
 	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,7 +39,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	logger "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -56,8 +57,6 @@ type CloudflareAccessApplicationReconciler struct {
 const (
 	// statusAvailable represents the status of the Cloudflare App.
 	statusAvailable = "Available"
-	// statusDegraded represents the status used when the custom resource is deleted and the finalizer operations are must to occur.
-	statusDegraded = "Degraded"
 )
 
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications,verbs=get;list;watch;create;update;patch;delete
@@ -65,7 +64,7 @@ const (
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications/finalizers,verbs=update
 
 func (r *CloudflareAccessApplicationReconciler) GetReconcilierLogger(ctx context.Context) logr.Logger {
-	return logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::Reconcile")
+	return ctrl.LoggerFrom(ctx).WithName("CloudflareAccessApplicationController::Reconcile")
 }
 
 //nolint:maintidx,cyclop,gocognit,gocyclo,varnamelen
@@ -86,7 +85,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		}
 
 		// Else, return with failure
-		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareAccessApplication") // will retry immediately
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to get CloudflareAccessApplication")) // will retry immediately
 	}
 
 	//
@@ -95,9 +94,9 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	//
 
 	//
-	policyRefsNS, err := app.Spec.GetNamespacedPolicyRefs(req.Namespace)
+	policyRefsNS, err := app.Spec.GetNamespacedPolicyRefs(ctx, req.Namespace)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "Failed to determine policy references") // will retry immediately
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to determine policy references")) // will retry immediately
 	}
 
 	//
@@ -107,7 +106,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		err := r.Get(ctx, policyRefNS, &rp)
 		if err != nil {
 			// will retry immediately
-			return ctrl.Result{}, errors.Wrap(err, "Referenced Policy Ref does not correspond to an existing CloudflareAccessReusablePolicy")
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("Referenced Policy Ref does not correspond to an existing CloudflareAccessReusablePolicy"))
 		}
 
 		ready := false
@@ -119,7 +118,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		}
 		if !ready {
 			log.Info("Referenced CloudflareAccessReusablePolicy not available yet, requeuing")
-			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil // will retry later
+			return ctrl.Result{RequeueAfter: r.Helper.NormalRequeueDelay}, nil // will retry later
 		}
 
 		// if ready, we know for sure that AccessReusablePolicyID exists, so we extract it
@@ -129,7 +128,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	app.Status.ReusablePolicyIDs = orderedPolicyIds
 	if err := r.Client.Status().Update(ctx, app); err != nil {
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessApplication status"))
 	}
 
 	//
@@ -141,11 +140,11 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	validConfig, err := cfConfig.IsValid()
 	if !validConfig {
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "invalid config")
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("invalid config"))
 	}
 
 	// Initialize Cloudflare's API wrapper
-	api := cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID, r.OptionalTracer)
+	api := cfapi.FromConfig(ctx, cfConfig, r.OptionalTracer)
 
 	//
 	// Proceed marked-as pending operations of manifest (if any)
@@ -155,7 +154,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, app)
 	if !continueReconcilliation || err != nil {
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion for application")
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to reconcile deletion for application"))
 	}
 
 	//
@@ -182,7 +181,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	})
 	if err != nil {
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessApplication status"))
 	}
 
 	var cfAccessApp *zero_trust.AccessApplicationGetResponse
@@ -198,7 +197,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 				cfAccessApp, err = api.FindAccessApplicationByDomain(ctx, app.Spec.Domain)
 				if cfAccessApp == nil || err != nil {
 					// will retry immediately
-					return ctrl.Result{}, errors.Wrap(err, "error querying application app from cloudflare")
+					return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to get access application by domain"))
 				}
 			}
 		case string(zero_trust.ApplicationTypeWARP):
@@ -207,25 +206,27 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 				cfAccessApp, err = api.FindFirstAccessApplicationOfType(ctx, app.Spec.Type)
 				if cfAccessApp == nil || err != nil {
 					// will retry immediately
-					return ctrl.Result{}, errors.Wrapf(
+					return ctrl.Result{}, fault.Wrap(
 						err,
-						"error querying unique '%s' application from cloudflare. "+
-							"Make sure you activated the associated feature in your cloudflare's dashboard !",
-						app.Spec.Type,
+						fmsg.With("error querying unique application from cloudflare."),
+						fctx.With(ctx,
+							"advice", "Make sure you activated the associated feature in your cloudflare's dashboard !",
+							"uniqueAppType", app.Spec.Type,
+						),
 					)
 				}
 			}
 		default:
 			{
 				// will retry immediately
-				return ctrl.Result{}, errors.Errorf("Unhandled application type '%s'. Contact the developers.", app.Spec.Type)
+				return ctrl.Result{}, fault.Newf("Unhandled application type '%s'. Contact the developers.", app.Spec.Type)
 			}
 		}
 
 		//
 		if err = r.ReconcileStatus(ctx, cfAccessApp, app); err != nil {
 			// will retry immediately
-			return ctrl.Result{}, errors.Wrap(err, "issue updating status")
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("issue updating status"))
 		}
 	}
 
@@ -242,7 +243,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 			// do not allow to continue if anything other than not found
 			if !isNotFound {
 				// will retry immediately
-				return ctrl.Result{}, errors.Wrap(err, "unable to get access application")
+				return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to get access application"))
 			}
 
 			// well, Application ID we had do not exist anymore; lets recreate the app in CF
@@ -265,13 +266,13 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		cfAccessApp, err = api.CreateAccessApplication(ctx, app)
 		if err != nil {
 			// will retry immediately
-			return ctrl.Result{}, errors.Wrap(err, "unable to create access application")
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to create access application"))
 		}
 
 		// update status
 		if err = r.ReconcileStatus(ctx, cfAccessApp, app); err != nil {
 			// will retry immediately
-			return ctrl.Result{}, errors.Wrap(err, "issue updating status")
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("issue updating status"))
 		}
 	} else if needsUpdate := !cfcompare.AreAccessApplicationsEquivalent(cfAccessApp, app); needsUpdate {
 		log.Info("app has changed - updating...",
@@ -281,12 +282,12 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		cfAccessApp, err = api.UpdateAccessApplication(ctx, app)
 		if err != nil {
 			// will retry immediately
-			return ctrl.Result{}, errors.Wrap(err, "unable to update access group")
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to update access group"))
 		}
 
 		if err = r.ReconcileStatus(ctx, cfAccessApp, app); err != nil {
 			// will retry immediately
-			return ctrl.Result{}, errors.Wrap(err, "issue updating status")
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("issue updating status"))
 		}
 	}
 
@@ -307,7 +308,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		return nil
 	}); err != nil {
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessApplication status"))
 	}
 
 	// will stop normally
@@ -328,7 +329,7 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Cont
 	k8sApp.Status.UpdatedAt = metav1.NewTime(cfApp.UpdatedAt)
 
 	if err := r.Client.Status().Update(ctx, k8sApp); err != nil {
-		return errors.Wrap(err, "Failed to update CloudflareAccessApplication status")
+		return fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessApplication status"))
 	}
 	return nil
 }

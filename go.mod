@@ -5,9 +5,9 @@ go 1.24.0
 toolchain go1.24.2
 
 require (
+	github.com/Southclaws/fault v0.8.1
 	github.com/cloudflare/cloudflare-go/v4 v4.3.0
 	github.com/go-logr/logr v1.4.2
-	github.com/pkg/errors v0.9.1
 	github.com/spf13/viper v1.20.1
 	k8s.io/api v0.33.0
 	k8s.io/apimachinery v0.33.0
@@ -16,13 +16,10 @@ require (
 )
 
 require (
-	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
-	github.com/nxadm/tail v1.4.8 // indirect
-	github.com/onsi/ginkgo v1.16.5 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
-	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 )
 
@@ -89,7 +86,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.27.0 // indirect
+	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6 // indirect
 	golang.org/x/net v0.40.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect

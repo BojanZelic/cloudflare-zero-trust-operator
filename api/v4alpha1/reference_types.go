@@ -1,10 +1,13 @@
 package v4alpha1
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fctx"
+	"github.com/Southclaws/fault/fmsg"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -56,14 +59,19 @@ func ParsedNamespacedName(nn types.NamespacedName) string { //nolint:varnamelen
 	return fmt.Sprintf("%s/%s", nn.Namespace, nn.Name)
 }
 
-func parseNamespacedNames(parsableNames []string, contextNamespace string) (nsNames []types.NamespacedName, err error) {
+func parseNamespacedNames(ctx context.Context, parsableNames []string, contextNamespace string) (nsNames []types.NamespacedName, err error) {
 	for _, parsableName := range parsableNames {
 		//
 		parsed, tErr := _parseNamespacedName(parsableName, contextNamespace)
 
 		// if any failure...
 		if tErr != nil {
-			err = errors.Wrapf(tErr, "issue while parsing name \"%s\" to namespace", parsableName)
+			err = fault.Wrap(tErr,
+				fmsg.With("issue while parsing name to namespace"),
+				fctx.With(ctx,
+					"failedFor", parsableName,
+				),
+			)
 			nsNames = []types.NamespacedName{}
 			return
 		}

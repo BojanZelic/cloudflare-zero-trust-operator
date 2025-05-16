@@ -19,6 +19,9 @@ package controller
 import (
 	"context"
 
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fctx"
+	"github.com/Southclaws/fault/fmsg"
 	v4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcompare"
@@ -26,7 +29,6 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,7 +37,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	logger "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -56,7 +57,7 @@ type CloudflareAccessGroupReconciler struct {
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups/finalizers,verbs=update
 
 func (r *CloudflareAccessGroupReconciler) GetReconcilierLogger(ctx context.Context) logr.Logger {
-	return logger.FromContext(ctx).WithName("CloudflareAccessGroupController::Reconcile")
+	return ctrl.LoggerFrom(ctx).WithName("CloudflareAccessGroupController::Reconcile")
 }
 
 //nolint:cyclop,gocognit
@@ -76,22 +77,25 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 			return ctrl.Result{}, nil
 		}
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrapf(err, "Failed to get CloudflareAccessGroup '%s'", req.Name)
+		return ctrl.Result{}, fault.Wrap(err,
+			fmsg.With("Failed to get CloudflareAccessGroup"),
+			fctx.With(ctx, "groupName", req.Name),
+		)
 	}
 
 	cfConfig := config.ParseCloudflareConfig(accessGroup)
 	validConfig, err := cfConfig.IsValid()
 	if !validConfig {
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "invalid config")
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("invalid config"))
 	}
 
-	api = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID, r.OptionalTracer)
+	api = cfapi.FromConfig(ctx, cfConfig, r.OptionalTracer)
 
 	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, accessGroup)
 	if !continueReconcilliation || err != nil {
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion for access group")
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to reconcile deletion for access group"))
 	}
 
 	_, err = controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
@@ -111,14 +115,14 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 
 	if err != nil {
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessGroup status")
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessGroup status"))
 	}
 
 	if accessGroup.Status.AccessGroupID == "" {
 		existingCfAG, err = api.AccessGroupByName(ctx, accessGroup.Spec.Name)
 		if err != nil {
 			// will retry immediately
-			return ctrl.Result{}, errors.Wrap(err, "unable to get access group")
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to get access group by name"))
 		}
 		if existingCfAG != nil {
 			log.Info("access group already exists. importing...",
@@ -129,13 +133,13 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		err = r.ReconcileStatus(ctx, existingCfAG, accessGroup)
 		if err != nil {
 			// will retry immediately
-			return ctrl.Result{}, errors.Wrap(err, "unable to update access groups")
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to update access groups"))
 		}
 	} else {
 		existingCfAG, err = api.AccessGroup(ctx, accessGroup.Status.AccessGroupID)
 		if err != nil {
 			// will retry immediately
-			return ctrl.Result{}, errors.Wrap(err, "unable to get access group")
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to get access group"))
 		}
 	}
 
@@ -144,11 +148,12 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	//
 
 	// populate UUIDs;
-	popRes, err := ctrlhelper.PopulateWithCloudflareUUIDs(ctx, req.Namespace, &log, r.Client, accessGroup)
+	popRes, err := r.Helper.PopulateWithCloudflareUUIDs(ctx, req.Namespace, &log, accessGroup)
 
 	// if any result returned, return it to reconcilier along w/ err (if any)
 	if popRes != nil {
-		return *popRes, errors.Wrap(err, "Failed to populate CF UUIDs")
+		// add a wrap for error, but no error ever should be passed here
+		return *popRes, fault.Wrap(err, fmsg.With("An unexpected error has been provided. Contact the developers."))
 	} else if err != nil {
 		//
 		log.Info("failed to update access group's referenced CloudFlare UUIDs")
@@ -157,7 +162,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		_, errPatch := controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
 			meta.SetStatusCondition(&accessGroup.Status.Conditions,
 				metav1.Condition{
-					Type:    statusDegraded,
+					Type:    statusAvailable,
 					Status:  metav1.ConditionFalse,
 					Reason:  "InvalidReference",
 					Message: err.Error(),
@@ -169,11 +174,11 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		//
 		if errPatch != nil {
 			// will retry immediately
-			return ctrl.Result{}, errors.Wrap(errPatch, "Failed to update CloudflareAccessGroup status, after a CF UUIDs population failure")
+			return ctrl.Result{}, fault.Wrap(errPatch, fmsg.With("Failed to update CloudflareAccessGroup status, after a CF UUIDs population failure"))
 		}
 
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "Failed to populate CF UUIDs")
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to populate CF UUIDs"))
 	}
 
 	//
@@ -185,12 +190,12 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		existingCfAG, err = api.CreateAccessGroup(ctx, accessGroup)
 		if err != nil {
 			// will retry immediately
-			return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to create access group"))
 		}
 		err = r.ReconcileStatus(ctx, existingCfAG, accessGroup)
 		if err != nil {
 			// will retry immediately
-			return ctrl.Result{}, errors.Wrap(err, "unable to set access group status")
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to set access group status"))
 		}
 	} else if needsUpdate := !cfcompare.AreAccessGroupsEquivalent(existingCfAG, accessGroup); needsUpdate {
 		log.Info(accessGroup.Spec.Name + " has changed, updating...")
@@ -198,7 +203,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		err := api.UpdateAccessGroup(ctx, accessGroup)
 		if err != nil {
 			// will retry immediately
-			return ctrl.Result{}, errors.Wrap(err, "unable to update access groups")
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to update access groups"))
 		}
 	}
 
@@ -217,7 +222,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 
 	if err != nil {
 		// will retry immediately
-		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareAccessGroup status")
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessGroup status"))
 	}
 
 	log.Info("reconciled successfully")
@@ -251,7 +256,7 @@ func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, c
 	k8sGroup.Status = group.Status
 
 	if err != nil {
-		return errors.Wrap(err, "Failed to update CloudflareAccessGroup status")
+		return fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessGroup status"))
 	}
 
 	return nil

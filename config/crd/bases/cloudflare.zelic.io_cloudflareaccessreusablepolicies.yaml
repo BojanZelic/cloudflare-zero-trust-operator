@@ -436,7 +436,6 @@ spec:
                     type: boolean
                 type: object
             required:
-            - decision
             - include
             - name
             type: object
