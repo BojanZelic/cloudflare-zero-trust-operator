@@ -38,6 +38,7 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/logger"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
@@ -65,13 +66,16 @@ func TestAPIs(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	// configure logger
-	outLogger := zap.New(
+	zapLogger := zap.New(
 		zap.WriteTo(GinkgoWriter),
 		zap.UseDevMode(true),
-		// TODO missing fctx, customize encoder ?
 		zap.StacktraceLevel(zapcore.DPanicLevel), // only print stacktraces for panics and fatal
 	)
-	ctrl.SetLogger(outLogger)
+
+	// bind logger
+	ctrl.SetLogger(
+		logger.NewFaultLogger(zapLogger),
+	)
 
 	By("bootstrapping test environment")
 	testEnv := &envtest.Environment{

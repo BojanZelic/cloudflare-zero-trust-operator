@@ -5,7 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
+	"slices"
+	"strconv"
 
 	"github.com/Southclaws/fault"
 	"github.com/Southclaws/fault/fctx"
@@ -29,29 +30,29 @@ func (a *API) wrapPretty(err error) error {
 	}
 
 	//
-	messages := []string{}
-	for _, err := range cfErr.Errors {
-		//
-		msg := fmt.Sprintf("%d |> %s", err.Code, err.Message)
-
-		//
-		extra := err.JSON.ExtraFields["error_chain"]
-		if !extra.IsMissing() {
-			extraTxt, errC := gatherErrorChainMessages(extra.Raw())
-			if errC == nil {
-				msg = fmt.Sprintf("%s |>> %s", msg, extraTxt)
+	errs := []error{}
+	for _, errData := range cfErr.Errors {
+		getErr := func() error {
+			//
+			rawChain := errData.JSON.ExtraFields["error_chain"]
+			if !rawChain.IsMissing() {
+				chain, errC := wrapChainMessages(rawChain.Raw())
+				if errC == nil {
+					return fault.Wrap(chain,
+						fmsg.WithDesc(strconv.FormatInt(errData.Code, 10), errData.Message),
+					)
+				}
 			}
+
+			return fault.New(errData.Message)
 		}
 
 		//
-		messages = append(messages, msg)
+		errs = append(errs, getErr())
 	}
 
-	//
-	failures := strings.Join(messages, ";")
-
 	return fault.Wrap(
-		fault.New(failures),
+		errors.Join(errs...),
 		fmsg.With(cfAPIReqFailed),
 		fctx.With(a.ctx,
 			"method", cfErr.Request.Method,
@@ -65,10 +66,10 @@ type ErrorChainLink struct {
 	Message string `json:"message"`
 }
 
-func gatherErrorChainMessages(extraFieldsJSON string) (out string, err error) {
+func wrapChainMessages(chainMessagesJSON string) (out error, err error) {
 	//
 	var links []ErrorChainLink
-	err = json.Unmarshal([]byte(extraFieldsJSON), &links)
+	err = json.Unmarshal([]byte(chainMessagesJSON), &links)
 	if err != nil {
 		return
 	}
@@ -79,7 +80,13 @@ func gatherErrorChainMessages(extraFieldsJSON string) (out string, err error) {
 		messages = append(messages, link.Message)
 	}
 
-	//
-	out = strings.Join(messages, " -> ")
+	for _, msg := range slices.Backward(messages) {
+		if out == nil {
+			out = fault.New(msg)
+			continue
+		}
+		out = fault.Wrap(out, fmsg.With(msg))
+	}
+
 	return
 }

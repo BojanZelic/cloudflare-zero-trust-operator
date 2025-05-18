@@ -44,6 +44,7 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/controller"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/logger"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -80,15 +81,18 @@ func main() {
 
 	// Configure logger
 	opts := zap.Options{
-		// TODO missing fctx, customize encoder ?
 		Development: true,
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
-	rootLogger := zap.New(
+	zapLogger := zap.New(
 		zap.UseFlagOptions(&opts),
 	)
-	ctrl.SetLogger(rootLogger)
+
+	// Bind logger
+	ctrl.SetLogger(
+		logger.NewFaultLogger(zapLogger),
+	)
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
