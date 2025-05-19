@@ -75,7 +75,7 @@ func (a *API) UpdateAccessGroup(ctx context.Context, group *v4alpha1.CloudflareA
 	}
 
 	//
-	_, err := a.client.ZeroTrust.Access.Groups.Update(ctx, group.Status.AccessGroupID, params)
+	_, err := a.client.ZeroTrust.Access.Groups.Update(ctx, group.GetCloudflareUUID(), params)
 	return a.wrapPretty(err)
 }
 
@@ -112,6 +112,7 @@ func (a *API) FindAccessApplicationByDomain(ctx context.Context, domain string) 
 	return nil, a.wrapPretty(iter.Err())
 }
 
+// not finding app type would probably not produce an error
 func (a *API) FindFirstAccessApplicationOfType(ctx context.Context, app_type string) (*zero_trust.AccessApplicationGetResponse, error) {
 	//
 	iter := a.client.ZeroTrust.Access.Applications.ListAutoPaging(ctx, zero_trust.AccessApplicationListParams{
@@ -128,6 +129,7 @@ func (a *API) FindFirstAccessApplicationOfType(ctx context.Context, app_type str
 		return a.AccessApplication(ctx, current.ID)
 	}
 
+	//
 	return nil, a.wrapPretty(iter.Err())
 }
 
@@ -266,7 +268,7 @@ func (a *API) UpdateAccessApplication(
 				body.HTTPOnlyCookieAttribute = cloudflare.Bool(*app.Spec.HTTPOnlyCookieAttribute)
 			}
 
-			cfApp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, app.Status.AccessApplicationID,
+			cfApp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, app.GetCloudflareUUID(),
 				zero_trust.AccessApplicationUpdateParams{
 					AccountID: cloudflare.F(a.CFAccountID),
 					Body:      body,
@@ -275,7 +277,7 @@ func (a *API) UpdateAccessApplication(
 		}
 	case string(zero_trust.ApplicationTypeWARP):
 		{
-			cfApp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, app.Status.AccessApplicationID,
+			cfApp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, app.GetCloudflareUUID(),
 				zero_trust.AccessApplicationUpdateParams{
 					AccountID: cloudflare.F(a.CFAccountID),
 					Body: zero_trust.AccessApplicationUpdateParamsBodyDeviceEnrollmentPermissionsApplication{
@@ -290,7 +292,7 @@ func (a *API) UpdateAccessApplication(
 		}
 	case string(zero_trust.ApplicationTypeAppLauncher):
 		{
-			cfApp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, app.Status.AccessApplicationID,
+			cfApp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, app.GetCloudflareUUID(),
 				zero_trust.AccessApplicationUpdateParams{
 					AccountID: cloudflare.F(a.CFAccountID),
 					Body: zero_trust.AccessApplicationUpdateParamsBodyAppLauncherApplication{
@@ -343,29 +345,29 @@ func (a *API) AccessReusablePolicy(ctx context.Context, policyID string) (*zero_
 	return cfApp, a.wrapPretty(err)
 }
 
-func (a *API) CreateAccessReusablePolicy(ctx context.Context, arp *v4alpha1.CloudflareAccessReusablePolicy) (*zero_trust.AccessPolicyGetResponse, error) {
+func (a *API) CreateAccessReusablePolicy(ctx context.Context, from *v4alpha1.CloudflareAccessReusablePolicy) (*zero_trust.AccessPolicyGetResponse, error) {
 	//
 	params := zero_trust.AccessPolicyNewParams{
 		AccountID: cloudflare.F(a.CFAccountID),
-		Decision:  cloudflare.F(zero_trust.Decision(arp.Spec.Decision)),
-		Name:      cloudflare.F(arp.Spec.Name),
-		Include:   cloudflare.F(arp.Spec.Include.ToAccessRuleParams(arp.Status.ResolvedIdpsFromRefs.Include)),
-		Exclude:   cloudflare.F(arp.Spec.Exclude.ToAccessRuleParams(arp.Status.ResolvedIdpsFromRefs.Exclude)),
-		Require:   cloudflare.F(arp.Spec.Require.ToAccessRuleParams(arp.Status.ResolvedIdpsFromRefs.Require)),
+		Decision:  cloudflare.F(zero_trust.Decision(from.Spec.Decision)),
+		Name:      cloudflare.F(from.Spec.Name),
+		Include:   cloudflare.F(from.Spec.Include.ToAccessRuleParams(from.Status.ResolvedIdpsFromRefs.Include)),
+		Exclude:   cloudflare.F(from.Spec.Exclude.ToAccessRuleParams(from.Status.ResolvedIdpsFromRefs.Exclude)),
+		Require:   cloudflare.F(from.Spec.Require.ToAccessRuleParams(from.Status.ResolvedIdpsFromRefs.Require)),
 	}
 
 	//
-	rp, err := a.client.ZeroTrust.Access.Policies.New(ctx, params) //nolint:varnamelen
+	arp, err := a.client.ZeroTrust.Access.Policies.New(ctx, params) //nolint:varnamelen
 	if err != nil {
 		return nil, a.wrapPretty(err)
 	}
 
 	//
 	if a.optionalTracer != nil {
-		a.optionalTracer.ReusablePolicyInserted(rp.ID)
+		a.optionalTracer.ReusablePolicyInserted(arp.ID)
 	}
 
-	return a.AccessReusablePolicy(ctx, rp.ID)
+	return a.AccessReusablePolicy(ctx, arp.ID)
 }
 
 func (a *API) UpdateAccessReusablePolicy(ctx context.Context, arp *v4alpha1.CloudflareAccessReusablePolicy) error {
@@ -378,7 +380,7 @@ func (a *API) UpdateAccessReusablePolicy(ctx context.Context, arp *v4alpha1.Clou
 	}
 
 	//
-	_, err := a.client.ZeroTrust.Access.Policies.Update(ctx, arp.Status.AccessReusablePolicyID, params)
+	_, err := a.client.ZeroTrust.Access.Policies.Update(ctx, arp.GetCloudflareUUID(), params)
 	return a.wrapPretty(err)
 }
 

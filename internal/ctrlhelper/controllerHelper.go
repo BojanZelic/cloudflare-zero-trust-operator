@@ -28,7 +28,7 @@ type ControllerHelper struct {
 
 func (h *ControllerHelper) ensureFinalizer(
 	ctx context.Context,
-	c CloudflareCR, //nolint:varnamelen
+	c CloudflareControlledResource, //nolint:varnamelen
 ) error {
 	annotations := c.GetAnnotations()
 	preventDestroy := false
@@ -52,12 +52,14 @@ func (h *ControllerHelper) ensureFinalizer(
 }
 
 //nolint:cyclop
-func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API, k8sCR CloudflareCR) (bool, error) {
+func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API, k8sCR CloudflareControlledResource) (bool, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("finalizerHelper::ReconcileDeletion").WithValues(
-		"type", k8sCR.GetType(),
+		"type", k8sCR.GetObjectKind().GroupVersionKind().Kind,
 		"name", k8sCR.GetName(),
 		"namespace", k8sCR.GetNamespace(),
 	)
+
+	k8sCR.GetObjectKind()
 
 	// examine DeletionTimestamp to determine if object is under deletion
 	if !k8sCR.UnderDeletion() {
@@ -72,19 +74,19 @@ func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 	//nolint:nestif
 	if controllerutil.ContainsFinalizer(k8sCR, meta.FinalizerDeletion) {
 		// our finalizer is present, so lets handle any external dependency
-		if k8sCR.GetID() != "" {
+		if k8sCR.GetCloudflareUUID() != "" {
 			log.Info("will remove resource in Cloudflare")
 			var err error
 
 			switch k8sCR.(type) {
 			case *v4alpha1.CloudflareAccessApplication:
-				err = api.DeleteAccessApplication(ctx, k8sCR.GetID())
+				err = api.DeleteAccessApplication(ctx, k8sCR.GetCloudflareUUID())
 			case *v4alpha1.CloudflareAccessGroup:
-				err = api.DeleteAccessGroup(ctx, k8sCR.GetID())
+				err = api.DeleteAccessGroup(ctx, k8sCR.GetCloudflareUUID())
 			case *v4alpha1.CloudflareServiceToken:
-				err = api.DeleteAccessServiceToken(ctx, k8sCR.GetID())
+				err = api.DeleteAccessServiceToken(ctx, k8sCR.GetCloudflareUUID())
 			case *v4alpha1.CloudflareAccessReusablePolicy:
-				err = api.DeleteAccessReusablePolicy(ctx, k8sCR.GetID())
+				err = api.DeleteAccessReusablePolicy(ctx, k8sCR.GetCloudflareUUID())
 			default:
 				return false, fault.Newf("unknown type %T", k8sCR)
 			}

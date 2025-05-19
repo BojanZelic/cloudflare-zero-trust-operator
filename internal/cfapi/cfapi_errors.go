@@ -52,7 +52,7 @@ func (a *API) wrapPretty(err error) error {
 	}
 
 	return fault.Wrap(
-		errors.Join(errs...),
+		errors.Join(errs...), // TODO(maintainer) I have doubts joining errors is handled by Fault
 		fmsg.With(cfAPIReqFailed),
 		fctx.With(a.ctx,
 			"method", cfErr.Request.Method,

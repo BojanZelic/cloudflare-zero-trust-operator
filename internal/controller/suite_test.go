@@ -16,10 +16,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package controller_test
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -27,7 +28,10 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/zap/zapcore"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,6 +41,7 @@ import (
 	cloudflarev4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/controller"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/logger"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -51,7 +56,7 @@ var api *cfapi.API
 var insertedTracer cfapi.InsertedCFRessourcesTracer
 
 // @dev Might get cleared between test sets
-var ctrlErrors ReconcilierErrorTracker
+var ctrlErrors controller.ReconcilierErrorTracker
 
 const (
 	defaultTimeout  = 10 * time.Second
@@ -74,7 +79,9 @@ var _ = BeforeSuite(func() {
 
 	// bind logger
 	ctrl.SetLogger(
-		logger.NewFaultLogger(zapLogger),
+		logger.NewFaultLogger(zapLogger, &logger.FaultLoggerOptions{
+			DismissErrorVerbose: true,
+		}),
 	)
 
 	By("bootstrapping test environment")
@@ -120,38 +127,38 @@ var _ = BeforeSuite(func() {
 		R:                  k8sClient,
 		NormalRequeueDelay: 2 * time.Second,
 	}
-	ctrlErrors = ReconcilierErrorTracker{}
+	ctrlErrors = controller.ReconcilierErrorTracker{}
 
-	Expect((&ReconcilerWithLoggedErrors{
+	Expect((&controller.ReconcilerWithLoggedErrors{
 		ErrTracker: &ctrlErrors,
-		Inner: &CloudflareAccessGroupReconciler{
+		Inner: &controller.CloudflareAccessGroupReconciler{
 			Client:         k8sClient,
 			Scheme:         k8sClient.Scheme(),
 			Helper:         controllerHelper,
 			OptionalTracer: &insertedTracer,
 		},
 	}).SetupWithManager(k8sManager)).ToNot(HaveOccurred())
-	Expect((&ReconcilerWithLoggedErrors{
+	Expect((&controller.ReconcilerWithLoggedErrors{
 		ErrTracker: &ctrlErrors,
-		Inner: &CloudflareAccessApplicationReconciler{
+		Inner: &controller.CloudflareAccessApplicationReconciler{
 			Client:         k8sClient,
 			Scheme:         k8sClient.Scheme(),
 			Helper:         controllerHelper,
 			OptionalTracer: &insertedTracer,
 		},
 	}).SetupWithManager(k8sManager)).ToNot(HaveOccurred())
-	Expect((&ReconcilerWithLoggedErrors{
+	Expect((&controller.ReconcilerWithLoggedErrors{
 		ErrTracker: &ctrlErrors,
-		Inner: &CloudflareServiceTokenReconciler{
+		Inner: &controller.CloudflareServiceTokenReconciler{
 			Client:         k8sClient,
 			Scheme:         k8sClient.Scheme(),
 			Helper:         controllerHelper,
 			OptionalTracer: &insertedTracer,
 		},
 	}).SetupWithManager(k8sManager)).ToNot(HaveOccurred())
-	Expect((&ReconcilerWithLoggedErrors{
+	Expect((&controller.ReconcilerWithLoggedErrors{
 		ErrTracker: &ctrlErrors,
-		Inner: &CloudflareAccessReusablePolicyReconciler{
+		Inner: &controller.CloudflareAccessReusablePolicyReconciler{
 			Client:         k8sClient,
 			Scheme:         k8sClient.Scheme(),
 			Helper:         controllerHelper,
@@ -176,3 +183,50 @@ var _ = BeforeSuite(func() {
 		Expect(err).ToNot(HaveOccurred())
 	}()
 })
+
+//
+//
+//
+
+// @notice [res] will be populated
+func ByExpectingCFResourceToBeReady(ctx context.Context, name types.NamespacedName, res ctrlhelper.CloudflareControlledResource) {
+	expectingCFResourceReadiness(ctx, name, res, metav1.ConditionTrue)
+}
+
+// @notice [res] will be populated
+func ByExpectingCFResourceToNOTBeReady(ctx context.Context, name types.NamespacedName, res ctrlhelper.CloudflareControlledResource) {
+	expectingCFResourceReadiness(ctx, name, res, metav1.ConditionFalse)
+}
+
+// @notice [res] will be populated
+func expectingCFResourceReadiness(
+	ctx context.Context,
+	name types.NamespacedName,
+	res ctrlhelper.CloudflareControlledResource,
+	awaitedCondition v1.ConditionStatus,
+) {
+	//
+	const awaitedStatus = controller.StatusAvailable
+
+	//
+	By(fmt.Sprintf("Await for %s resource to be \"%s\"",
+		res.GetObjectKind().GroupVersionKind().Kind,
+		awaitedStatus,
+	))
+
+	//
+	Eventually(func(g Gomega) { //nolint:varnamelen
+		//
+		err := k8sClient.Get(ctx, name, res)
+		g.Expect(err).To(Not(HaveOccurred()))
+
+		//
+		g.Expect(res.GetCloudflareUUID()).ToNot(BeEmpty())
+
+		//
+		conditions := res.GetConditions()
+		matchesAwaitedStatus := meta.IsStatusConditionPresentAndEqual(*conditions, awaitedStatus, awaitedCondition)
+		g.Expect(matchesAwaitedStatus).To(BeTrue())
+
+	}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+}

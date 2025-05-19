@@ -94,11 +94,11 @@ type CloudflareAccessReusablePolicy struct {
 	Status CloudflareAccessReusablePolicyStatus `json:"status,omitzero"`
 }
 
-func (c *CloudflareAccessReusablePolicy) GetType() string {
-	return "CloudflareAccessReusablePolicy"
+func (c *CloudflareAccessReusablePolicy) GetConditions() *[]metav1.Condition {
+	return &c.Status.Conditions
 }
 
-func (c *CloudflareAccessReusablePolicy) GetID() string {
+func (c *CloudflareAccessReusablePolicy) GetCloudflareUUID() string {
 	return c.Status.AccessReusablePolicyID
 }
 

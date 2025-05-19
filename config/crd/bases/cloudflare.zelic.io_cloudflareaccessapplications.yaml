@@ -62,7 +62,7 @@ spec:
                 type: boolean
               domain:
                 description: |-
-                  The domain and path that Access will secure.
+                  The domain and path that Access will secure. Must be unique by CloudFlare Account.
 
                   Meaningless for "warp" and "app_launcher" app types. Required for "self_hosted".
 

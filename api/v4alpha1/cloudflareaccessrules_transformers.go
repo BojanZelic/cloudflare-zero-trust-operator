@@ -38,9 +38,7 @@ func (rules *CloudFlareAccessRules) ToAccessRuleParams(resolvedCfIds ResolvedClo
 			}),
 		})
 	}
-
-	// TODO
-	for _, groupId := range rules.AccessGroupRefs {
+	for _, groupId := range resolvedCfIds.AccessGroupRefCfIds {
 		out = append(out, zero_trust.GroupRuleParam{
 			Group: cloudflare.F(zero_trust.GroupRuleGroupParam{
 				ID: cloudflare.F(groupId),
@@ -170,7 +168,6 @@ func (rules *CloudFlareAccessRules) ToAccessRules(resolvedCfIds ResolvedCloudfla
 			},
 		})
 	}
-
 	for _, token := range resolvedCfIds.ServiceTokenRefCfIds {
 		out = append(out, zero_trust.AccessRule{
 			ServiceToken: zero_trust.ServiceTokenRuleServiceToken{

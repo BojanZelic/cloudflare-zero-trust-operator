@@ -1,16 +1,14 @@
 // TODO: add back //go:build integration
 
-package controller
+package controller_test
 
 import (
 	"context"
-	"time"
 
 	v4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -24,15 +22,13 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 	//
 
 	Context("CloudflareAccessReusablePolicy controller test", func() {
+		const testScopedNamespace = "zto-testing-arp"
 
-		const cloudflareName = "cloudflare-rp"
-
+		//
 		ctx := context.Background()
-
-		namespace := &corev1.Namespace{
+		testNS := &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      cloudflareName,
-				Namespace: cloudflareName,
+				Name: testScopedNamespace,
 			},
 		}
 
@@ -40,16 +36,16 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			ctrlErrors.Clear()
 
 			By("Creating the Namespace to perform the tests")
-			_ = k8sClient.Create(ctx, namespace)
+			_ = k8sClient.Create(ctx, testNS)
 			// ignore error because of https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
 			// Expect(err).To(Not(HaveOccurred()))
 		})
 
 		AfterEach(func() {
-			By("expect no reconcile errors occurred")
+			// By("expect no reconcile errors occurred")
 			// Expect(ctrlErrors).To(BeEmpty())
-			// 	By("Deleting the Namespace to perform the tests")
-			// 	//_ = k8sClient.Delete(ctx, namespace)
+			By("Deleting the Namespace to perform the tests")
+			_ = k8sClient.Delete(ctx, testNS)
 		})
 
 		//
@@ -57,16 +53,15 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 		//
 
 		It("should fail to reconcile CloudflareAccessReusablePolicy policies with bad references", func() {
-			typeNamespaceName := types.NamespacedName{Name: "cloudflare-rp-four", Namespace: cloudflareName}
-
 			By("Creating the custom resource for the Kind CloudflareAccessReusablePolicy")
-			apps := &v4alpha1.CloudflareAccessReusablePolicy{
+			arpNN := types.NamespacedName{Name: "test-1-arp", Namespace: testScopedNamespace}
+			arp := &v4alpha1.CloudflareAccessReusablePolicy{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      typeNamespaceName.Name,
-					Namespace: namespace.Name,
+					Name:      arpNN.Name,
+					Namespace: arpNN.Namespace,
 				},
 				Spec: v4alpha1.CloudflareAccessReusablePolicySpec{
-					Name: "bad-reference policies",
+					Name: "ZTO AccessReusablePolicy Tests - 1 - Policy",
 					Include: v4alpha1.CloudFlareAccessRules{
 						AccessGroupRefs: []string{
 							"inanynamespace/idontexist",
@@ -74,80 +69,65 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 					},
 				},
 			}
-			err := k8sClient.Create(ctx, apps)
-			Expect(err).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, arp)).To(Not(HaveOccurred()))
 
-			By("Checking the Status")
-			Eventually(func(g Gomega) { //nolint:varnamelen
-				// ctrlErrors.TestEmpty()
-				err = k8sClient.Get(ctx, typeNamespaceName, apps)
-				g.Expect(err).To(Not(HaveOccurred()))
-
-				//
-				g.Expect(apps.Status.Conditions).ToNot(BeEmpty())
-				notAvailable := meta.IsStatusConditionPresentAndEqual(apps.Status.Conditions, statusAvailable, metav1.ConditionFalse)
-				g.Expect(notAvailable).To(BeTrue())
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			//
+			ByExpectingCFResourceToNOTBeReady(ctx, arpNN, &v4alpha1.CloudflareAccessReusablePolicy{})
 		})
 
 		It("should successfully reconcile CloudflareAccessReusablePolicy policies with references", func() {
 			By("pre-create an access group")
-			typeNamespaceName := types.NamespacedName{Name: "cloudflare-rp-three", Namespace: cloudflareName}
-
+			groupNN := types.NamespacedName{Name: "test-2-group", Namespace: testScopedNamespace}
 			group := &v4alpha1.CloudflareAccessGroup{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      typeNamespaceName.Name,
-					Namespace: typeNamespaceName.Namespace,
+					Name:      groupNN.Name,
+					Namespace: groupNN.Namespace,
 				},
 				Spec: v4alpha1.CloudflareAccessGroupSpec{
-					Name: "reference test",
+					Name: "ZTO AccessReusablePolicy Tests - 2 - Group",
 					Include: v4alpha1.CloudFlareAccessRules{
 						Emails: []string{"test2@cf-operator-tests.uk"},
 					},
 				},
 			}
+			Expect(k8sClient.Create(ctx, group)).To(Not(HaveOccurred()))
 
-			err := k8sClient.Create(ctx, group)
-			Expect(err).To(Not(HaveOccurred()))
-
-			err = k8sClient.Get(ctx, typeNamespaceName, group)
-			Expect(err).To(Not(HaveOccurred()))
+			//
+			ByExpectingCFResourceToBeReady(ctx, groupNN, group)
 
 			//
 			//
 			//
 
 			By("pre-create a service token")
+			tokenNN := types.NamespacedName{Name: "test-2-stoken", Namespace: testScopedNamespace}
 			token := &v4alpha1.CloudflareServiceToken{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      typeNamespaceName.Name,
-					Namespace: typeNamespaceName.Namespace,
+					Name:      tokenNN.Name,
+					Namespace: tokenNN.Namespace,
 				},
 				Spec: v4alpha1.CloudflareServiceTokenSpec{
-					Name: "reference test",
+					Name: "ZTO AccessReusablePolicy Tests - 2 - SToken",
 				},
 			}
+			Expect(k8sClient.Create(ctx, token)).To(Not(HaveOccurred()))
 
-			err = k8sClient.Create(ctx, token)
-			Expect(err).To(Not(HaveOccurred()))
-
-			err = k8sClient.Get(ctx, typeNamespaceName, token)
-			Expect(err).To(Not(HaveOccurred()))
+			//
+			ByExpectingCFResourceToBeReady(ctx, tokenNN, token)
 
 			//
 			//
 			//
 
 			By("Creating the custom resource for the Kind CloudflareAccessReusablePolicy")
-			RPTypeNamespaceName := types.NamespacedName{Name: "reference-test-manifest", Namespace: cloudflareName}
-
+			arpNN := types.NamespacedName{Name: "test-2-arp", Namespace: testScopedNamespace}
 			reusablePolicy := &v4alpha1.CloudflareAccessReusablePolicy{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      RPTypeNamespaceName.Name,
-					Namespace: namespace.Name,
+					Name:      arpNN.Name,
+					Namespace: arpNN.Namespace,
 				},
 				Spec: v4alpha1.CloudflareAccessReusablePolicySpec{
-					Name: "reference_test",
+					Name: "ZTO AccessReusablePolicy Tests - 2 - Policy",
 					Include: v4alpha1.CloudFlareAccessRules{
 						AccessGroupRefs: []string{
 							v4alpha1.ParsedNamespacedName(types.NamespacedName{Name: group.Name, Namespace: group.Namespace}),
@@ -158,195 +138,127 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 					},
 				},
 			}
+			Expect(k8sClient.Create(ctx, reusablePolicy)).To(Not(HaveOccurred()))
 
-			err = k8sClient.Create(ctx, reusablePolicy)
-			Expect(err).To(Not(HaveOccurred()))
-
-			RPFound := &v4alpha1.CloudflareAccessReusablePolicy{}
-			By("Checking the latest Status should have the ID of the resource")
-			Eventually(func() string {
-				// ctrlErrors.TestEmpty()
-				RPFound = &v4alpha1.CloudflareAccessReusablePolicy{}
-				_ = k8sClient.Get(ctx, RPTypeNamespaceName, RPFound)
-				return RPFound.Status.AccessReusablePolicyID
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Not(BeEmpty()))
+			//
+			ByExpectingCFResourceToBeReady(ctx, arpNN, reusablePolicy)
 
 			//
 			//
 			//
 
 			By("Creating the custom resource for the Kind CloudflareAccessApplication")
-			apps := &v4alpha1.CloudflareAccessApplication{
+			appNN := types.NamespacedName{Name: "test-2-app", Namespace: testScopedNamespace}
+			app := &v4alpha1.CloudflareAccessApplication{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      typeNamespaceName.Name,
-					Namespace: namespace.Name,
+					Name:      appNN.Name,
+					Namespace: appNN.Namespace,
 				},
 				Spec: v4alpha1.CloudflareAccessApplicationSpec{
-					Name:   "my test app",
+					Name:   "ZTO AccessReusablePolicy Tests - 2 - App",
 					Domain: "reference-policies.cf-operator-tests.uk",
 					PolicyRefs: []string{
-						v4alpha1.ParsedNamespacedName(RPTypeNamespaceName),
+						v4alpha1.ParsedNamespacedName(arpNN),
 					},
 				},
 			}
-			err = k8sClient.Create(ctx, apps)
-			Expect(err).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, app)).To(Not(HaveOccurred()))
 
-			By("Checking the Status")
-			Eventually(func(g Gomega) { //nolint:varnamelen
-				// ctrlErrors.TestEmpty()
-				err = k8sClient.Get(ctx, typeNamespaceName, apps)
-				g.Expect(err).To(Not(HaveOccurred()))
-				g.Expect(apps.Status.Conditions).ToNot(BeEmpty())
-				available := meta.IsStatusConditionPresentAndEqual(apps.Status.Conditions, statusAvailable, metav1.ConditionTrue)
-				g.Expect(available).To(BeTrue())
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			//
+			ByExpectingCFResourceToBeReady(ctx, appNN, app)
 		})
 
 		It("should successfully reconcile a custom resource for CloudflareAccessReusablePolicy", func() {
 			By("Creating the custom resource for the Kind CloudflareAccessReusablePolicy")
-			typeNamespaceName := types.NamespacedName{Name: "cloudflare-rp-five", Namespace: cloudflareName}
-
-			apps := &v4alpha1.CloudflareAccessReusablePolicy{
+			arpNN := types.NamespacedName{Name: "test-3-arp", Namespace: testScopedNamespace}
+			arp := &v4alpha1.CloudflareAccessReusablePolicy{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      typeNamespaceName.Name,
-					Namespace: typeNamespaceName.Namespace,
+					Name:      arpNN.Name,
+					Namespace: arpNN.Namespace,
 				},
 				Spec: v4alpha1.CloudflareAccessReusablePolicySpec{
-					Name: "integration test",
+					Name: "ZTO AccessReusablePolicy Tests - 3 - Policy",
 					Include: v4alpha1.CloudFlareAccessRules{
 						EmailDomains: []string{"integration.cf-operator-tests.uk"},
 					},
 				},
 			}
-			err := k8sClient.Create(ctx, apps)
-			Expect(err).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, arp)).To(Not(HaveOccurred()))
 
-			By("Checking if the custom resource was successfully created")
-			Eventually(func() error {
-				// ctrlErrors.TestEmpty()
-				found := &v4alpha1.CloudflareAccessReusablePolicy{}
-				return k8sClient.Get(ctx, typeNamespaceName, found)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
-
-			found := &v4alpha1.CloudflareAccessReusablePolicy{}
-			By("Checking the latest Status should have the ID of the resource")
-			Eventually(func(g Gomega) { //nolint:varnamelen
-				// ctrlErrors.TestEmpty()
-				found = &v4alpha1.CloudflareAccessReusablePolicy{}
-				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
-				g.Expect(found.Status.AccessReusablePolicyID).ToNot(BeEmpty())
-				g.Expect(found.Status.CreatedAt.Time).To(Equal(found.Status.UpdatedAt.Time))
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			//
+			foundArp := &v4alpha1.CloudflareAccessReusablePolicy{}
+			ByExpectingCFResourceToBeReady(ctx, arpNN, foundArp)
 
 			By("Cloudflare resource should equal the spec")
-			cfResource, err := api.AccessApplication(ctx, found.Status.AccessReusablePolicyID)
+			cfResource, err := api.AccessApplication(ctx, foundArp.Status.AccessReusablePolicyID)
 			Expect(err).To(Not(HaveOccurred()))
-			Expect(cfResource.Name).To(Equal(found.Spec.Name))
+			Expect(cfResource.Name).To(Equal(foundArp.Spec.Name))
 
-			By("Get the latest version of the resource")
-			Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
 			By("Updating the name of the resource")
-			found.Spec.Name = updtdName
-			Expect(k8sClient.Update(ctx, found)).To(Not(HaveOccurred()))
+			foundArp.Spec.Name = updtdName
+			Expect(k8sClient.Update(ctx, foundArp)).To(Not(HaveOccurred()))
 
-			By("Checking the latest Status should have the update")
-			Eventually(func(g Gomega) { //nolint:varnamelen
-				// ctrlErrors.TestEmpty()
-				found = &v4alpha1.CloudflareAccessReusablePolicy{}
-				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
-				g.Expect(found.Spec.Name).To(Equal(updtdName))
-				g.Expect(found.Status.AccessReusablePolicyID).ToNot(BeEmpty())
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			//
+			ByExpectingCFResourceToBeReady(ctx, arpNN, foundArp)
 
 			By("Cloudflare resource should equal the updated spec")
-			Eventually(func(g Gomega) { //nolint:varnamelen
-				// ctrlErrors.TestEmpty()
-				cfResource, err = api.AccessApplication(ctx, found.Status.AccessReusablePolicyID)
-				g.Expect(err).To(Not(HaveOccurred()))
-				g.Expect(cfResource.Name).To(Equal(found.Spec.Name))
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed(), ctrlErrors) // sometimes this is cached
+			cfResource, err = api.AccessApplication(ctx, foundArp.Status.AccessReusablePolicyID)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(cfResource.Name).To(Equal(foundArp.Spec.Name))
 
 			By("Cloudflare resource should be deleted")
-			Expect(k8sClient.Delete(ctx, apps)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Delete(ctx, arp)).To(Not(HaveOccurred()))
 
 			By("Checking if the custom resource was successfully deleted")
 			Eventually(func() error {
 				// ctrlErrors.TestEmpty()
-				return k8sClient.Get(ctx, typeNamespaceName, apps)
+				return k8sClient.Get(ctx, arpNN, arp)
 			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Not(Succeed()))
 		})
 
 		It("should successfully reconcile CloudflareAccessReusablePolicy whose AccessReusablePolicyID references a missing Reusable Policy", func() {
 			By("Recreating the custom resource for the Kind CloudflareAccessReusablePolicy")
-			typeNamespaceName := types.NamespacedName{Name: "cloudflare-rp-seven", Namespace: cloudflareName}
-
-			previousCreatedAndUpdatedDate := metav1.NewTime(time.Now().Add(-time.Hour * 24))
-			apps := &v4alpha1.CloudflareAccessReusablePolicy{
+			arpNN := types.NamespacedName{Name: "test-4-arp", Namespace: testScopedNamespace}
+			arp := &v4alpha1.CloudflareAccessReusablePolicy{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      typeNamespaceName.Name,
-					Namespace: namespace.Name,
+					Name:      arpNN.Name,
+					Namespace: arpNN.Namespace,
 				},
 				Spec: v4alpha1.CloudflareAccessReusablePolicySpec{
-					Name: "missing application",
+					Name: "ZTO AccessReusablePolicy Tests - 4 - Policy",
 					Include: v4alpha1.CloudFlareAccessRules{
 						EmailDomains: []string{"recreate-application.cf-operator-tests.uk"},
 					},
 				},
 			}
+			Expect(k8sClient.Create(ctx, arp)).To(Not(HaveOccurred()))
 
-			err := k8sClient.Create(ctx, apps)
-			Expect(err).To(Not(HaveOccurred()))
+			//
+			foundArp := &v4alpha1.CloudflareAccessApplication{}
+			ByExpectingCFResourceToBeReady(ctx,
+				arpNN,
+				foundArp,
+			)
 
-			By("Checking if the custom resource was successfully created")
-			Eventually(func() error {
-				// ctrlErrors.TestEmpty()
-				found := &v4alpha1.CloudflareAccessReusablePolicy{}
-				return k8sClient.Get(ctx, typeNamespaceName, found)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
-
-			found := &v4alpha1.CloudflareAccessReusablePolicy{}
-			By("Checking the latest Status should have the ID of the resource")
-
-			oldAccessReusablePolicyID := ""
-
-			Eventually(func(g Gomega) { //nolint:varnamelen
-				// ctrlErrors.TestEmpty()
-				found = &v4alpha1.CloudflareAccessReusablePolicy{}
-				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
-				g.Expect(found.Status.AccessReusablePolicyID).ToNot(BeEmpty())
-				oldAccessReusablePolicyID = found.Status.AccessReusablePolicyID
-				g.Expect(found.Status.CreatedAt.Time).To(Equal(found.Status.UpdatedAt.Time))
-				g.Expect(found.Status.CreatedAt.Time.After(previousCreatedAndUpdatedDate.Time)).To(BeTrue())
-				g.Expect(found.Status.UpdatedAt.Time.After(previousCreatedAndUpdatedDate.Time)).To(BeTrue())
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
-
-			Expect(api.DeleteAccessApplication(ctx, found.Status.AccessReusablePolicyID)).To(Not(HaveOccurred()))
+			By("Delete associated CF Application")
+			oldAccessReusablePolicyID := foundArp.GetCloudflareUUID()
+			Expect(api.DeleteAccessApplication(ctx, foundArp.GetCloudflareUUID())).To(Not(HaveOccurred()))
 
 			By("re-trigger reconcile by updating access application")
-			Eventually(func(g Gomega) { //nolint:varnamelen
-				// ctrlErrors.TestEmpty()
-				found = &v4alpha1.CloudflareAccessReusablePolicy{}
-				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
-				found.Spec.Name = updtdName
-				Expect(k8sClient.Update(ctx, found)).To(Not(HaveOccurred()))
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			foundArp.Spec.Name = updtdName
+			Expect(k8sClient.Update(ctx, foundArp)).To(Not(HaveOccurred()))
 
-			By("Checking the latest Status should have the ID of the resource")
-			Eventually(func(g Gomega) { //nolint:varnamelen
-				// ctrlErrors.TestEmpty()
-				found = &v4alpha1.CloudflareAccessReusablePolicy{}
-				g.Expect(k8sClient.Get(ctx, typeNamespaceName, found)).To(Not(HaveOccurred()))
-				g.Expect(found.Status.AccessReusablePolicyID).ToNot(Equal(oldAccessReusablePolicyID))
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			//
+			ByExpectingCFResourceToBeReady(ctx,
+				arpNN,
+				foundArp,
+			)
+			Expect(foundArp.GetCloudflareUUID()).ToNot(Equal(oldAccessReusablePolicyID))
 
 			By("Cloudflare resource should equal the updated spec")
-			Eventually(func(g Gomega) { //nolint:varnamelen
-				// ctrlErrors.TestEmpty()
-				cfResource, err := api.AccessApplication(ctx, found.Status.AccessReusablePolicyID)
-				g.Expect(err).To(Not(HaveOccurred()))
-				g.Expect(cfResource.Name).To(Equal(found.Spec.Name))
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed(), ctrlErrors) // sometimes this is cached
+			cfResource, err := api.AccessApplication(ctx, foundArp.GetCloudflareUUID())
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(cfResource.Name).To(Equal(foundArp.Spec.Name))
 		})
 	})
 })

@@ -136,11 +136,11 @@ type CloudflareServiceToken struct {
 	Status CloudflareServiceTokenStatus `json:"status,omitzero"`
 }
 
-func (c *CloudflareServiceToken) GetType() string {
-	return "CloudflareServiceToken"
+func (c *CloudflareServiceToken) GetConditions() *[]metav1.Condition {
+	return &c.Status.Conditions
 }
 
-func (c *CloudflareServiceToken) GetID() string {
+func (c *CloudflareServiceToken) GetCloudflareUUID() string {
 	return c.Status.ServiceTokenID
 }
 

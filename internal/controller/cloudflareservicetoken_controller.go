@@ -118,7 +118,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		if len(serviceToken.Status.Conditions) == 0 {
 			metav2.SetStatusCondition(&serviceToken.Status.Conditions,
 				metav1.Condition{
-					Type:    statusAvailable,
+					Type:    StatusAvailable,
 					Status:  metav1.ConditionUnknown,
 					Reason:  "Reconciling",
 					Message: "ServiceToken is reconciling",
@@ -320,7 +320,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	//
 	//
 
-	err = r.ReconcileStatus(ctx, existingServiceToken, serviceToken)
+	err = r.MayReconcileStatus(ctx, existingServiceToken, serviceToken)
 	if err != nil {
 		// will retry immediately
 		return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to set status"))
@@ -329,7 +329,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, serviceToken, func() error {
 		metav2.SetStatusCondition(&serviceToken.Status.Conditions,
 			metav1.Condition{
-				Type:    statusAvailable,
+				Type:    StatusAvailable,
 				Status:  metav1.ConditionTrue,
 				Reason:  "Reconcilied",
 				Message: "CloudflareServiceToken Reconciled Successfully",
@@ -346,7 +346,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	return ctrl.Result{}, nil
 }
 
-func (r *CloudflareServiceTokenReconciler) ReconcileStatus(
+func (r *CloudflareServiceTokenReconciler) MayReconcileStatus(
 	ctx context.Context,
 	cfToken *cftypes.ExtendedServiceToken,
 	k8sToken *v4alpha1.CloudflareServiceToken,

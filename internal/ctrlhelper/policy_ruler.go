@@ -98,7 +98,7 @@ func (helper *ControllerHelper) PopulateWithCloudflareUUIDs(
 			}
 
 			//
-			if accessGroup.Status.AccessGroupID == "" {
+			if accessGroup.GetCloudflareUUID() == "" {
 				//
 				err := fault.Newf("Undefined UUID; CloudflareAccessGroup %s - %s not ready yet", accessGroupRef.Name, accessGroupRef.Namespace)
 				log.Error(err, "Issue while checking defined Cloudflare UUID")
@@ -108,7 +108,7 @@ func (helper *ControllerHelper) PopulateWithCloudflareUUIDs(
 			}
 
 			//
-			ruleSet.ids.AccessGroupRefCfIds = append(ruleSet.ids.AccessGroupRefCfIds, accessGroup.Status.AccessGroupID)
+			ruleSet.ids.AccessGroupRefCfIds = append(ruleSet.ids.AccessGroupRefCfIds, accessGroup.GetCloudflareUUID())
 		}
 
 		//
@@ -138,7 +138,7 @@ func (helper *ControllerHelper) PopulateWithCloudflareUUIDs(
 			}
 
 			//
-			if serviceToken.Status.ServiceTokenID == "" {
+			if serviceToken.GetCloudflareUUID() == "" {
 				//
 				err := fault.Newf("Undefined UUID; CloudflareServiceToken %s - %s not ready yet", tokenRef.Name, tokenRef.Namespace)
 				log.Error(err, "Issue while checking defined Cloudflare UUID")
@@ -148,7 +148,7 @@ func (helper *ControllerHelper) PopulateWithCloudflareUUIDs(
 			}
 
 			//
-			ruleSet.ids.ServiceTokenRefCfIds = append(ruleSet.ids.ServiceTokenRefCfIds, serviceToken.Status.ServiceTokenID)
+			ruleSet.ids.ServiceTokenRefCfIds = append(ruleSet.ids.ServiceTokenRefCfIds, serviceToken.GetCloudflareUUID())
 		}
 	}
 

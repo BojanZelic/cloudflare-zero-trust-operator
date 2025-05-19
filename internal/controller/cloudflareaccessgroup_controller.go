@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Southclaws/fault"
 	"github.com/Southclaws/fault/fctx"
@@ -27,6 +28,7 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcompare"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
+	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	"github.com/go-logr/logr"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -60,94 +62,35 @@ func (r *CloudflareAccessGroupReconciler) GetReconcilierLogger(ctx context.Conte
 	return ctrl.LoggerFrom(ctx).WithName("CloudflareAccessGroupController::Reconcile")
 }
 
-//nolint:cyclop,gocognit
+//nolint:cyclop,gocognit,maintidx
 func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var err error
-	var existingCfAG *zero_trust.AccessGroupGetResponse
-	var api *cfapi.API
-
 	log := r.GetReconcilierLogger(ctx)
-
 	accessGroup := &v4alpha1.CloudflareAccessGroup{}
+	var err error
 
-	err = r.Get(ctx, req.NamespacedName, accessGroup)
-	if err != nil {
+	//
+	// Try to get AccessGroup CRD Manifest
+	//
+
+	//
+	if err = r.Get(ctx, req.NamespacedName, accessGroup); err != nil {
+		// Not found ? might have been deleted; skip Reconciliation
 		if k8serrors.IsNotFound(err) {
-			// will stop
-			return ctrl.Result{}, nil
+			return ctrl.Result{}, nil // will stop
 		}
-		// will retry immediately
+
+		// Else, return with failure
 		return ctrl.Result{}, fault.Wrap(err,
 			fmsg.With("Failed to get CloudflareAccessGroup"),
 			fctx.With(ctx, "groupName", req.Name),
-		)
-	}
-
-	cfConfig := config.ParseCloudflareConfig(accessGroup)
-	validConfig, err := cfConfig.IsValid()
-	if !validConfig {
-		// will retry immediately
-		return ctrl.Result{}, fault.Wrap(err, fmsg.With("invalid config"))
-	}
-
-	api = cfapi.FromConfig(ctx, cfConfig, r.OptionalTracer)
-
-	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, accessGroup)
-	if !continueReconcilliation || err != nil {
-		// will retry immediately
-		return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to reconcile deletion for access group"))
-	}
-
-	_, err = controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
-		if len(accessGroup.Status.Conditions) == 0 {
-			meta.SetStatusCondition(&accessGroup.Status.Conditions,
-				metav1.Condition{
-					Type:    statusAvailable,
-					Status:  metav1.ConditionUnknown,
-					Reason:  "Reconciling",
-					Message: "AccessGroup is reconciling",
-				},
-			)
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		// will retry immediately
-		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessGroup status"))
-	}
-
-	if accessGroup.Status.AccessGroupID == "" {
-		existingCfAG, err = api.AccessGroupByName(ctx, accessGroup.Spec.Name)
-		if err != nil {
-			// will retry immediately
-			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to get access group by name"))
-		}
-		if existingCfAG != nil {
-			log.Info("access group already exists. importing...",
-				"accessGroup", existingCfAG.Name,
-				"accessGroupID", existingCfAG.ID,
-			)
-		}
-		err = r.ReconcileStatus(ctx, existingCfAG, accessGroup)
-		if err != nil {
-			// will retry immediately
-			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to update access groups"))
-		}
-	} else {
-		existingCfAG, err = api.AccessGroup(ctx, accessGroup.Status.AccessGroupID)
-		if err != nil {
-			// will retry immediately
-			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to get access group"))
-		}
+		) // will retry immediately
 	}
 
 	//
-	//
+	// Populate UUIDs
 	//
 
-	// populate UUIDs;
+	//
 	popRes, err := r.Helper.PopulateWithCloudflareUUIDs(ctx, req.Namespace, &log, accessGroup)
 
 	// if any result returned, return it to reconcilier along w/ err (if any)
@@ -162,7 +105,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		_, errPatch := controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
 			meta.SetStatusCondition(&accessGroup.Status.Conditions,
 				metav1.Condition{
-					Type:    statusAvailable,
+					Type:    StatusAvailable,
 					Status:  metav1.ConditionFalse,
 					Reason:  "InvalidReference",
 					Message: err.Error(),
@@ -182,58 +125,190 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	//
-	//
+	// Setup access to CF API
 	//
 
-	if existingCfAG == nil {
-		//nolint:varnamelen
-		existingCfAG, err = api.CreateAccessGroup(ctx, accessGroup)
-		if err != nil {
-			// will retry immediately
-			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to create access group"))
-		}
-		err = r.ReconcileStatus(ctx, existingCfAG, accessGroup)
-		if err != nil {
-			// will retry immediately
-			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to set access group status"))
-		}
-	} else if needsUpdate := !cfcompare.AreAccessGroupsEquivalent(existingCfAG, accessGroup); needsUpdate {
-		log.Info(accessGroup.Spec.Name + " has changed, updating...")
-
-		err := api.UpdateAccessGroup(ctx, accessGroup)
-		if err != nil {
-			// will retry immediately
-			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to update access groups"))
-		}
+	// Gather credentials to connect to Cloudflare's API
+	cfConfig := config.ParseCloudflareConfig(accessGroup)
+	validConfig, err := cfConfig.IsValid()
+	if !validConfig {
+		// will retry immediately
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("invalid config"))
 	}
 
+	// Initialize Cloudflare's API wrapper
+	api := cfapi.FromConfig(ctx, cfConfig, r.OptionalTracer)
+
+	//
+	// Proceed marked-as pending operations of manifest (if any)
+	//
+
+	// Attempt pending deletions on CRD Manifest
+	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, accessGroup)
+	if !continueReconcilliation || err != nil {
+		// will retry immediately
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to reconcile deletion for access group"))
+	}
+
+	//
+	// May mark manifest status state
+	//
+
+	// Try to setup "Conditions" field on CRD Manifest associated status
 	_, err = controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
 		meta.SetStatusCondition(&accessGroup.Status.Conditions,
 			metav1.Condition{
-				Type:    statusAvailable,
-				Status:  metav1.ConditionTrue,
-				Reason:  "Reconcilied",
-				Message: "AccessGroup Reconciled Successfully",
+				Type:    StatusAvailable,
+				Status:  metav1.ConditionUnknown,
+				Reason:  "Reconciling",
+				Message: "CloudflareAccessGroup is reconciling",
 			},
 		)
-
 		return nil
 	})
-
 	if err != nil {
 		// will retry immediately
 		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessGroup status"))
 	}
 
-	log.Info("reconciled successfully")
+	//
+	// Find CloudFlare Access Group depending on presence of CF UUID bound to resource
+	//
+
+	var cfAccessGroup *zero_trust.AccessGroupGetResponse
+
+	//
+	if accessGroup.GetCloudflareUUID() == "" {
+
+		//
+		// Has no UUID
+		//
+
+		cfAccessGroup, err = api.AccessGroupByName(ctx, accessGroup.Spec.Name)
+		if err != nil {
+			// will retry immediately
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to get access group by name"))
+		} else {
+			//
+			// ...if not found, we'll create it later then !
+			//
+		}
+
+		// would do nothing if resource was not found above
+		err = r.MayReconcileStatus(ctx, cfAccessGroup, accessGroup)
+		if err != nil {
+			// will retry immediately
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to update access groups"))
+		}
+
+	} else {
+
+		//
+		// Already has a UUID
+		//
+
+		//
+		cfAccessGroup, err = api.AccessGroup(ctx, accessGroup.GetCloudflareUUID())
+
+		//
+		if err != nil {
+			var cfErr *cloudflare.Error
+			isNotFound := errors.As(err, &cfErr) && cfErr.StatusCode == 404
+
+			// do not allow to continue if anything other than not found
+			if !isNotFound {
+				// will retry immediately
+				return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to get access group"))
+			}
+
+			// well, Group ID we had do not exist anymore; lets recreate the app in CF
+			log.Info("access group ID linked to manifest not found - recreating remote resource...",
+				"accessGroupID", accessGroup.GetCloudflareUUID(),
+			)
+
+			// reset UUID so we can reconcile later on
+			accessGroup.Status.AccessGroupID = ""
+		}
+	}
+
+	//
+	// May create / recreate / update Access Group on CloudFlare API
+	//
+
+	if cfAccessGroup == nil {
+
+		//
+		// no ressource found, create it with API
+		//
+
+		//
+		cfAccessGroup, err = api.CreateAccessGroup(ctx, accessGroup)
+		if err != nil {
+			// will retry immediately
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to create access group"))
+		}
+
+		// update status
+		if err = r.MayReconcileStatus(ctx, cfAccessGroup, accessGroup); err != nil {
+			// will retry immediately
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("issue updating status"))
+		}
+
+	} else if needsUpdate := !cfcompare.AreAccessGroupsEquivalent(cfAccessGroup, accessGroup); needsUpdate {
+
+		//
+		// diff found between fetched CF resource and definition
+		//
+
+		log.Info("group has changed - updating...",
+			"name", accessGroup.Spec.Name,
+		)
+
+		//
+		err := api.UpdateAccessGroup(ctx, accessGroup)
+		if err != nil {
+			// will retry immediately
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to update access groups"))
+		}
+
+		// update status
+		if err = r.MayReconcileStatus(ctx, cfAccessGroup, accessGroup); err != nil {
+			// will retry immediately
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("issue updating status"))
+		}
+	}
+
+	//
+	// All set, now mark ressource as available
+	//
+
+	if _, err = controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
+		meta.SetStatusCondition(&accessGroup.Status.Conditions,
+			metav1.Condition{
+				Type:    StatusAvailable,
+				Status:  metav1.ConditionTrue,
+				Reason:  "Reconcilied",
+				Message: "App Reconciled Successfully",
+			},
+		)
+
+		return nil
+	}); err != nil {
+		// will retry immediately
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessGroup status"))
+	}
+
+	//
+	// All good !
+	//
 
 	// will stop normally
 	return ctrl.Result{}, nil
 }
 
 //nolint:dupl
-func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, cfGroup *zero_trust.AccessGroupGetResponse, k8sGroup *v4alpha1.CloudflareAccessGroup) error {
-	if k8sGroup.Status.AccessGroupID != "" {
+func (r *CloudflareAccessGroupReconciler) MayReconcileStatus(ctx context.Context, cfGroup *zero_trust.AccessGroupGetResponse, k8sGroup *v4alpha1.CloudflareAccessGroup) error {
+	if k8sGroup.GetCloudflareUUID() != "" {
 		return nil
 	}
 

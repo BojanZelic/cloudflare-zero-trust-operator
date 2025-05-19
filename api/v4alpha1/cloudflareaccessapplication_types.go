@@ -44,7 +44,7 @@ type CloudflareAccessApplicationSpec struct {
 	// +optional
 	Name string `json:"name,omitzero"`
 
-	// The domain and path that Access will secure.
+	// The domain and path that Access will secure. Must be unique by CloudFlare Account.
 	//
 	// Meaningless for "warp" and "app_launcher" app types. Required for "self_hosted".
 	//
@@ -155,11 +155,11 @@ type CloudflareAccessApplication struct {
 	Status CloudflareAccessApplicationStatus `json:"status,omitzero"`
 }
 
-func (c *CloudflareAccessApplication) GetType() string {
-	return "CloudflareAccessApplication"
+func (c *CloudflareAccessApplication) GetConditions() *[]metav1.Condition {
+	return &c.Status.Conditions
 }
 
-func (c *CloudflareAccessApplication) GetID() string {
+func (c *CloudflareAccessApplication) GetCloudflareUUID() string {
 	return c.Status.AccessApplicationID
 }
 

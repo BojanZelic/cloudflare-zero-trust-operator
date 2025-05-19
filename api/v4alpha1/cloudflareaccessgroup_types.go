@@ -25,7 +25,7 @@ import (
 
 // CloudflareAccessGroupSpec defines the desired state of CloudflareAccessGroup.
 type CloudflareAccessGroupSpec struct {
-	// Name of the Cloudflare Access Group
+	// Name of the Cloudflare Access Group. Must be unique by CloudFlare Account.
 	//
 	// +required
 	Name string `json:"name"`
@@ -87,11 +87,11 @@ type CloudflareAccessGroup struct {
 	Status CloudflareAccessGroupStatus `json:"status,omitzero"`
 }
 
-func (c *CloudflareAccessGroup) GetType() string {
-	return "CloudflareAccessGroup"
+func (c *CloudflareAccessGroup) GetConditions() *[]metav1.Condition {
+	return &c.Status.Conditions
 }
 
-func (c *CloudflareAccessGroup) GetID() string {
+func (c *CloudflareAccessGroup) GetCloudflareUUID() string {
 	return c.Status.AccessGroupID
 }
 

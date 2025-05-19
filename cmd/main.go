@@ -91,7 +91,7 @@ func main() {
 
 	// Bind logger
 	ctrl.SetLogger(
-		logger.NewFaultLogger(zapLogger),
+		logger.NewFaultLogger(zapLogger, nil),
 	)
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
