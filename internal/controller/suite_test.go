@@ -36,7 +36,6 @@ import (
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -147,7 +146,7 @@ var _ = BeforeSuite(func() {
 
 	By("bootstrapping cloudflare api client")
 	config.SetConfigDefaults()
-	cfConfig := config.ParseCloudflareConfig(&v1.ObjectMeta{})
+	cfConfig := config.ParseCloudflareConfig(&metav1.ObjectMeta{})
 	_, err = cfConfig.IsValid()
 	Expect(err).NotTo(HaveOccurred())
 
@@ -323,7 +322,7 @@ func expectingCFResourceReadiness(
 	ctx context.Context,
 	name types.NamespacedName,
 	res ctrlhelper.CloudflareControlledResource,
-	awaitedCondition v1.ConditionStatus,
+	awaitedCondition metav1.ConditionStatus,
 ) AsyncAssertion {
 	//
 	const awaitedStatus = controller.StatusAvailable

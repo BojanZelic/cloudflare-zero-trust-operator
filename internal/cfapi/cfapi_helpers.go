@@ -72,7 +72,7 @@ func p_update_SH(ids []string) (out []zero_trust.AccessApplicationUpdateParamsBo
 
 // Extract a simple, precedence ordered slice of associated [app] policy UUIDs
 func GetOrderedPolicyUUIDs(app *zero_trust.AccessApplicationGetResponse) (orderedUUIDs []string, err error) {
-	switch v := app.Policies.(type) {
+	switch v := app.Policies.(type) { //nolint:varnamelen
 	case []zero_trust.AccessApplicationGetResponseDeviceEnrollmentPermissionsApplicationPolicy:
 		{
 			return getOrderedPolicyUUIDs_WARP(v), nil
@@ -89,7 +89,7 @@ func GetOrderedPolicyUUIDs(app *zero_trust.AccessApplicationGetResponse) (ordere
 		}
 	}
 
-	return nil, fault.New("Cannot retrieve policy UUIDs", fmsg.With("Unhandled policy, contact the developers"))
+	return nil, fault.New("Cannot retrieve policy UUIDs", fmsg.With("Unhandled policy, contact the developers")) //nolint:wrapcheck
 }
 
 //
@@ -145,6 +145,7 @@ func getOrderedPolicyUUIDs_AppLauncher(policies []zero_trust.AccessApplicationGe
 //
 //
 
+//nolint:varnamelen
 func difference(a, b []string) []string {
 	m := make(map[string]struct{}, len(b))
 	for _, s := range b {

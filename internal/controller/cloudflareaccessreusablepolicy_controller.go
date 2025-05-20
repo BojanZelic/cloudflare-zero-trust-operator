@@ -129,7 +129,7 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 		// Record populated values
 		//
 
-		if err := r.Client.Status().Update(ctx, reusablePolicy); err != nil {
+		if err = r.Client.Status().Update(ctx, reusablePolicy); err != nil {
 			// will retry immediately
 			return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessApplication status"))
 		}
@@ -264,7 +264,7 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 		log.Info(reusablePolicy.Name + " diverge from remote counterpart, updating CF API...")
 
 		//
-		err := api.UpdateAccessReusablePolicy(ctx, reusablePolicy)
+		err = api.UpdateAccessReusablePolicy(ctx, reusablePolicy)
 		if err != nil {
 			// will retry immediately
 			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to update reusable policies"))

@@ -28,31 +28,33 @@ type ExtendedServiceToken struct {
 
 // Updates ExtendedServiceToken with values
 func (st *ExtendedServiceToken) SetSecretValues(secret corev1.Secret) error {
+	var ok bool //nolint:varnamelen
+
 	//
 	// Check Annotations
 	//
-	clientIDKey, ok := secret.Annotations[meta.AnnotationClientIDKey] //nolint:varnamelen
+	clientIDKey, ok := secret.Annotations[meta.AnnotationClientIDKey]
 	if !ok {
-		return ErrMissingAnnotationClientIDKey
+		return ErrMissingAnnotationClientIDKey //nolint:wrapcheck
 	}
-	clientSecretKey, ok := secret.Annotations[meta.AnnotationClientSecretKey] //nolint:varnamelen
+	clientSecretKey, ok := secret.Annotations[meta.AnnotationClientSecretKey]
 	if !ok {
-		return ErrMissingAnnotationClientSecretKey
+		return ErrMissingAnnotationClientSecretKey //nolint:wrapcheck
 	}
-	if _, ok := secret.Annotations[meta.AnnotationTokenIDKey]; !ok { //nolint:varnamelen
-		return ErrMissingAnnotationTokenIDKey
+	if _, ok = secret.Annotations[meta.AnnotationTokenIDKey]; !ok {
+		return ErrMissingAnnotationTokenIDKey //nolint:wrapcheck
 	}
 
 	//
 	// Check Data
 	//
-	clientID, ok := secret.Data[clientIDKey] //nolint:varnamelen
+	clientID, ok := secret.Data[clientIDKey]
 	if !ok {
-		return ErrMissingClientIDKey
+		return ErrMissingClientIDKey //nolint:wrapcheck
 	}
-	clientSecret, ok := secret.Data[clientSecretKey] //nolint:varnamelen
+	clientSecret, ok := secret.Data[clientSecretKey]
 	if !ok {
-		return ErrMissingClientSecretKey
+		return ErrMissingClientSecretKey //nolint:wrapcheck
 	}
 
 	//

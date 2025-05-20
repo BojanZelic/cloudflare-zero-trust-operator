@@ -139,7 +139,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 
 	// this is used just for populating existingServiceToken
 	associatedSecretList := &corev1.SecretList{}
-	if err := r.List(ctx, associatedSecretList,
+	if err = r.List(ctx, associatedSecretList,
 		client.MatchingLabels{meta.LabelOwnedBy: serviceToken.Name},
 		client.InNamespace(serviceToken.Namespace),
 	); err != nil {
@@ -199,7 +199,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	//
 
 	if associatedSecret != nil {
-		if err := existingServiceToken.SetSecretValues(*associatedSecret); err != nil {
+		if err = existingServiceToken.SetSecretValues(*associatedSecret); err != nil {
 			// will retry immediately
 			return ctrl.Result{}, fault.Wrap(err, fmsg.With("failed to set Secret values, associated to CloudflareServiceToken"))
 		}
@@ -281,11 +281,11 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		//
 		//
 
-		if err := existingServiceToken.SetSecretValues(*associatedSecret); err != nil {
+		if err = existingServiceToken.SetSecretValues(*associatedSecret); err != nil {
 			return fault.Wrap(err, fmsg.With("unable to CreateOrUpdate Secret associated to CloudflareServiceToken"))
 		}
 
-		if err := ctrl.SetControllerReference(serviceToken, associatedSecret, r.Scheme); err != nil {
+		if err = ctrl.SetControllerReference(serviceToken, associatedSecret, r.Scheme); err != nil {
 			return fault.Wrap(err, fmsg.With("unable to set Secret owner reference, associated to CloudflareServiceToken"))
 		}
 
@@ -309,7 +309,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	//
 
 	if secretToDelete != nil {
-		if err := r.Delete(ctx, secretToDelete); err != nil {
+		if err = r.Delete(ctx, secretToDelete); err != nil {
 			log.Error(err, "failed to remove old Secret associated to CloudflareServiceToken")
 		} else {
 			log.Info("removed old Secret associated to CloudflareServiceToken")

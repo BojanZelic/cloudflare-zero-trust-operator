@@ -131,7 +131,7 @@ func (a *API) _resetAccessApplication(ctx context.Context,
 		}
 	default:
 		{
-			return fault.Newf("Unhandled application reset for '%s' app type. Contact the developers.", appTypeToReset)
+			return fault.Newf("Unhandled application reset for '%s' app type. Contact the developers.", appTypeToReset) //nolint:wrapcheck
 		}
 	}
 

@@ -94,7 +94,7 @@ func (helper *ControllerHelper) PopulateWithCloudflareUUIDs(
 			accessGroup := &v4alpha1.CloudflareAccessGroup{}
 
 			//
-			if err := helper.R.Get(ctx, accessGroupRef, accessGroup); err != nil {
+			if err = helper.R.Get(ctx, accessGroupRef, accessGroup); err != nil {
 				// will retry immediately
 				return nil, fault.Wrap(err,
 					fmsg.With("unable to reference CloudflareAccessGroup"),
@@ -109,7 +109,7 @@ func (helper *ControllerHelper) PopulateWithCloudflareUUIDs(
 			UUID := accessGroup.GetCloudflareUUID()
 			if UUID == "" {
 				//
-				err := fault.Newf("Undefined UUID; CloudflareAccessGroup %s - %s not ready yet", accessGroupRef.Name, accessGroupRef.Namespace)
+				err = fault.Newf("Undefined UUID; CloudflareAccessGroup %s - %s not ready yet", accessGroupRef.Name, accessGroupRef.Namespace)
 				log.Error(err, "Issue while checking defined Cloudflare UUID")
 
 				// will retry later (setting error here would trigger immediate retry)

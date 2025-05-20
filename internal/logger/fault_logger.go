@@ -32,7 +32,7 @@ func NewFaultLogger(logger logr.Logger, options *FaultLoggerOptions) logr.Logger
 }
 
 func (cl FaultLogger) Init(info logr.RuntimeInfo) {
-	return
+	// nothing to init !
 }
 
 func (cl FaultLogger) Enabled(level int) bool {

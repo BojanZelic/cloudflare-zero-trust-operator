@@ -128,7 +128,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		// Record populated values
 		//
 
-		if err := r.Client.Status().Update(ctx, accessGroup); err != nil {
+		if err = r.Client.Status().Update(ctx, accessGroup); err != nil {
 			// will retry immediately
 			return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessApplication status"))
 		}
@@ -198,11 +198,13 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		if err != nil {
 			// will retry immediately
 			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to get access group by name"))
-		} else {
-			//
-			// ...if not found, we'll create it later then !
-			//
 		}
+
+		// else...
+
+		//
+		// ...if not found, we'll create it later then !
+		//
 
 		// would do nothing if resource was not found above
 		err = r.MayReconcileStatus(ctx, cfAccessGroup, accessGroup)
@@ -275,7 +277,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		)
 
 		//
-		err := api.UpdateAccessGroup(ctx, accessGroup)
+		err = api.UpdateAccessGroup(ctx, accessGroup)
 		if err != nil {
 			// will retry immediately
 			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to update access groups"))

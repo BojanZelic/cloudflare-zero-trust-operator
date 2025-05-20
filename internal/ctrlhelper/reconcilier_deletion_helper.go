@@ -148,7 +148,7 @@ func (h *ControllerHelper) tryToDeleteCFResource(ctx context.Context, log *logr.
 		}
 
 	default:
-		return fault.Newf("unknown type %T", toDelete)
+		return fault.Newf("unknown type %T", toDelete) //nolint:wrapcheck
 	}
 
 	//

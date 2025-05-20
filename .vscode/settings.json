@@ -8,7 +8,7 @@
   "go.lintFlags": [
     "--path-mode='abs'",
     "--build-tags=integration",
-    "--fast-only"
+    //  "--fast-only"
   ],
   "go.formatTool": "custom",
   "go.alternateTools": {

@@ -222,7 +222,7 @@ func (a *API) CreateAccessApplication(
 		}
 	default:
 		{
-			return nil, fault.Newf("Unhandled application creation for '%s' app type. Contact the developers.", app.Spec.Type)
+			return nil, fault.Newf("Unhandled application creation for '%s' app type. Contact the developers.", app.Spec.Type) //nolint:wrapcheck
 		}
 	}
 
@@ -325,7 +325,7 @@ func (a *API) UpdateAccessApplication(
 		}
 	default:
 		{
-			return nil, fault.Newf("Unhandled application update for '%s' app type. Contact the developers.", app.Spec.Type)
+			return nil, fault.Newf("Unhandled application update for '%s' app type. Contact the developers.", app.Spec.Type) //nolint:wrapcheck
 		}
 	}
 
@@ -365,7 +365,7 @@ func (a *API) DeleteOrResetAccessApplication(ctx context.Context, targetedApp *v
 	}
 
 	//
-	return fault.Newf("Unhandled application deletion/reset for '%s' app type. Contact the developers.", targetedApp.Spec.Type)
+	return fault.Newf("Unhandled application deletion/reset for '%s' app type. Contact the developers.", targetedApp.Spec.Type) //nolint:wrapcheck
 }
 
 //

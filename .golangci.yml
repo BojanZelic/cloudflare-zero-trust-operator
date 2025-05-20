@@ -30,6 +30,9 @@ linters:
     - maintidx
     - errchkjson
   settings:
+    govet:
+      enable:
+        - shadow
     revive:
       rules:
         - name: comment-spacings

@@ -119,7 +119,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			Eventually(func(g Gomega) { //nolint:varnamelen
 				// ctrlErrors.TestEmpty()
 				tmp := &v4alpha1.CloudflareServiceToken{}
-				err := k8sClient.Get(ctx, sTokenNN, tmp)
+				err = k8sClient.Get(ctx, sTokenNN, tmp)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(tmp.Status.UpdatedAt.Time).To(BeTemporally(">", serviceToken.Status.UpdatedAt.Time))
 			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
@@ -211,7 +211,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			By("Checking if the new secret was successfully created")
 			Eventually(func() error {
 				// ctrlErrors.TestEmpty()
-				sec := &corev1.Secret{}
+				sec = &corev1.Secret{}
 				return k8sClient.Get(ctx, types.NamespacedName{Name: found.Spec.Template.Name, Namespace: sTokenNN.Namespace}, sec)
 			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
 

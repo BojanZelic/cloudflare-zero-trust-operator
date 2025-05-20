@@ -49,11 +49,11 @@ func ParseCloudflareConfig(obj metav1.Object) ZeroTrustConfig {
 
 func (c ZeroTrustConfig) IsValid() (bool, error) {
 	if c.AccountID == "" {
-		return false, ErrMissingAccountID
+		return false, ErrMissingAccountID //nolint:wrapcheck
 	}
 
 	if c.APIToken == "" && (c.APIEmail == "" && c.APIKey == "") {
-		return false, ErrMissingCFFields
+		return false, ErrMissingCFFields //nolint:wrapcheck
 	}
 
 	return true, nil

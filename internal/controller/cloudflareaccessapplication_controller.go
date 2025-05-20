@@ -102,7 +102,16 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		string(zero_trust.ApplicationTypeAppLauncher):
 		{
 			allApps := v4alpha1.CloudflareAccessApplicationList{}
-			r.List(ctx, &allApps, client.MatchingFields{"spec.type": app.Spec.Type})
+			err = r.List(ctx, &allApps, client.MatchingFields{SearchOnAppTypeIndex: app.Spec.Type})
+			if err != nil {
+				// will retry immediately
+				return ctrl.Result{}, fault.Wrap(err,
+					fmsg.With("Failed to use indexed search on access applications. Contact the developers."),
+					fctx.With(ctx,
+						"searchedOn", SearchOnAppTypeIndex,
+					),
+				)
+			}
 
 			for _, existing := range allApps.Items {
 				if existing.Namespace != app.Namespace || existing.Name != app.Name {
@@ -141,7 +150,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	orderedPolicyIds := []string{}
 	for _, policyRefNS := range policyRefsNS {
 		//
-		err := r.Get(ctx, policyRefNS, &arp)
+		err = r.Get(ctx, policyRefNS, &arp)
 		if err != nil {
 			// will retry immediately
 			return ctrl.Result{}, fault.Wrap(err,
@@ -164,7 +173,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	}
 
 	app.Status.ReusablePolicyIDs = orderedPolicyIds
-	if err := r.Client.Status().Update(ctx, app); err != nil {
+	if err = r.Client.Status().Update(ctx, app); err != nil {
 		// will retry immediately
 		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessApplication status"))
 	}
@@ -236,11 +245,13 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 				if err != nil {
 					// will retry immediately
 					return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to get access application by domain"))
-				} else {
-					//
-					// ...if not found, we'll create it later then !
-					//
 				}
+
+				// else...
+
+				//
+				// ...if not found, we'll create it later then !
+				//
 			}
 		case string(zero_trust.ApplicationTypeWARP),
 			string(zero_trust.ApplicationTypeAppLauncher):
@@ -275,7 +286,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		default:
 			{
 				// will retry immediately
-				return ctrl.Result{}, fault.Newf("Unhandled application type '%s'. Contact the developers.", app.Spec.Type)
+				return ctrl.Result{}, fault.Newf("Unhandled application type '%s'. Contact the developers.", app.Spec.Type) //nolint:wrapcheck
 			}
 		}
 
@@ -419,15 +430,26 @@ func (r *CloudflareAccessApplicationReconciler) SetupWithManager(mgr ctrl.Manage
 		override = r
 	}
 
-	if err := mgr.GetFieldIndexer().IndexField(
-		context.Background(),
+	ctx := context.Background()
+
+	//
+	err := mgr.GetFieldIndexer().IndexField(ctx,
 		&v4alpha1.CloudflareAccessApplication{},
 		SearchOnAppTypeIndex,
 		func(rawObj client.Object) []string {
 			app := rawObj.(*v4alpha1.CloudflareAccessApplication)
 			return []string{app.Spec.Type}
-		}); err != nil {
-		return err
+		},
+	)
+
+	//
+	if err != nil {
+		return fault.Wrap(err,
+			fmsg.With("Unable to "),
+			fctx.With(ctx,
+				"index", SearchOnAppTypeIndex,
+			),
+		)
 	}
 
 	//nolint:wrapcheck
