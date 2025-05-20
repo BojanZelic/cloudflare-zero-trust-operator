@@ -99,6 +99,10 @@ func (c *CloudflareAccessGroup) UnderDeletion() bool {
 	return !c.DeletionTimestamp.IsZero()
 }
 
+func (c *CloudflareAccessGroup) Describe() string {
+	return "CloudflareAccessGroup"
+}
+
 func (c *CloudflareAccessGroup) GetIncludeRules() *CloudFlareAccessRules {
 	return &c.Spec.Include
 }

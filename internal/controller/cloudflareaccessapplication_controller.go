@@ -43,6 +43,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+const (
+	SearchOnAppTypeIndex = "spec.type"
+)
+
 // CloudflareAccessApplicationReconciler reconciles a CloudflareAccessApplication object.
 type CloudflareAccessApplicationReconciler struct {
 	CloudflareAccessReconciler
@@ -55,7 +59,7 @@ type CloudflareAccessApplicationReconciler struct {
 }
 
 const (
-	// StatusAvailable represents the status of the Cloudflare App.
+	// StatusAvailable represents the status / condition type of the Cloudflare App.
 	StatusAvailable = "Available"
 )
 
@@ -89,6 +93,39 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	}
 
 	//
+	// Check that single app type are not declared elsewhere
+	//
+
+	// TODO check type uniqueness
+	switch app.Spec.Type {
+	case string(zero_trust.ApplicationTypeWARP),
+		string(zero_trust.ApplicationTypeAppLauncher):
+		{
+			allApps := v4alpha1.CloudflareAccessApplicationList{}
+			r.List(ctx, &allApps, client.MatchingFields{"spec.type": app.Spec.Type})
+
+			for _, existing := range allApps.Items {
+				if existing.Namespace != app.Namespace || existing.Name != app.Name {
+					//
+					log.Error(
+						fault.New(
+							"Another unique-style access application definition already exist",
+							fctx.With(ctx,
+								"foundAsName", existing.Name,
+								"foundInNamespace", existing.Namespace,
+							),
+						),
+						"Having multiple definitions of an unique-style access application is forbidden",
+					)
+
+					// will stop
+					return ctrl.Result{}, nil
+				}
+			}
+		}
+	}
+
+	//
 	// Ensure all PolicyRefs underlying [CloudflareAccessReusablePolicy] references exist and are available,
 	// then store their CF IDs
 	//
@@ -107,7 +144,12 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		err := r.Get(ctx, policyRefNS, &arp)
 		if err != nil {
 			// will retry immediately
-			return ctrl.Result{}, fault.Wrap(err, fmsg.With("Referenced Policy Ref does not correspond to an existing CloudflareAccessReusablePolicy"))
+			return ctrl.Result{}, fault.Wrap(err,
+				fmsg.With("Reference to CloudflareAccessReusablePolicy do not exist"),
+				fctx.With(ctx,
+					"policyRef", v4alpha1.ParsedNamespacedName(policyRefNS),
+				),
+			)
 		}
 
 		//
@@ -200,8 +242,8 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 					//
 				}
 			}
-		case string(zero_trust.ApplicationTypeWARP):
-		case string(zero_trust.ApplicationTypeAppLauncher):
+		case string(zero_trust.ApplicationTypeWARP),
+			string(zero_trust.ApplicationTypeAppLauncher):
 			{
 				cfAccessApp, err = api.FindFirstAccessApplicationOfType(ctx, app.Spec.Type)
 
@@ -299,7 +341,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 			return ctrl.Result{}, fault.Wrap(err, fmsg.With("issue updating status"))
 		}
 
-	} else if needsUpdate := !cfcompare.AreAccessApplicationsEquivalent(cfAccessApp, app); needsUpdate {
+	} else if needsUpdate := !cfcompare.AreAccessApplicationsEquivalent(ctx, &log, cfAccessApp, app); needsUpdate {
 
 		//
 		// diff found between fetched CF resource and definition
@@ -375,6 +417,17 @@ func (r *CloudflareAccessApplicationReconciler) MayReconcileStatus(ctx context.C
 func (r *CloudflareAccessApplicationReconciler) SetupWithManager(mgr ctrl.Manager, override reconcile.Reconciler) error {
 	if override == nil {
 		override = r
+	}
+
+	if err := mgr.GetFieldIndexer().IndexField(
+		context.Background(),
+		&v4alpha1.CloudflareAccessApplication{},
+		SearchOnAppTypeIndex,
+		func(rawObj client.Object) []string {
+			app := rawObj.(*v4alpha1.CloudflareAccessApplication)
+			return []string{app.Spec.Type}
+		}); err != nil {
+		return err
 	}
 
 	//nolint:wrapcheck

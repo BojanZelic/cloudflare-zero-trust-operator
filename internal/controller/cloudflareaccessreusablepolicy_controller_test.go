@@ -32,20 +32,23 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			},
 		}
 
-		BeforeEach(func() {
-			ctrlErrors.Clear()
-
+		BeforeAll(func() {
 			By("Creating the Namespace to perform the tests")
 			_ = k8sClient.Create(ctx, testNS)
+		})
+		AfterAll(func() {
+			By("Deleting the Namespace to perform the tests")
+			_ = k8sClient.Delete(ctx, testNS)
 			// ignore error because of https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
 			// Expect(err).To(Not(HaveOccurred()))
 		})
 
+		BeforeEach(func() {
+			ctrlErrors.Clear()
+		})
 		AfterEach(func() {
 			// By("expect no reconcile errors occurred")
 			// Expect(ctrlErrors).To(BeEmpty())
-			By("Deleting the Namespace to perform the tests")
-			_ = k8sClient.Delete(ctx, testNS)
 		})
 
 		//
@@ -72,7 +75,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, arp)).To(Not(HaveOccurred()))
 
 			//
-			ByExpectingCFResourceToNOTBeReady(ctx, arpNN, &v4alpha1.CloudflareAccessReusablePolicy{})
+			ByExpectingCFResourceToNOTBeReady(ctx, arpNN, &v4alpha1.CloudflareAccessReusablePolicy{}).Should(Succeed())
 		})
 
 		It("should successfully reconcile CloudflareAccessReusablePolicy policies with references", func() {
@@ -93,7 +96,10 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, group)).To(Not(HaveOccurred()))
 
 			//
-			ByExpectingCFResourceToBeReady(ctx, groupNN, group)
+			ByExpectingCFResourceToBeReady(ctx,
+				groupNN,
+				group,
+			).Should(Succeed())
 
 			//
 			//
@@ -113,7 +119,10 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, token)).To(Not(HaveOccurred()))
 
 			//
-			ByExpectingCFResourceToBeReady(ctx, tokenNN, token)
+			ByExpectingCFResourceToBeReady(ctx,
+				tokenNN,
+				token,
+			).Should(Succeed())
 
 			//
 			//
@@ -141,7 +150,10 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, reusablePolicy)).To(Not(HaveOccurred()))
 
 			//
-			ByExpectingCFResourceToBeReady(ctx, arpNN, reusablePolicy)
+			ByExpectingCFResourceToBeReady(ctx,
+				arpNN,
+				reusablePolicy,
+			).Should(Succeed())
 
 			//
 			//
@@ -165,7 +177,10 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, app)).To(Not(HaveOccurred()))
 
 			//
-			ByExpectingCFResourceToBeReady(ctx, appNN, app)
+			ByExpectingCFResourceToBeReady(ctx,
+				appNN,
+				app,
+			).Should(Succeed())
 		})
 
 		It("should successfully reconcile a custom resource for CloudflareAccessReusablePolicy", func() {
@@ -187,7 +202,10 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 
 			//
 			foundArp := &v4alpha1.CloudflareAccessReusablePolicy{}
-			ByExpectingCFResourceToBeReady(ctx, arpNN, foundArp)
+			ByExpectingCFResourceToBeReady(ctx,
+				arpNN,
+				foundArp,
+			).Should(Succeed())
 
 			By("Cloudflare resource should equal the spec")
 			cfResource, err := api.AccessApplication(ctx, foundArp.Status.AccessReusablePolicyID)
@@ -195,11 +213,15 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			Expect(cfResource.Name).To(Equal(foundArp.Spec.Name))
 
 			By("Updating the name of the resource")
-			foundArp.Spec.Name = updtdName
+
+			setUpdtdName(&foundArp.Spec.Name)
 			Expect(k8sClient.Update(ctx, foundArp)).To(Not(HaveOccurred()))
 
 			//
-			ByExpectingCFResourceToBeReady(ctx, arpNN, foundArp)
+			ByExpectingCFResourceToBeReady(ctx,
+				arpNN,
+				foundArp,
+			).Should(Succeed())
 
 			By("Cloudflare resource should equal the updated spec")
 			cfResource, err = api.AccessApplication(ctx, foundArp.Status.AccessReusablePolicyID)
@@ -213,7 +235,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			Eventually(func() error {
 				// ctrlErrors.TestEmpty()
 				return k8sClient.Get(ctx, arpNN, arp)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Not(Succeed()))
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Not(Succeed()))
 		})
 
 		It("should successfully reconcile CloudflareAccessReusablePolicy whose AccessReusablePolicyID references a missing Reusable Policy", func() {
@@ -238,21 +260,21 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			ByExpectingCFResourceToBeReady(ctx,
 				arpNN,
 				foundArp,
-			)
+			).Should(Succeed())
 
 			By("Delete associated CF Application")
 			oldAccessReusablePolicyID := foundArp.GetCloudflareUUID()
-			Expect(api.DeleteAccessApplication(ctx, foundArp.GetCloudflareUUID())).To(Not(HaveOccurred()))
+			Expect(api.DeleteAccessReusablePolicy(ctx, foundArp.GetCloudflareUUID())).To(Not(HaveOccurred()))
 
 			By("re-trigger reconcile by updating access application")
-			foundArp.Spec.Name = updtdName
+			setUpdtdName(&foundArp.Spec.Name)
 			Expect(k8sClient.Update(ctx, foundArp)).To(Not(HaveOccurred()))
 
 			//
 			ByExpectingCFResourceToBeReady(ctx,
 				arpNN,
 				foundArp,
-			)
+			).Should(Succeed())
 			Expect(foundArp.GetCloudflareUUID()).ToNot(Equal(oldAccessReusablePolicyID))
 
 			By("Cloudflare resource should equal the updated spec")

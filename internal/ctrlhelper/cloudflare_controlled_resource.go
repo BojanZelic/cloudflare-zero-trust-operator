@@ -15,6 +15,9 @@ type CloudflareControlledResource interface {
 	//
 	UnderDeletion() bool
 
+	// Describe the Resource. Most likely the type name. Used for logging or debugging.
+	Describe() string
+
 	//
 	GetConditions() *[]metav1.Condition
 }

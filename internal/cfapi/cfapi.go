@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fctx"
+	"github.com/Southclaws/fault/fmsg"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	cloudflare "github.com/cloudflare/cloudflare-go/v4"
@@ -27,7 +29,7 @@ func (a *API) AccessGroupByName(ctx context.Context, name string) (*zero_trust.A
 	}
 
 	//
-	return nil, a.wrapPretty(iter.Err())
+	return nil, a.wrapPrettyForAPI(iter.Err())
 }
 
 func (a *API) AccessGroup(ctx context.Context, accessGroupID string) (*zero_trust.AccessGroupGetResponse, error) {
@@ -36,7 +38,7 @@ func (a *API) AccessGroup(ctx context.Context, accessGroupID string) (*zero_trus
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
-	return cfAG, a.wrapPretty(err)
+	return cfAG, a.wrapPrettyForAPI(err)
 }
 
 func (a *API) CreateAccessGroup(ctx context.Context, group *v4alpha1.CloudflareAccessGroup) (*zero_trust.AccessGroupGetResponse, error) {
@@ -52,7 +54,7 @@ func (a *API) CreateAccessGroup(ctx context.Context, group *v4alpha1.CloudflareA
 	//
 	insert, err := a.client.ZeroTrust.Access.Groups.New(ctx, params)
 	if err != nil {
-		return nil, a.wrapPretty(err)
+		return nil, a.wrapPrettyForAPI(err)
 	}
 
 	//
@@ -76,7 +78,7 @@ func (a *API) UpdateAccessGroup(ctx context.Context, group *v4alpha1.CloudflareA
 
 	//
 	_, err := a.client.ZeroTrust.Access.Groups.Update(ctx, group.GetCloudflareUUID(), params)
-	return a.wrapPretty(err)
+	return a.wrapPrettyForAPI(err)
 }
 
 func (a *API) DeleteAccessGroup(ctx context.Context, groupID string) error {
@@ -90,7 +92,7 @@ func (a *API) DeleteAccessGroup(ctx context.Context, groupID string) error {
 		a.optionalTracer.GroupDeleted(groupID)
 	}
 
-	return a.wrapPretty(err)
+	return a.wrapPrettyForAPI(err)
 }
 
 //
@@ -109,7 +111,7 @@ func (a *API) FindAccessApplicationByDomain(ctx context.Context, domain string) 
 		return a.AccessApplication(ctx, iter.Current().ID)
 	}
 
-	return nil, a.wrapPretty(iter.Err())
+	return nil, a.wrapPrettyForAPI(iter.Err())
 }
 
 // not finding app type would probably not produce an error
@@ -130,7 +132,7 @@ func (a *API) FindFirstAccessApplicationOfType(ctx context.Context, app_type str
 	}
 
 	//
-	return nil, a.wrapPretty(iter.Err())
+	return nil, a.wrapPrettyForAPI(iter.Err())
 }
 
 func (a *API) AccessApplication(ctx context.Context, accessApplicationID string) (*zero_trust.AccessApplicationGetResponse, error) {
@@ -139,7 +141,7 @@ func (a *API) AccessApplication(ctx context.Context, accessApplicationID string)
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
-	return cfApp, a.wrapPretty(err)
+	return cfApp, a.wrapPrettyForAPI(err)
 }
 
 //nolint:cyclop
@@ -156,6 +158,7 @@ func (a *API) CreateAccessApplication(
 	case string(zero_trust.ApplicationTypeSelfHosted):
 		{
 			body := zero_trust.AccessApplicationNewParamsBodySelfHostedApplication{
+				Type:            cloudflare.F(app.Spec.Type),
 				Name:            cloudflare.F(app.Spec.Name),
 				Domain:          cloudflare.F(app.Spec.Domain),
 				AllowedIdPs:     cloudflare.F(app.Spec.AllowedIdps),
@@ -224,7 +227,7 @@ func (a *API) CreateAccessApplication(
 	}
 
 	if err != nil {
-		return nil, a.wrapPretty(err)
+		return nil, a.wrapPrettyForAPI(err)
 	}
 
 	//
@@ -235,19 +238,22 @@ func (a *API) CreateAccessApplication(
 	return a.AccessApplication(ctx, cfApp.ID)
 }
 
+//nolint:cyclop
 func (a *API) UpdateAccessApplication(
 	ctx context.Context,
 	app *v4alpha1.CloudflareAccessApplication, //nolint:varnamelen
 ) (*zero_trust.AccessApplicationGetResponse, error) {
 	//
-	var cfApp *zero_trust.AccessApplicationUpdateResponse
+	var cfAppResp *zero_trust.AccessApplicationUpdateResponse
 	var err error
+	appIDToUpdate := app.GetCloudflareUUID()
 
 	//
 	switch app.Spec.Type {
 	case string(zero_trust.ApplicationTypeSelfHosted):
 		{
 			body := zero_trust.AccessApplicationUpdateParamsBodySelfHostedApplication{
+				Type:            cloudflare.F(app.Spec.Type),
 				Name:            cloudflare.F(app.Spec.Name),
 				Domain:          cloudflare.F(app.Spec.Domain),
 				AllowedIdPs:     cloudflare.F(app.Spec.AllowedIdps),
@@ -268,7 +274,7 @@ func (a *API) UpdateAccessApplication(
 				body.HTTPOnlyCookieAttribute = cloudflare.Bool(*app.Spec.HTTPOnlyCookieAttribute)
 			}
 
-			cfApp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, app.GetCloudflareUUID(),
+			cfAppResp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, appIDToUpdate,
 				zero_trust.AccessApplicationUpdateParams{
 					AccountID: cloudflare.F(a.CFAccountID),
 					Body:      body,
@@ -277,31 +283,43 @@ func (a *API) UpdateAccessApplication(
 		}
 	case string(zero_trust.ApplicationTypeWARP):
 		{
-			cfApp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, app.GetCloudflareUUID(),
+			body := zero_trust.AccessApplicationUpdateParamsBodyDeviceEnrollmentPermissionsApplication{
+				Type:               cloudflare.F(zero_trust.ApplicationTypeWARP), // always required
+				AllowedIdPs:        cloudflare.F(app.Spec.AllowedIdps),
+				Policies:           cloudflare.F(p_update_DEP(app.Status.ReusablePolicyIDs)),
+				SessionDuration:    cloudflare.F(app.Spec.SessionDuration),
+				AppLauncherLogoURL: cloudflare.F(app.Spec.LogoURL),
+			}
+
+			if app.Spec.AutoRedirectToIdentity != nil {
+				body.AutoRedirectToIdentity = cloudflare.Bool(*app.Spec.AutoRedirectToIdentity)
+			}
+
+			cfAppResp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, appIDToUpdate,
 				zero_trust.AccessApplicationUpdateParams{
 					AccountID: cloudflare.F(a.CFAccountID),
-					Body: zero_trust.AccessApplicationUpdateParamsBodyDeviceEnrollmentPermissionsApplication{
-						AllowedIdPs:            cloudflare.F(app.Spec.AllowedIdps),
-						AutoRedirectToIdentity: cloudflare.F(*app.Spec.AutoRedirectToIdentity),
-						Policies:               cloudflare.F(p_update_DEP(app.Status.ReusablePolicyIDs)),
-						SessionDuration:        cloudflare.F(app.Spec.SessionDuration),
-						AppLauncherLogoURL:     cloudflare.F(app.Spec.LogoURL),
-					},
+					Body:      body,
 				},
 			)
 		}
 	case string(zero_trust.ApplicationTypeAppLauncher):
 		{
-			cfApp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, app.GetCloudflareUUID(),
+			body := zero_trust.AccessApplicationUpdateParamsBodyAppLauncherApplication{
+				Type:               cloudflare.F(zero_trust.ApplicationTypeAppLauncher), // always required
+				AllowedIdPs:        cloudflare.F(app.Spec.AllowedIdps),
+				Policies:           cloudflare.F(p_update_AL(app.Status.ReusablePolicyIDs)),
+				SessionDuration:    cloudflare.F(app.Spec.SessionDuration),
+				AppLauncherLogoURL: cloudflare.F(app.Spec.LogoURL),
+			}
+
+			if app.Spec.AutoRedirectToIdentity != nil {
+				body.AutoRedirectToIdentity = cloudflare.Bool(*app.Spec.AutoRedirectToIdentity)
+			}
+
+			cfAppResp, err = a.client.ZeroTrust.Access.Applications.Update(ctx, appIDToUpdate,
 				zero_trust.AccessApplicationUpdateParams{
 					AccountID: cloudflare.F(a.CFAccountID),
-					Body: zero_trust.AccessApplicationUpdateParamsBodyAppLauncherApplication{
-						AllowedIdPs:            cloudflare.F(app.Spec.AllowedIdps),
-						AutoRedirectToIdentity: cloudflare.F(*app.Spec.AutoRedirectToIdentity),
-						Policies:               cloudflare.F(p_update_AL(app.Status.ReusablePolicyIDs)),
-						SessionDuration:        cloudflare.F(app.Spec.SessionDuration),
-						AppLauncherLogoURL:     cloudflare.F(app.Spec.LogoURL),
-					},
+					Body:      body,
 				},
 			)
 		}
@@ -312,24 +330,42 @@ func (a *API) UpdateAccessApplication(
 	}
 
 	if err != nil {
-		return nil, a.wrapPretty(err)
+		return nil, a.wrapPrettyForAPI(err)
 	}
 
-	return a.AccessApplication(ctx, cfApp.ID)
+	return a.AccessApplication(ctx, cfAppResp.ID)
 }
 
-func (a *API) DeleteAccessApplication(ctx context.Context, appID string) error {
-	//
-	_, err := a.client.ZeroTrust.Access.Applications.Delete(ctx, appID, zero_trust.AccessApplicationDeleteParams{
-		AccountID: cloudflare.F(a.CFAccountID),
-	})
+// @dev we cannot remove one-time special apps like "warp" or "app_launcher type", we need to reset those instead of deleting
+func (a *API) DeleteOrResetAccessApplication(ctx context.Context, targetedApp *v4alpha1.CloudflareAccessApplication) error {
+	switch targetedApp.Spec.Type {
+	case string(zero_trust.ApplicationTypeSelfHosted):
+		{
+			return a.deleteAccessApplication(ctx, targetedApp.GetCloudflareUUID())
+		}
 
-	//
-	if a.optionalTracer != nil && err == nil {
-		a.optionalTracer.ApplicationDeleted(appID)
+	case string(zero_trust.ApplicationTypeAppLauncher),
+		string(zero_trust.ApplicationTypeWARP):
+		{
+			//
+			appToPreserveFrom, err := a.FindFirstAccessApplicationOfType(ctx, targetedApp.Spec.Type)
+			if err != nil {
+				return fault.Wrap(
+					a.wrapPrettyForAPI(err),
+					fmsg.WithDesc("Issue while preparing application reset", "Cannot find existing application of type"),
+					fctx.With(ctx,
+						"appType", targetedApp.Spec.Type,
+					),
+				)
+			}
+
+			//
+			return a.resetAccessApplication(ctx, targetedApp, appToPreserveFrom)
+		}
 	}
 
-	return a.wrapPretty(err)
+	//
+	return fault.Newf("Unhandled application deletion/reset for '%s' app type. Contact the developers.", targetedApp.Spec.Type)
 }
 
 //
@@ -342,7 +378,7 @@ func (a *API) AccessReusablePolicy(ctx context.Context, policyID string) (*zero_
 		AccountID: cloudflare.F(a.CFAccountID),
 	})
 
-	return cfApp, a.wrapPretty(err)
+	return cfApp, a.wrapPrettyForAPI(err)
 }
 
 func (a *API) CreateAccessReusablePolicy(ctx context.Context, from *v4alpha1.CloudflareAccessReusablePolicy) (*zero_trust.AccessPolicyGetResponse, error) {
@@ -359,7 +395,7 @@ func (a *API) CreateAccessReusablePolicy(ctx context.Context, from *v4alpha1.Clo
 	//
 	arp, err := a.client.ZeroTrust.Access.Policies.New(ctx, params) //nolint:varnamelen
 	if err != nil {
-		return nil, a.wrapPretty(err)
+		return nil, a.wrapPrettyForAPI(err)
 	}
 
 	//
@@ -381,7 +417,7 @@ func (a *API) UpdateAccessReusablePolicy(ctx context.Context, arp *v4alpha1.Clou
 
 	//
 	_, err := a.client.ZeroTrust.Access.Policies.Update(ctx, arp.GetCloudflareUUID(), params)
-	return a.wrapPretty(err)
+	return a.wrapPrettyForAPI(err)
 }
 
 func (a *API) DeleteAccessReusablePolicy(ctx context.Context, policyID string) error {
@@ -395,7 +431,7 @@ func (a *API) DeleteAccessReusablePolicy(ctx context.Context, policyID string) e
 		a.optionalTracer.ReusablePolicyDeleted(policyID)
 	}
 
-	return a.wrapPretty(err)
+	return a.wrapPrettyForAPI(err)
 }
 
 //
@@ -409,7 +445,7 @@ func (a *API) AccessServiceToken(ctx context.Context, tokenId string) (*cftypes.
 	})
 
 	if err != nil {
-		return nil, a.wrapPretty(err)
+		return nil, a.wrapPrettyForAPI(err)
 	}
 
 	return &cftypes.ExtendedServiceToken{ServiceToken: *token}, nil
@@ -428,7 +464,7 @@ func (a *API) AccessServiceTokens(ctx context.Context) (*[]cftypes.ExtendedServi
 		})
 	}
 
-	return &extendedTokens, a.wrapPretty(iter.Err())
+	return &extendedTokens, a.wrapPrettyForAPI(iter.Err())
 }
 
 func (a *API) CreateAccessServiceToken(ctx context.Context, token cftypes.ExtendedServiceToken) (*cftypes.ExtendedServiceToken, error) {
@@ -439,7 +475,7 @@ func (a *API) CreateAccessServiceToken(ctx context.Context, token cftypes.Extend
 	})
 
 	if err != nil {
-		return nil, a.wrapPretty(err)
+		return nil, a.wrapPrettyForAPI(err)
 	}
 
 	sToken, err := a.client.ZeroTrust.Access.ServiceTokens.Get(ctx, res.ID, zero_trust.AccessServiceTokenGetParams{
@@ -463,7 +499,7 @@ func (a *API) CreateAccessServiceToken(ctx context.Context, token cftypes.Extend
 		a.optionalTracer.ServiceTokenInserted(sToken.ID)
 	}
 
-	return &extendedToken, a.wrapPretty(err)
+	return &extendedToken, a.wrapPrettyForAPI(err)
 }
 
 func (a *API) DeleteAccessServiceToken(ctx context.Context, tokenID string) error {
@@ -477,5 +513,5 @@ func (a *API) DeleteAccessServiceToken(ctx context.Context, tokenID string) erro
 		a.optionalTracer.ServiceTokenDeleted(tokenID)
 	}
 
-	return a.wrapPretty(err)
+	return a.wrapPrettyForAPI(err)
 }

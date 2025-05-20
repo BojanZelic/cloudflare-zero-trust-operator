@@ -63,7 +63,7 @@ func (r *CloudflareAccessReusablePolicyReconciler) GetReconcilierLogger(ctx cont
 	return ctrl.LoggerFrom(ctx).WithName("CloudflareAccessReusablePolicyController::Reconcile")
 }
 
-//nolint:cyclop,gocognit
+//nolint:cyclop,gocognit,maintidx
 func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.GetReconcilierLogger(ctx)
 	reusablePolicy := &v4alpha1.CloudflareAccessReusablePolicy{}
@@ -92,7 +92,7 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 	//
 
 	//
-	popRes, err := r.Helper.PopulateWithCloudflareUUIDs(ctx, req.Namespace, &log, reusablePolicy)
+	popRes, err, hasPopulated := r.Helper.PopulateWithCloudflareUUIDs(ctx, req.Namespace, &log, reusablePolicy)
 
 	// if any result returned, return it to reconcilier along w/ err (if any)
 	if popRes != nil {
@@ -123,6 +123,16 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 
 		// will retry immediately
 		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to populate CF UUIDs"))
+	} else if hasPopulated {
+
+		//
+		// Record populated values
+		//
+
+		if err := r.Client.Status().Update(ctx, reusablePolicy); err != nil {
+			// will retry immediately
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessApplication status"))
+		}
 	}
 
 	//

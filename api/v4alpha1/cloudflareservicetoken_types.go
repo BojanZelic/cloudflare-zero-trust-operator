@@ -148,6 +148,10 @@ func (c *CloudflareServiceToken) UnderDeletion() bool {
 	return !c.DeletionTimestamp.IsZero()
 }
 
+func (c *CloudflareServiceToken) Describe() string {
+	return "CloudflareServiceToken"
+}
+
 func (c *CloudflareServiceToken) ToExtendedToken() cftypes.ExtendedServiceToken {
 	return cftypes.ExtendedServiceToken{
 		ServiceToken: zero_trust.ServiceToken{

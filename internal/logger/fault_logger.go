@@ -76,10 +76,14 @@ func (cl FaultLogger) Error(err error, msg string, keysAndValues ...any) {
 
 // WithValues returns a new FaultLogger with additional key-value pairs
 func (cl FaultLogger) WithValues(keysAndValues ...any) logr.LogSink {
-	return cl.inner.GetSink().WithValues(keysAndValues...)
+	// we need to re-wrap here
+	newLogger := cl.inner.WithValues(keysAndValues...)
+	return NewFaultLogger(newLogger, &cl.options).GetSink()
 }
 
 // WithName returns a new FaultLogger with a name
 func (cl FaultLogger) WithName(name string) logr.LogSink {
-	return cl.inner.GetSink().WithName(name)
+	// we need to re-wrap here
+	newLogger := cl.inner.WithName(name)
+	return NewFaultLogger(newLogger, &cl.options).GetSink()
 }

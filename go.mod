@@ -6,7 +6,7 @@ toolchain go1.24.2
 
 require (
 	github.com/Southclaws/fault v0.8.1
-	github.com/cloudflare/cloudflare-go/v4 v4.3.0
+	github.com/cloudflare/cloudflare-go/v4 v4.4.0
 	github.com/go-logr/logr v1.4.2
 	github.com/spf13/viper v1.20.1
 	k8s.io/api v0.33.0

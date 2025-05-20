@@ -36,20 +36,23 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			},
 		}
 
-		BeforeEach(func() {
-			ctrlErrors.Clear()
-
+		BeforeAll(func() {
 			By("Creating the Namespace to perform the tests")
 			_ = k8sClient.Create(ctx, testNS)
+		})
+		AfterAll(func() {
+			By("Deleting the Namespace to perform the tests")
+			_ = k8sClient.Delete(ctx, testNS)
 			// ignore error because of https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
 			// Expect(err).To(Not(HaveOccurred()))
 		})
 
+		BeforeEach(func() {
+			ctrlErrors.Clear()
+		})
 		AfterEach(func() {
 			// By("expect no reconcile errors occurred")
 			// Expect(ctrlErrors).To(BeEmpty())
-			By("Deleting the Namespace to perform the tests")
-			_ = k8sClient.Delete(ctx, testNS)
 		})
 
 		//
@@ -82,7 +85,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			Eventually(func() error {
 				// ctrlErrors.TestEmpty()
 				return k8sClient.Get(ctx, expectedSecondarySecIdentity, sec)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
 
 			By("Make sure the status ref is what we expect")
 			Eventually(func(g Gomega) { //nolint:varnamelen
@@ -96,7 +99,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 				g.Expect(serviceToken.Status.SecretRef.ClientIDKey).ToNot(BeEmpty())
 				g.Expect(serviceToken.Status.SecretRef.ClientSecretKey).ToNot(BeEmpty())
 				g.Expect(serviceToken.Status.SecretRef.Name).To(Equal(sec.Name))
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
 
 			expectedID := string(sec.Data[sec.Annotations[meta.AnnotationTokenIDKey]])
 			expectedClientID := string(sec.Data[sec.Annotations[meta.AnnotationClientIDKey]])
@@ -119,7 +122,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 				err := k8sClient.Get(ctx, sTokenNN, tmp)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(tmp.Status.UpdatedAt.Time).To(BeTemporally(">", serviceToken.Status.UpdatedAt.Time))
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
 
 			//
 			By("Expecting changes NOT to happen in CF Service Token name (Updates not implemented)")
@@ -152,7 +155,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			Eventually(func() error {
 				// ctrlErrors.TestEmpty()
 				return k8sClient.Get(ctx, sTokenNN, found)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
 
 			Expect(err).To(Not(HaveOccurred()))
 
@@ -160,7 +163,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			Eventually(func() error {
 				// ctrlErrors.TestEmpty()
 				return k8sClient.Get(ctx, sTokenNN, found)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
 
 			By("Make sure the status ref is what we expect")
 			Eventually(func(g Gomega) { //nolint:varnamelen
@@ -171,14 +174,14 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 				g.Expect(found.Status.SecretRef.ClientIDKey).ToNot(BeEmpty())
 				g.Expect(found.Status.SecretRef.ClientSecretKey).ToNot(BeEmpty())
 				g.Expect(found.Status.SecretRef.Name).ToNot(BeEmpty())
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
 
 			sec := &corev1.Secret{}
 			By("Making sure that the secret exists")
 			Eventually(func() error {
 				// ctrlErrors.TestEmpty()
 				return k8sClient.Get(ctx, sTokenNN, sec)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
 
 			By("Checking if the resource exists in cloudflare")
 			tokens, err := api.AccessServiceTokens(ctx)
@@ -203,14 +206,14 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			Eventually(func() error {
 				// ctrlErrors.TestEmpty()
 				return k8sClient.Update(ctx, found)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
 
 			By("Checking if the new secret was successfully created")
 			Eventually(func() error {
 				// ctrlErrors.TestEmpty()
 				sec := &corev1.Secret{}
 				return k8sClient.Get(ctx, types.NamespacedName{Name: found.Spec.Template.Name, Namespace: sTokenNN.Namespace}, sec)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
 
 			By("Make sure the status ref is what we expect")
 			_ = k8sClient.Get(ctx, sTokenNN, found)
@@ -242,7 +245,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 				// ctrlErrors.TestEmpty()
 				sec = &corev1.Secret{}
 				return k8sClient.Get(ctx, types.NamespacedName{Name: sToken.Spec.Template.Name, Namespace: sTokenNN.Namespace}, sec)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
 			Expect(sec.Data).To(HaveKey(sToken.Spec.Template.ClientIDKey))
 
 			By("Checking if the old secret was removed")
@@ -250,7 +253,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 				// ctrlErrors.TestEmpty()
 				sec := &corev1.Secret{}
 				return k8sClient.Get(ctx, sTokenNN, sec)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).ShouldNot(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).ShouldNot(Succeed())
 		})
 
 		It("should successfully allow removal of resource if externally deleted", func() {
@@ -275,14 +278,14 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			Eventually(func() error {
 				// ctrlErrors.TestEmpty()
 				return k8sClient.Get(ctx, sTokenNN, token)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
 
 			By("Make sure the status ref is what we expect")
 			Eventually(func(g Gomega) { //nolint:varnamelen
 				// ctrlErrors.TestEmpty()
 				_ = k8sClient.Get(ctx, sTokenNN, token)
 				g.Expect(token.Status.ServiceTokenID).ToNot(BeEmpty())
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
 
 			By("Externally removing the token")
 			Expect(api.DeleteAccessServiceToken(ctx, token.Status.ServiceTokenID)).To(Succeed())
@@ -313,7 +316,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			Eventually(func() error {
 				// ctrlErrors.TestEmpty()
 				return k8sClient.Get(ctx, sTokenNN, token)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
 
 			By("Make sure the annotation is not present")
 			Eventually(func(g Gomega) { //nolint:varnamelen
@@ -323,7 +326,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 				keyValue, keyExists := token.Annotations[meta.AnnotationPreventDestroy]
 				g.Expect(keyExists).To(BeFalse())
 				g.Expect(keyValue).To(Or(BeEmpty(), Equal("false")))
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
 
 			By("Make sure the service token exists on cloudflare")
 			tokens, err := api.AccessServiceTokens(ctx)
@@ -352,7 +355,7 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 				}
 
 				g.Expect(foundToken).To(BeNil())
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
 		})
 
 		It("should successfully not remove the resource in CF if annotation is set", func() {
@@ -380,14 +383,14 @@ var _ = Describe("CloudflareServiceToken controller", Ordered, func() {
 			Eventually(func() error {
 				// ctrlErrors.TestEmpty()
 				return k8sClient.Get(ctx, sTokenNN, token)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
 
 			By("Make sure the status ref is what we expect")
 			Eventually(func(g Gomega) { //nolint:varnamelen
 				// ctrlErrors.TestEmpty()
 				_ = k8sClient.Get(ctx, sTokenNN, token)
 				g.Expect(token.Status.ServiceTokenID).ToNot(BeEmpty())
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed())
 
 			By("Make sure the service token exists on cloudflare")
 			tokens, err := api.AccessServiceTokens(ctx)

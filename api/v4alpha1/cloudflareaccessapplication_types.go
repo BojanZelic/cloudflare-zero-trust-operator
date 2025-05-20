@@ -167,6 +167,10 @@ func (c *CloudflareAccessApplication) UnderDeletion() bool {
 	return !c.DeletionTimestamp.IsZero()
 }
 
+func (c *CloudflareAccessApplication) Describe() string {
+	return "CloudflareAccessApplication"
+}
+
 // +kubebuilder:object:root=true
 
 // CloudflareAccessApplicationList contains a list of CloudflareAccessApplication.

@@ -45,12 +45,12 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/controller"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/logger"
+	"github.com/go-logr/logr"
 	// +kubebuilder:scaffold:imports
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme = runtime.NewScheme()
 )
 
 func init() {
@@ -93,6 +93,7 @@ func main() {
 	ctrl.SetLogger(
 		logger.NewFaultLogger(zapLogger, nil),
 	)
+	setupLog := ctrl.Log.WithName("setup")
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
@@ -160,7 +161,7 @@ func main() {
 	}
 
 	config.SetConfigDefaults()
-	displayAvailableIdentityProviders()
+	displayAvailableIdentityProviders(&setupLog)
 
 	controllerHelper := &ctrlhelper.ControllerHelper{
 		R:                  mgr.GetClient(),
@@ -238,7 +239,7 @@ func main() {
 }
 
 // show in the logs what Identity providers are available
-func displayAvailableIdentityProviders() {
+func displayAvailableIdentityProviders(setupLog *logr.Logger) {
 	//
 	idpsUsedIn := []string{
 		"CloudflareAccessApplication.Spec.allowedIdps",
@@ -265,7 +266,7 @@ func displayAvailableIdentityProviders() {
 	}
 
 	// Initialize Cloudflare's API wrapper
-	ctx := context.TODO()
+	ctx := context.Background()
 	api := cfapi.FromConfig(ctx, cfConfig, nil)
 	idProviders, err := api.IdentityProviders(ctx)
 	if err != nil {

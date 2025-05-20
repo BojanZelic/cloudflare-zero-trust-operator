@@ -16,11 +16,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//
+// Heavily inspired by https://github.com/kubernetes-sigs/kubebuilder/blob/master/docs/book/src/cronjob-tutorial/testdata/project/internal/controller/suite_test.go
+//
+
 package controller_test
 
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -36,6 +41,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	cloudflarev4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
@@ -50,17 +56,24 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-var k8sClient client.Client
-var api *cfapi.API
+var (
+	k8sClient client.Client
+	api       *cfapi.API
+	testEnv   *envtest.Environment
 
-var insertedTracer cfapi.InsertedCFRessourcesTracer
+	//
+	insertedTracer cfapi.InsertedCFRessourcesTracer
 
-// @dev Might get cleared between test sets
-var ctrlErrors controller.ReconcilierErrorTracker
+	// @dev Might get cleared between test sets
+	ctrlErrors controller.ReconcilierErrorTracker
+
+	ctx    context.Context
+	cancel context.CancelFunc
+)
 
 const (
 	defaultTimeout  = 10 * time.Second
-	defaultPoolRate = 2 * time.Second
+	defaultPollRate = 2 * time.Second
 )
 
 func TestAPIs(t *testing.T) {
@@ -70,28 +83,45 @@ func TestAPIs(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+
+	ctx, cancel = context.WithCancel(context.TODO())
+
+	//
+	//
+	//
+
+	By("bootstrapping logger")
 	// configure logger
 	zapLogger := zap.New(
 		zap.WriteTo(GinkgoWriter),
 		zap.UseDevMode(true),
 		zap.StacktraceLevel(zapcore.DPanicLevel), // only print stacktraces for panics and fatal
 	)
-
 	// bind logger
 	ctrl.SetLogger(
-		logger.NewFaultLogger(zapLogger, &logger.FaultLoggerOptions{
-			DismissErrorVerbose: true,
-		}),
+		logger.NewFaultLogger(zapLogger,
+			&logger.FaultLoggerOptions{
+				DismissErrorVerbose: true,
+			},
+		),
 	)
 
+	//
+	//
+	//
+
 	By("bootstrapping test environment")
-	testEnv := &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
-		ErrorIfCRDPathMissing: true,
+	testEnv = &envtest.Environment{
+		CRDDirectoryPaths:       []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		ErrorIfCRDPathMissing:   true,
+		ControlPlaneStopTimeout: 1 * time.Minute, // Or any duration that suits your tests
 	}
 
-	// cfg is defined in this file globally.
-	cfg, err := testEnv.Start()
+	if getFirstFoundEnvTestBinaryDir() != "" {
+		testEnv.BinaryAssetsDirectory = getFirstFoundEnvTestBinaryDir()
+	}
+
+	cfg, err := testEnv.Start() // Required to be shutdown later
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
@@ -102,6 +132,10 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
+	//
+	//
+	//
+
 	By("bootstrapping cloudflare api client")
 	config.SetConfigDefaults()
 	cfConfig := config.ParseCloudflareConfig(&v1.ObjectMeta{})
@@ -109,8 +143,11 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	insertedTracer.ResetCFUUIDs()
-	ctx := context.TODO()
-	api = cfapi.FromConfig(ctx, cfConfig, &insertedTracer)
+	api = cfapi.FromConfig(ctrl.SetupSignalHandler(), cfConfig, &insertedTracer)
+
+	//
+	//
+	//
 
 	By("bootstrapping managers")
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
@@ -118,10 +155,6 @@ var _ = BeforeSuite(func() {
 		Metrics: metricsserver.Options{BindAddress: "0"},
 	})
 	Expect(err).ToNot(HaveOccurred())
-
-	//
-	//
-	//
 
 	controllerHelper := &ctrlhelper.ControllerHelper{
 		R:                  k8sClient,
@@ -167,35 +200,68 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager)).ToNot(HaveOccurred())
 
 	//
-	//
+	// start !
 	//
 
-	//
 	go func() {
 		defer GinkgoRecover()
-
-		//
-		err := k8sManager.Start(ctx)
-		Expect(err).ToNot(HaveOccurred())
-
-		//
-		err = testEnv.Stop()
-		Expect(err).ToNot(HaveOccurred())
+		err = k8sManager.Start(ctx)
+		Expect(err).ToNot(HaveOccurred(), "failed to run manager")
 	}()
+})
+
+var _ = AfterSuite(func() {
+	By("tearing down the test environment")
+	cancel()
+	err := testEnv.Stop()
+	Expect(err).NotTo(HaveOccurred())
 })
 
 //
 //
 //
 
-// @notice [res] will be populated
-func ByExpectingCFResourceToBeReady(ctx context.Context, name types.NamespacedName, res ctrlhelper.CloudflareControlledResource) {
-	expectingCFResourceReadiness(ctx, name, res, metav1.ConditionTrue)
+// getFirstFoundEnvTestBinaryDir locates the first binary in the specified path.
+// ENVTEST-based tests depend on specific binaries, usually located in paths set by
+// controller-runtime. When running tests directly (e.g., via an IDE) without using
+// Makefile targets, the 'BinaryAssetsDirectory' must be explicitly configured.
+//
+// This function streamlines the process by finding the required binaries, similar to
+// setting the 'KUBEBUILDER_ASSETS' environment variable. To ensure the binaries are
+// properly set up, run 'make setup-envtest' beforehand.
+func getFirstFoundEnvTestBinaryDir() string {
+	basePath := filepath.Join("..", "..", "bin", "k8s")
+	entries, err := os.ReadDir(basePath)
+	if err != nil {
+		logf.Log.Error(err, "Failed to read directory", "path", basePath)
+		return ""
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			return filepath.Join(basePath, entry.Name())
+		}
+	}
+	return ""
+}
+
+//
+//
+//
+
+func setUpdtdName(name *string) {
+	if name != nil {
+		*name = fmt.Sprintf("%s - updated name", *name)
+	}
 }
 
 // @notice [res] will be populated
-func ByExpectingCFResourceToNOTBeReady(ctx context.Context, name types.NamespacedName, res ctrlhelper.CloudflareControlledResource) {
-	expectingCFResourceReadiness(ctx, name, res, metav1.ConditionFalse)
+func ByExpectingCFResourceToBeReady(ctx context.Context, name types.NamespacedName, res ctrlhelper.CloudflareControlledResource) AsyncAssertion {
+	return expectingCFResourceReadiness(ctx, name, res, metav1.ConditionTrue)
+}
+
+// @notice [res] will be populated
+func ByExpectingCFResourceToNOTBeReady(ctx context.Context, name types.NamespacedName, res ctrlhelper.CloudflareControlledResource) AsyncAssertion {
+	return expectingCFResourceReadiness(ctx, name, res, metav1.ConditionFalse)
 }
 
 // @notice [res] will be populated
@@ -204,18 +270,40 @@ func expectingCFResourceReadiness(
 	name types.NamespacedName,
 	res ctrlhelper.CloudflareControlledResource,
 	awaitedCondition v1.ConditionStatus,
-) {
+) AsyncAssertion {
 	//
 	const awaitedStatus = controller.StatusAvailable
 
-	//
-	By(fmt.Sprintf("Await for %s resource to be \"%s\"",
-		res.GetObjectKind().GroupVersionKind().Kind,
-		awaitedStatus,
-	))
+	// check if [res] is already set, and if so; expect status update date to change while Eventually
+	prevCond := meta.FindStatusCondition(*res.GetConditions(), awaitedStatus)
 
 	//
-	Eventually(func(g Gomega) { //nolint:varnamelen
+	var byLabel string
+	var prevTransTime time.Time
+	if prevCond != nil {
+		prevTransTime = prevCond.LastTransitionTime.Time
+		byLabel = fmt.Sprintf(
+			"Await for %s resource to process back to \"%s\"",
+			res.Describe(),
+			awaitedStatus,
+		)
+	} else {
+		byLabel = fmt.Sprintf(
+			"Await for %s resource to be \"%s\"",
+			res.Describe(),
+			awaitedStatus,
+		)
+	}
+
+	//
+	//
+	//
+
+	//
+	By(byLabel)
+
+	//
+	return Eventually(func(g Gomega) { //nolint:varnamelen
 		//
 		err := k8sClient.Get(ctx, name, res)
 		g.Expect(err).To(Not(HaveOccurred()))
@@ -224,9 +312,14 @@ func expectingCFResourceReadiness(
 		g.Expect(res.GetCloudflareUUID()).ToNot(BeEmpty())
 
 		//
-		conditions := res.GetConditions()
-		matchesAwaitedStatus := meta.IsStatusConditionPresentAndEqual(*conditions, awaitedStatus, awaitedCondition)
-		g.Expect(matchesAwaitedStatus).To(BeTrue())
+		cond := meta.FindStatusCondition(*res.GetConditions(), awaitedStatus)
+		g.Expect(cond).NotTo(BeNil())
+		g.Expect(cond.Status).To(Equal(awaitedCondition))
 
-	}).WithTimeout(defaultTimeout).WithPolling(defaultPoolRate).Should(Succeed())
+		//
+		if !prevTransTime.IsZero() {
+			g.Expect(cond.LastTransitionTime.Time).To(BeTemporally(">", prevTransTime))
+		}
+
+	}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate)
 }

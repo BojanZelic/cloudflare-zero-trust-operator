@@ -295,8 +295,8 @@ spec:
                     type: boolean
                 type: object
               name:
-                description: Name of the Cloudflare Access Group. Must be unique within
-                  a CloudFlare Account
+                description: Name of the Cloudflare Access Group. Must be unique by
+                  CloudFlare Account.
                 type: string
               require:
                 description: Rules evaluated with an AND logical operator. To match

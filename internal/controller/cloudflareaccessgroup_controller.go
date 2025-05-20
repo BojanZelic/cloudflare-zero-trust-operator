@@ -91,7 +91,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	//
 
 	//
-	popRes, err := r.Helper.PopulateWithCloudflareUUIDs(ctx, req.Namespace, &log, accessGroup)
+	popRes, err, hasPopulated := r.Helper.PopulateWithCloudflareUUIDs(ctx, req.Namespace, &log, accessGroup)
 
 	// if any result returned, return it to reconcilier along w/ err (if any)
 	if popRes != nil {
@@ -122,6 +122,16 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 
 		// will retry immediately
 		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to populate CF UUIDs"))
+	} else if hasPopulated {
+
+		//
+		// Record populated values
+		//
+
+		if err := r.Client.Status().Update(ctx, accessGroup); err != nil {
+			// will retry immediately
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessApplication status"))
+		}
 	}
 
 	//

@@ -25,14 +25,18 @@ func (a *InsertedCFRessourcesTracer) ResetCFUUIDs() {
 	a.accessApplicationCF_UUIDs = []string{}
 }
 
-// @dev cleanup order is important !
+// Will remove all tracked ressources from CloudFlare
 func (a *InsertedCFRessourcesTracer) UninstallFromCF(api *API) {
 	ctx := context.Background()
+
+	//
+	// @dev cleanup order is important, since some depends on others !
+	//
 
 	if len(a.accessApplicationCF_UUIDs) > 0 {
 		gin.By("Removing all created access apps in this test set")
 		for _, appID := range a.accessApplicationCF_UUIDs {
-			_ = api.DeleteAccessApplication(ctx, appID)
+			_ = api.DeleteGenericAccessApplication(ctx, appID)
 		}
 	}
 

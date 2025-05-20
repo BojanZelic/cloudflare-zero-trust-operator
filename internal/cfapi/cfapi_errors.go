@@ -18,15 +18,17 @@ const (
 	cfAPIReqFailed = "CloudFlare API request failed"
 )
 
-func (a *API) wrapPretty(err error) error {
+func (a *API) wrapPrettyForAPI(err error) error {
 	if err == nil {
 		return nil
 	}
 
 	var cfErr *cloudflare.Error
 	isAPIError := errors.As(err, &cfErr)
+
+	// if not api error, just give it as it is
 	if !isAPIError {
-		return a.wrapPretty(err)
+		return err
 	}
 
 	//

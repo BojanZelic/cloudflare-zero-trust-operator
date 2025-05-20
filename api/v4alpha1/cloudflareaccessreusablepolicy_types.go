@@ -106,6 +106,10 @@ func (c *CloudflareAccessReusablePolicy) UnderDeletion() bool {
 	return !c.DeletionTimestamp.IsZero()
 }
 
+func (c *CloudflareAccessReusablePolicy) Describe() string {
+	return "CloudflareAccessReusablePolicy"
+}
+
 func (c *CloudflareAccessReusablePolicy) GetIncludeRules() *CloudFlareAccessRules {
 	return &c.Spec.Include
 }
