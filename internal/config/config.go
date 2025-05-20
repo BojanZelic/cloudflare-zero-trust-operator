@@ -18,6 +18,7 @@ var (
 	ErrMissingAccountID = fault.New("missing CLOUDFLARE_ACCOUNT_ID needs to be set")
 )
 
+// Loads defaults from env variables
 func SetConfigDefaults() {
 	viper.SetDefault("cloudflare_api_email", "")
 	viper.SetDefault("cloudflare_api_key", "")

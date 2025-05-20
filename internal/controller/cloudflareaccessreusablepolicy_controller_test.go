@@ -89,7 +89,9 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				Spec: v4alpha1.CloudflareAccessGroupSpec{
 					Name: "ZTO AccessReusablePolicy Tests - 2 - Group",
 					Include: v4alpha1.CloudFlareAccessRules{
-						Emails: []string{"test2@cf-operator-tests.uk"},
+						Emails: []string{
+							produceOwnedEmail("zto-test-arp-2"),
+						},
 					},
 				},
 			}
@@ -168,7 +170,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				},
 				Spec: v4alpha1.CloudflareAccessApplicationSpec{
 					Name:   "ZTO AccessReusablePolicy Tests - 2 - App",
-					Domain: "reference-policies.cf-operator-tests.uk",
+					Domain: produceOwnedFQDN("zto-test-arp-2"),
 					PolicyRefs: []string{
 						v4alpha1.ParsedNamespacedName(arpNN),
 					},
@@ -194,7 +196,9 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				Spec: v4alpha1.CloudflareAccessReusablePolicySpec{
 					Name: "ZTO AccessReusablePolicy Tests - 3 - Policy",
 					Include: v4alpha1.CloudFlareAccessRules{
-						EmailDomains: []string{"integration.cf-operator-tests.uk"},
+						EmailDomains: []string{
+							produceOwnedFQDN("zto-test-arp-3"),
+						},
 					},
 				},
 			}
@@ -214,7 +218,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 
 			By("Updating the name of the resource")
 
-			setUpdtdName(&foundArp.Spec.Name)
+			addDirtyingSuffix(&foundArp.Spec.Name)
 			Expect(k8sClient.Update(ctx, foundArp)).To(Not(HaveOccurred()))
 
 			//
@@ -249,7 +253,9 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 				Spec: v4alpha1.CloudflareAccessReusablePolicySpec{
 					Name: "ZTO AccessReusablePolicy Tests - 4 - Policy",
 					Include: v4alpha1.CloudFlareAccessRules{
-						EmailDomains: []string{"recreate-application.cf-operator-tests.uk"},
+						EmailDomains: []string{
+							produceOwnedFQDN("zto-test-arp-4"),
+						},
 					},
 				},
 			}
@@ -267,7 +273,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			Expect(api.DeleteAccessReusablePolicy(ctx, foundArp.GetCloudflareUUID())).To(Not(HaveOccurred()))
 
 			By("re-trigger reconcile by updating access application")
-			setUpdtdName(&foundArp.Spec.Name)
+			addDirtyingSuffix(&foundArp.Spec.Name)
 			Expect(k8sClient.Update(ctx, foundArp)).To(Not(HaveOccurred()))
 
 			//

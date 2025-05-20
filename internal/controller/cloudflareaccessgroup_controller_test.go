@@ -61,7 +61,9 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 				Spec: v4alpha1.CloudflareAccessGroupSpec{
 					Name: "ZTO AccessGroup Tests - 1 - Group",
 					Include: v4alpha1.CloudFlareAccessRules{
-						Emails: []string{"test1@cf-operator-tests.uk"},
+						Emails: []string{
+							produceOwnedEmail("zto-test-group-1"),
+						},
 					},
 				},
 			})
@@ -77,7 +79,9 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 				Spec: v4alpha1.CloudflareAccessGroupSpec{
 					Name: ag.Name, // same name !
 					Include: v4alpha1.CloudFlareAccessRules{
-						Emails: []string{"test2@cf-operator-tests.uk"},
+						Emails: []string{
+							produceOwnedEmail("zto-test-group-1"),
+						},
 					},
 				},
 			}
@@ -101,7 +105,9 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 				Spec: v4alpha1.CloudflareAccessGroupSpec{
 					Name: "ZTO AccessGroup Tests - 2 - Group",
 					Include: v4alpha1.CloudFlareAccessRules{
-						Emails: []string{"test@cf-operator-tests.uk"},
+						Emails: []string{
+							produceOwnedEmail("zto-test-group-2"),
+						},
 					},
 				},
 			}
@@ -120,7 +126,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			Expect(cfResource.Name).To(Equal(foundGroup.Spec.Name))
 
 			By("Updating the name of the resource")
-			setUpdtdName(&foundGroup.Spec.Name)
+			addDirtyingSuffix(&foundGroup.Spec.Name)
 			Expect(k8sClient.Update(ctx, &foundGroup)).To(Not(HaveOccurred()))
 
 			//

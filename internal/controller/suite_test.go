@@ -32,6 +32,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/spf13/viper"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,6 +57,9 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
+// @dev prevent direct access in tests
+const defaultAccountOwnedDomain = "cf-operator-tests.uk"
+
 var (
 	k8sClient client.Client
 	api       *cfapi.API
@@ -69,6 +73,11 @@ var (
 
 	ctx    context.Context
 	cancel context.CancelFunc
+
+	// Domain which will be used as base for testing purposes (allowed email targets, allowed domains, access application domains...)
+	//
+	// This domain should be owned by provided CloudFlare account (by CLOUDFLARE_API_KEY / CLOUDFLARE_API_TOKEN / CLOUDFLARE_API_EMAIL)
+	accountOwnedDomain string
 )
 
 const (
@@ -144,6 +153,36 @@ var _ = BeforeSuite(func() {
 
 	insertedTracer.ResetCFUUIDs()
 	api = cfapi.FromConfig(ctrl.SetupSignalHandler(), cfConfig, &insertedTracer)
+
+	//
+	// Picking testing domain
+	//
+
+	// Read from env
+	accountOwnedDomain = viper.GetString("TEST_ACCOUNT_OWNED_DOMAIN")
+
+	// if still empty...
+	if accountOwnedDomain == "" {
+		// resolves to default
+		accountOwnedDomain = defaultAccountOwnedDomain
+
+		//
+		ctrl.Log.Info(
+			"No account-owned domain picked from environment variable; resorting to default",
+			"defaultedTestDomain", defaultAccountOwnedDomain,
+		)
+	} else {
+		ctrl.Log.Info(
+			"Using account-owned test domain, picked from environment",
+			"testDomain", defaultAccountOwnedDomain,
+		)
+	}
+
+	isOwned, err := api.IsDomainOwned(ctx, accountOwnedDomain)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(isOwned).To(
+		BeTrueBecause("Domain used as prop template during tests must be owned; inferred testing domain '%s' is not.", accountOwnedDomain),
+	)
 
 	//
 	//
@@ -248,11 +287,26 @@ func getFirstFoundEnvTestBinaryDir() string {
 //
 //
 
-func setUpdtdName(name *string) {
-	if name != nil {
-		*name = fmt.Sprintf("%s - updated name", *name)
+// call this to update a CRD spec name, which should normally make it dirty by controllers
+func addDirtyingSuffix(toUpdate *string) {
+	if toUpdate != nil {
+		*toUpdate = fmt.Sprintf("%s - updated name", *toUpdate)
 	}
 }
+
+// Will generate an email address ([accountName]@<accountOwnedDomain>) that the configured CF account controls
+func produceOwnedEmail(accountName string) string {
+	return fmt.Sprintf("%s@%s", accountName, accountOwnedDomain)
+}
+
+// Will generate a Fully Qualified Domain name ([subdomain].<accountOwnedDomain>) that the configured CF account owns
+func produceOwnedFQDN(subdomain string) string {
+	return fmt.Sprintf("%s.%s", subdomain, accountOwnedDomain)
+}
+
+//
+//
+//
 
 // @notice [res] will be populated
 func ByExpectingCFResourceToBeReady(ctx context.Context, name types.NamespacedName, res ctrlhelper.CloudflareControlledResource) AsyncAssertion {

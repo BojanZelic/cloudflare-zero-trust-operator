@@ -8,10 +8,12 @@ import (
 	"context"
 
 	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fctx"
 	"github.com/Southclaws/fault/fmsg"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
+	"github.com/cloudflare/cloudflare-go/v4/zones"
 )
 
 // To print available identity providers at boot
@@ -28,6 +30,26 @@ func (a *API) IdentityProviders(ctx context.Context) (*[]zero_trust.IdentityProv
 
 	//
 	return &idProviders, fault.Wrap(iter.Err(), fmsg.With("unable to get identity providers"))
+}
+
+// Testing purposes only
+func (a *API) IsDomainOwned(ctx context.Context, domainName string) (bool, error) {
+	//
+	iter := a.client.Zones.ListAutoPaging(ctx, zones.ZoneListParams{})
+
+	for iter.Next() {
+		zone := iter.Current()
+		if zone.Name == domainName {
+			return true, nil
+		}
+	}
+
+	return false, fault.Wrap(iter.Err(),
+		fmsg.With("unable to determine domain ownership"),
+		fctx.With(ctx,
+			"searchedDomain", domainName,
+		),
+	)
 }
 
 // DEV ONLY !

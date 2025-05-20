@@ -64,8 +64,13 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				Spec: v4alpha1.CloudflareAccessReusablePolicySpec{
 					Name: "ZTO AccessApplication Tests - 1 - Policy",
 					Include: v4alpha1.CloudFlareAccessRules{
-						Emails:       []string{"testemail@cf-operator-tests.uk", "testemail2@cf-operator-tests.uk"},
-						EmailDomains: []string{"cf-operator-tests.uk"},
+						Emails: []string{
+							produceOwnedEmail("zto-test-app-1-one"),
+							produceOwnedEmail("zto-test-app-1-two"),
+						},
+						EmailDomains: []string{
+							accountOwnedDomain,
+						},
 					},
 				},
 			}
@@ -90,7 +95,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				},
 				Spec: v4alpha1.CloudflareAccessApplicationSpec{
 					Name:   "ZTO AccessApplication Tests - 1 - App",
-					Domain: "integration-policies.cf-operator-tests.uk",
+					Domain: produceOwnedFQDN("zto-test-app-1"),
 					PolicyRefs: []string{
 						v4alpha1.ParsedNamespacedName(arpNN),
 					},
@@ -122,7 +127,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				},
 				Spec: v4alpha1.CloudflareAccessApplicationSpec{
 					Name:   "ZTO AccessApplication Tests - 2 - App",
-					Domain: "integration.cf-operator-tests.uk",
+					Domain: produceOwnedFQDN("zto-test-app-2"),
 				},
 			}
 			Expect(k8sClient.Create(ctx, app)).To(Not(HaveOccurred()))
@@ -140,7 +145,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Expect(cfResource.Name).To(Equal(foundApp.Spec.Name))
 
 			By("Updating app name")
-			setUpdtdName(&foundApp.Spec.Name)
+			addDirtyingSuffix(&foundApp.Spec.Name)
 			Expect(k8sClient.Update(ctx, foundApp)).To(Not(HaveOccurred()))
 
 			// Await for resource to be ready again
@@ -177,7 +182,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				},
 				Spec: v4alpha1.CloudflareAccessApplicationSpec{
 					Name:    "ZTO AccessApplication Tests - 3 - App",
-					Domain:  "integration-logo-test.cf-operator-tests.uk",
+					Domain:  produceOwnedFQDN("zto-test-app-3"),
 					LogoURL: "https://www.cloudflare.com/img/logo-web-badges/cf-logo-on-white-bg.svg",
 				},
 			}
@@ -207,7 +212,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				},
 				Spec: v4alpha1.CloudflareAccessApplicationSpec{
 					Name:   "ZTO AccessApplication Tests - 4 - App",
-					Domain: "recreate-application.cf-operator-tests.uk",
+					Domain: produceOwnedFQDN("zto-test-app-4"),
 				},
 			}
 			Expect(k8sClient.Create(ctx, app)).To(Not(HaveOccurred()))
@@ -224,7 +229,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Expect(api.DeleteOrResetAccessApplication(ctx, foundApp)).To(Not(HaveOccurred()))
 
 			By("re-trigger reconcile by updating access application")
-			setUpdtdName(&foundApp.Spec.Name)
+			addDirtyingSuffix(&foundApp.Spec.Name)
 			Expect(k8sClient.Update(ctx, foundApp)).To(Not(HaveOccurred()))
 
 			//
@@ -295,8 +300,13 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				Spec: v4alpha1.CloudflareAccessReusablePolicySpec{
 					Name: "ZTO AccessApplication Tests - 5 - Policy",
 					Include: v4alpha1.CloudFlareAccessRules{
-						Emails:       []string{"testemail@cf-operator-tests.uk", "testemail2@cf-operator-tests.uk"},
-						EmailDomains: []string{"cf-operator-tests.uk"},
+						Emails: []string{
+							produceOwnedEmail("zto-test-app-5-one"),
+							produceOwnedEmail("zto-test-app-5-two"),
+						},
+						EmailDomains: []string{
+							accountOwnedDomain,
+						},
 					},
 				},
 			}
@@ -355,8 +365,13 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				Spec: v4alpha1.CloudflareAccessReusablePolicySpec{
 					Name: "ZTO AccessApplication Tests - 6 - Policy",
 					Include: v4alpha1.CloudFlareAccessRules{
-						Emails:       []string{"testemail@cf-operator-tests.uk", "testemail2@cf-operator-tests.uk"},
-						EmailDomains: []string{"cf-operator-tests.uk"},
+						Emails: []string{
+							produceOwnedEmail("zto-test-app-6-one"),
+							produceOwnedEmail("zto-test-app-6-two"),
+						},
+						EmailDomains: []string{
+							accountOwnedDomain,
+						},
 					},
 				},
 			}
