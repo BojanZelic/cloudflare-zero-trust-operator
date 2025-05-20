@@ -52,11 +52,15 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 		// Expect(ctrlErrors).To(BeEmpty())
 	})
 
+	//
+	// Only Self hosted
+	//
+
 	Context("CloudflareAccessApplication controller test - self hosted apps", func() {
 		It("should successfully reconcile CloudflareAccessApplication with reusable policy", func() {
 			By("Creating the custom resource for the Kind CloudflareAccessReusablePolicy")
 			arpNN := types.NamespacedName{Name: "test-1-arp", Namespace: testScopedNamespace}
-			reusablePolicy := &v4alpha1.CloudflareAccessReusablePolicy{
+			arp := &v4alpha1.CloudflareAccessReusablePolicy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      arpNN.Name,
 					Namespace: arpNN.Namespace,
@@ -74,17 +78,10 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, reusablePolicy)).To(Not(HaveOccurred()))
-
-			foundArp := &v4alpha1.CloudflareAccessReusablePolicy{}
-			ByExpectingCFResourceToBeReady(ctx,
-				arpNN,
-				foundArp,
-			).Should(Succeed())
+			Expect(k8sClient.Create(ctx, arp)).To(Not(HaveOccurred()))
 
 			//
-			//
-			//
+			ByExpectingCFResourceToBeReady(ctx, arp).Should(Succeed())
 
 			By("Creating the custom resource for the Kind CloudflareAccessApplication")
 			appNN := types.NamespacedName{Name: "test-1-app", Namespace: testScopedNamespace}
@@ -103,18 +100,15 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			}
 			Expect(k8sClient.Create(ctx, app)).To(Not(HaveOccurred()))
 
-			foundApp := &v4alpha1.CloudflareAccessApplication{}
-			ByExpectingCFResourceToBeReady(ctx,
-				appNN,
-				foundApp,
-			).Should(Succeed())
+			//
+			ByExpectingCFResourceToBeReady(ctx, app).Should(Succeed())
 
 			//
 			//
 			//
 
 			By("Ensuring Cloudflare Application refers Reusable policy CF ID")
-			Expect(foundApp.Status.ReusablePolicyIDs).To(ContainElement(foundArp.GetCloudflareUUID()))
+			Expect(app.Status.ReusablePolicyIDs).To(ContainElement(arp.GetCloudflareUUID()))
 		})
 
 		It("should successfully reconcile and delete a custom resource for CloudflareAccessApplication", func() {
@@ -133,33 +127,26 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, app)).To(Not(HaveOccurred()))
 
 			//
-			foundApp := &v4alpha1.CloudflareAccessApplication{}
-			ByExpectingCFResourceToBeReady(ctx,
-				appNN,
-				foundApp,
-			).Should(Succeed())
+			ByExpectingCFResourceToBeReady(ctx, app).Should(Succeed())
 
 			By("Cloudflare resource should equal the spec")
-			cfResource, err := api.AccessApplication(ctx, foundApp.GetCloudflareUUID())
+			cfResource, err := api.AccessApplication(ctx, app.GetCloudflareUUID())
 			Expect(err).To(Not(HaveOccurred()))
-			Expect(cfResource.Name).To(Equal(foundApp.Spec.Name))
+			Expect(cfResource.Name).To(Equal(app.Spec.Name))
 
 			By("Updating app name")
-			addDirtyingSuffix(&foundApp.Spec.Name)
-			Expect(k8sClient.Update(ctx, foundApp)).To(Not(HaveOccurred()))
+			addDirtyingSuffix(&app.Spec.Name)
+			Expect(k8sClient.Update(ctx, app)).To(Not(HaveOccurred()))
 
 			// Await for resource to be ready again
-			ByExpectingCFResourceToBeReady(ctx,
-				appNN,
-				foundApp,
-			).Should(Succeed())
+			ByExpectingCFResourceToBeReady(ctx, app).Should(Succeed())
 
 			By("Cloudflare resource should equal the updated spec")
 			Eventually(func(g Gomega) { //nolint:varnamelen
 				// ctrlErrors.TestEmpty()
-				cfResource, err = api.AccessApplication(ctx, foundApp.GetCloudflareUUID())
+				cfResource, err = api.AccessApplication(ctx, app.GetCloudflareUUID())
 				g.Expect(err).To(Not(HaveOccurred()))
-				g.Expect(cfResource.Name).To(Equal(foundApp.Spec.Name))
+				g.Expect(cfResource.Name).To(Equal(app.Spec.Name))
 			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed(), ctrlErrors) // sometimes this is cached
 
 			By("Cloudflare resource should be deleted")
@@ -189,22 +176,17 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, app)).To(Not(HaveOccurred()))
 
 			//
-			foundApp := &v4alpha1.CloudflareAccessApplication{}
-			ByExpectingCFResourceToBeReady(ctx,
-				appNN,
-				foundApp,
-			).Should(Succeed())
+			ByExpectingCFResourceToBeReady(ctx, app).Should(Succeed())
 
 			By("Cloudflare resource should equal the spec")
-			cfResource, err := api.AccessApplication(ctx, foundApp.GetCloudflareUUID())
+			cfResource, err := api.AccessApplication(ctx, app.GetCloudflareUUID())
 			Expect(err).To(Not(HaveOccurred()))
-			Expect(cfResource.Name).To(Equal(foundApp.Spec.Name))
+			Expect(cfResource.Name).To(Equal(app.Spec.Name))
 		})
 
 		It("should successfully reconcile CloudflareAccessApplication whose AccessApplicationID references a missing Application", func() {
 			By("Recreating the custom resource for the Kind CloudflareAccessApplication")
 			appNN := types.NamespacedName{Name: "test-4-app", Namespace: testScopedNamespace}
-
 			app := &v4alpha1.CloudflareAccessApplication{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      appNN.Name,
@@ -218,33 +200,30 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, app)).To(Not(HaveOccurred()))
 
 			//
-			foundApp := &v4alpha1.CloudflareAccessApplication{}
-			ByExpectingCFResourceToBeReady(ctx,
-				appNN,
-				foundApp,
-			).Should(Succeed())
+			ByExpectingCFResourceToBeReady(ctx, app).Should(Succeed())
 
 			By("Delete associated CF Application")
-			oldAccessApplicationID := foundApp.GetCloudflareUUID()
-			Expect(api.DeleteOrResetAccessApplication(ctx, foundApp)).To(Not(HaveOccurred()))
+			oldAccessApplicationID := app.GetCloudflareUUID()
+			Expect(api.DeleteOrResetAccessApplication(ctx, app)).To(Not(HaveOccurred()))
 
 			By("re-trigger reconcile by updating access application")
-			addDirtyingSuffix(&foundApp.Spec.Name)
-			Expect(k8sClient.Update(ctx, foundApp)).To(Not(HaveOccurred()))
+			addDirtyingSuffix(&app.Spec.Name)
+			Expect(k8sClient.Update(ctx, app)).To(Not(HaveOccurred()))
 
 			//
-			ByExpectingCFResourceToBeReady(ctx,
-				appNN,
-				foundApp,
-			).Should(Succeed())
-			Expect(foundApp.GetCloudflareUUID()).ToNot(Equal(oldAccessApplicationID))
+			ByExpectingCFResourceToBeReady(ctx, app).Should(Succeed())
+			Expect(app.GetCloudflareUUID()).ToNot(Equal(oldAccessApplicationID))
 
 			By("Cloudflare resource should equal the updated spec")
-			cfResource, err := api.AccessApplication(ctx, foundApp.GetCloudflareUUID())
+			cfResource, err := api.AccessApplication(ctx, app.GetCloudflareUUID())
 			Expect(err).To(Not(HaveOccurred()))
-			Expect(cfResource.Name).To(Equal(foundApp.Spec.Name))
+			Expect(cfResource.Name).To(Equal(app.Spec.Name))
 		})
 	})
+
+	//
+	// only one-per-account app types
+	//
 
 	Context("CloudflareAccessApplication controller test - one per account apps", func() {
 
@@ -313,10 +292,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, reusablePolicy)).To(Not(HaveOccurred()))
 
 			//
-			ByExpectingCFResourceToBeReady(ctx,
-				arpNN,
-				reusablePolicy,
-			).Should(Succeed())
+			ByExpectingCFResourceToBeReady(ctx, reusablePolicy).Should(Succeed())
 
 			By("Creating a WARP CloudflareAccessApplication")
 			appNN := types.NamespacedName{Name: "test-5-app-warp", Namespace: testScopedNamespace}
@@ -335,10 +311,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, app)).To(Not(HaveOccurred()))
 
 			//
-			ByExpectingCFResourceToBeReady(ctx,
-				appNN,
-				app,
-			).Should(Succeed())
+			ByExpectingCFResourceToBeReady(ctx, app).Should(Succeed())
 
 			//
 			// OK ! now, reset
@@ -378,10 +351,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, reusablePolicy)).To(Not(HaveOccurred()))
 
 			//
-			ByExpectingCFResourceToBeReady(ctx,
-				arpNN,
-				reusablePolicy,
-			).Should(Succeed())
+			ByExpectingCFResourceToBeReady(ctx, reusablePolicy).Should(Succeed())
 
 			By("Creating an App Launcher CloudflareAccessApplication")
 			appNN := types.NamespacedName{Name: "test-6-app-app-launcher", Namespace: testScopedNamespace}
@@ -400,10 +370,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, app)).To(Not(HaveOccurred()))
 
 			//
-			ByExpectingCFResourceToBeReady(ctx,
-				appNN,
-				app,
-			).Should(Succeed())
+			ByExpectingCFResourceToBeReady(ctx, app).Should(Succeed())
 
 			//
 			// OK ! now, reset

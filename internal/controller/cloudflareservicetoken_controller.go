@@ -342,6 +342,12 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareServiceToken status"))
 	}
 
+	//
+	// All good !
+	//
+
+	log.Info("changes successfully acknoledged")
+
 	// will stop normally
 	return ctrl.Result{}, nil
 }

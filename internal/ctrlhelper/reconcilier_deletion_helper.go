@@ -2,7 +2,6 @@ package ctrlhelper
 
 import (
 	"context"
-	"errors"
 	"strconv"
 	"time"
 
@@ -12,7 +11,6 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/meta"
-	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 	"github.com/go-logr/logr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,12 +37,18 @@ func (h *ControllerHelper) ensureFinalizer(
 	}
 
 	if preventDestroy && controllerutil.ContainsFinalizer(c, meta.FinalizerDeletion) {
+		//
 		controllerutil.RemoveFinalizer(c, meta.FinalizerDeletion)
+
+		//
 		if err := h.R.Update(ctx, c); err != nil {
 			return fault.Wrap(err, fmsg.With("unable to remove finalizer"))
 		}
 	} else if !preventDestroy && !controllerutil.ContainsFinalizer(c, meta.FinalizerDeletion) {
+		//
 		controllerutil.AddFinalizer(c, meta.FinalizerDeletion)
+
+		//
 		if err := h.R.Update(ctx, c); err != nil {
 			return fault.Wrap(err, fmsg.With("unable to add finalizer"))
 		}
@@ -153,8 +157,7 @@ func (h *ControllerHelper) tryToDeleteCFResource(ctx context.Context, log *logr.
 
 	//
 	if err != nil {
-		var cfErr *cloudflare.Error
-		if errors.As(err, &cfErr) && cfErr.StatusCode == 404 {
+		if api.Is404(err) {
 			log.Info("unable to remove resource from cloudflare - appears to be already deleted")
 		} else {
 			return fault.Wrap(err, fmsg.With("deletion failed"))

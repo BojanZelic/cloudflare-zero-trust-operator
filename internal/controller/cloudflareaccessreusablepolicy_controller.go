@@ -18,7 +18,6 @@ package controller
 
 import (
 	"context"
-	"errors"
 
 	"github.com/Southclaws/fault"
 	"github.com/Southclaws/fault/fctx"
@@ -28,7 +27,6 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcompare"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
-	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	"github.com/go-logr/logr"
 
@@ -211,11 +209,8 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 
 		//
 		if err != nil {
-			var cfErr *cloudflare.Error
-			isNotFound := errors.As(err, &cfErr) && cfErr.StatusCode == 404
-
 			// do not allow to continue if anything other than not found
-			if !isNotFound {
+			if !api.Is404(err) {
 				// will retry immediately
 				return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to get access reusable policy"))
 			}
@@ -241,12 +236,18 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 		// no ressource found, create it with API
 		//
 
+		log.Info("reusable policy is missing - creating...",
+			"name", reusablePolicy.Spec.Name,
+		)
+
 		//
 		cfAccessReusablePolicy, err = api.CreateAccessReusablePolicy(ctx, reusablePolicy)
 		if err != nil {
 			// will retry immediately
 			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to create reusable policy"))
 		}
+
+		log.Info("reusable policy successfully created !")
 
 		//
 		err = r.MayReconcileStatus(ctx, cfAccessReusablePolicy, reusablePolicy)
@@ -261,7 +262,9 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 		// diff found between fetched CF resource and definition
 		//
 
-		log.Info(reusablePolicy.Name + " diverge from remote counterpart, updating CF API...")
+		log.Info("reusable policy has changed - updating...",
+			"name", reusablePolicy.Spec.Name,
+		)
 
 		//
 		err = api.UpdateAccessReusablePolicy(ctx, reusablePolicy)
@@ -269,6 +272,8 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 			// will retry immediately
 			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to update reusable policies"))
 		}
+
+		log.Info("reusable policy successfully updated !")
 
 		//
 		err = r.MayReconcileStatus(ctx, cfAccessReusablePolicy, reusablePolicy)
@@ -301,6 +306,8 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 	//
 	// All good !
 	//
+
+	log.Info("changes successfully acknoledged")
 
 	// will stop normally
 	return ctrl.Result{}, nil

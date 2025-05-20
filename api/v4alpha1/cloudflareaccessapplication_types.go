@@ -171,6 +171,13 @@ func (c *CloudflareAccessApplication) Describe() string {
 	return "CloudflareAccessApplication"
 }
 
+func (c *CloudflareAccessApplication) GetNamespacedName() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      c.Name,
+		Namespace: c.Namespace,
+	}
+}
+
 // +kubebuilder:object:root=true
 
 // CloudflareAccessApplicationList contains a list of CloudflareAccessApplication.

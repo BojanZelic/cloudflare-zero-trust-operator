@@ -18,6 +18,14 @@ const (
 	cfAPIReqFailed = "CloudFlare API request failed"
 )
 
+// check if errors notified an HTTP 404 error, meaning resource that we interacted with do not exist
+func (a *API) Is404(err error) bool {
+	var cfErr *cloudflare.Error
+	isNotFound := errors.As(err, &cfErr) && cfErr.StatusCode == 404
+	return isNotFound
+}
+
+// prettify and add context to complex errors that might arise using CloudFlare API
 func (a *API) wrapPrettyForAPI(err error) error {
 	if err == nil {
 		return nil
@@ -26,8 +34,10 @@ func (a *API) wrapPrettyForAPI(err error) error {
 	var cfErr *cloudflare.Error
 	isAPIError := errors.As(err, &cfErr)
 
-	// if not api error, just give it as it is
-	if !isAPIError {
+	// We do not want to wrap:
+	// - All errors which are not API related
+	// - 404 HTTP from CF API (which we might track); they would otherwise not be detected using errors.As(). They are simple enought for prettifying not being useful.
+	if !isAPIError || cfErr.StatusCode == 404 {
 		return err
 	}
 
@@ -54,7 +64,8 @@ func (a *API) wrapPrettyForAPI(err error) error {
 	}
 
 	return fault.Wrap(
-		errors.Join(errs...), // TODO(maintainer) I have doubts joining errors is handled by Fault
+		// TODO(maintainer) We do not quite want joining here since errors are at the "same level". But, how well, that'd be good enough.
+		errors.Join(errs...),
 		fmsg.With(cfAPIReqFailed),
 		fctx.With(a.ctx,
 			"method", cfErr.Request.Method,

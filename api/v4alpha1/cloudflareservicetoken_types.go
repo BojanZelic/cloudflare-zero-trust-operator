@@ -21,6 +21,7 @@ import (
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -150,6 +151,13 @@ func (c *CloudflareServiceToken) UnderDeletion() bool {
 
 func (c *CloudflareServiceToken) Describe() string {
 	return "CloudflareServiceToken"
+}
+
+func (c *CloudflareServiceToken) GetNamespacedName() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      c.Name,
+		Namespace: c.Namespace,
+	}
 }
 
 func (c *CloudflareServiceToken) ToExtendedToken() cftypes.ExtendedServiceToken {

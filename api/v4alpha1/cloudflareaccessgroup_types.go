@@ -18,6 +18,7 @@ package v4alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -101,6 +102,13 @@ func (c *CloudflareAccessGroup) UnderDeletion() bool {
 
 func (c *CloudflareAccessGroup) Describe() string {
 	return "CloudflareAccessGroup"
+}
+
+func (c *CloudflareAccessGroup) GetNamespacedName() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      c.Name,
+		Namespace: c.Namespace,
+	}
 }
 
 func (c *CloudflareAccessGroup) GetIncludeRules() *CloudFlareAccessRules {

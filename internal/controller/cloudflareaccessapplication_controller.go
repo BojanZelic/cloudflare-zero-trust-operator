@@ -18,7 +18,6 @@ package controller
 
 import (
 	"context"
-	"errors"
 
 	"github.com/Southclaws/fault"
 	"github.com/Southclaws/fault/fctx"
@@ -28,7 +27,6 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcompare"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
-	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	"github.com/go-logr/logr"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -44,7 +42,7 @@ import (
 )
 
 const (
-	SearchOnAppTypeIndex = "spec.type"
+	SearchOnAppTypeIndex string = "spec.type"
 )
 
 // CloudflareAccessApplicationReconciler reconciles a CloudflareAccessApplication object.
@@ -96,7 +94,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	// Check that single app type are not declared elsewhere
 	//
 
-	// TODO check type uniqueness
+	//
 	switch app.Spec.Type {
 	case string(zero_trust.ApplicationTypeWARP),
 		string(zero_trust.ApplicationTypeAppLauncher):
@@ -105,7 +103,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 			err = r.List(ctx, &allApps, client.MatchingFields{SearchOnAppTypeIndex: app.Spec.Type})
 			if err != nil {
 				// will retry immediately
-				return ctrl.Result{}, fault.Wrap(err,
+				return ctrl.Result{RequeueAfter: r.Helper.NormalRequeueDelay}, fault.Wrap(err,
 					fmsg.With("Failed to use indexed search on access applications. Contact the developers."),
 					fctx.With(ctx,
 						"searchedOn", SearchOnAppTypeIndex,
@@ -307,11 +305,8 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 
 		//
 		if err != nil {
-			var cfErr *cloudflare.Error
-			isNotFound := errors.As(err, &cfErr) && cfErr.StatusCode == 404
-
 			// do not allow to continue if anything other than not found
-			if !isNotFound {
+			if !api.Is404(err) {
 				// will retry immediately
 				return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to get access application"))
 			}
@@ -346,6 +341,8 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to create access application"))
 		}
 
+		log.Info("app successfully updated !")
+
 		// update status
 		if err = r.MayReconcileStatus(ctx, cfAccessApp, app); err != nil {
 			// will retry immediately
@@ -369,6 +366,8 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 			// will retry immediately
 			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to update access group"))
 		}
+
+		log.Info("app successfully updated !")
 
 		// update status
 		if err = r.MayReconcileStatus(ctx, cfAccessApp, app); err != nil {
@@ -401,6 +400,8 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	// All good !
 	//
 
+	log.Info("changes successfully acknoledged")
+
 	// will stop normally
 	return ctrl.Result{}, nil
 }
@@ -430,7 +431,7 @@ func (r *CloudflareAccessApplicationReconciler) SetupWithManager(mgr ctrl.Manage
 		override = r
 	}
 
-	ctx := context.Background()
+	ctx := context.TODO()
 
 	//
 	err := mgr.GetFieldIndexer().IndexField(ctx,
@@ -445,7 +446,7 @@ func (r *CloudflareAccessApplicationReconciler) SetupWithManager(mgr ctrl.Manage
 	//
 	if err != nil {
 		return fault.Wrap(err,
-			fmsg.With("Unable to "),
+			fmsg.With("Unable to integrate custom index on access application controller. Contact the developers."),
 			fctx.With(ctx,
 				"index", SearchOnAppTypeIndex,
 			),

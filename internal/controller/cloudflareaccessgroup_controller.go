@@ -18,7 +18,6 @@ package controller
 
 import (
 	"context"
-	"errors"
 
 	"github.com/Southclaws/fault"
 	"github.com/Southclaws/fault/fctx"
@@ -28,7 +27,6 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcompare"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
-	cloudflare "github.com/cloudflare/cloudflare-go/v4"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	"github.com/go-logr/logr"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -224,11 +222,8 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 
 		//
 		if err != nil {
-			var cfErr *cloudflare.Error
-			isNotFound := errors.As(err, &cfErr) && cfErr.StatusCode == 404
-
 			// do not allow to continue if anything other than not found
-			if !isNotFound {
+			if !api.Is404(err) {
 				// will retry immediately
 				return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to get access group"))
 			}
@@ -253,12 +248,18 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		// no ressource found, create it with API
 		//
 
+		log.Info("group is missing - creating...",
+			"name", accessGroup.Spec.Name,
+		)
+
 		//
 		cfAccessGroup, err = api.CreateAccessGroup(ctx, accessGroup)
 		if err != nil {
 			// will retry immediately
 			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to create access group"))
 		}
+
+		log.Info("group successfully created !")
 
 		// update status
 		if err = r.MayReconcileStatus(ctx, cfAccessGroup, accessGroup); err != nil {
@@ -282,6 +283,8 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 			// will retry immediately
 			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to update access groups"))
 		}
+
+		log.Info("group successfully updated !")
 
 		// update status
 		if err = r.MayReconcileStatus(ctx, cfAccessGroup, accessGroup); err != nil {
@@ -313,6 +316,8 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	//
 	// All good !
 	//
+
+	log.Info("changes successfully acknoledged")
 
 	// will stop normally
 	return ctrl.Result{}, nil

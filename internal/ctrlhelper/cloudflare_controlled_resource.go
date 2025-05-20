@@ -2,6 +2,7 @@ package ctrlhelper
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -20,4 +21,7 @@ type CloudflareControlledResource interface {
 
 	//
 	GetConditions() *[]metav1.Condition
+
+	//
+	GetNamespacedName() types.NamespacedName
 }

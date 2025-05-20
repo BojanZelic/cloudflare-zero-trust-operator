@@ -18,6 +18,7 @@ package v4alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -108,6 +109,13 @@ func (c *CloudflareAccessReusablePolicy) UnderDeletion() bool {
 
 func (c *CloudflareAccessReusablePolicy) Describe() string {
 	return "CloudflareAccessReusablePolicy"
+}
+
+func (c *CloudflareAccessReusablePolicy) GetNamespacedName() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      c.Name,
+		Namespace: c.Namespace,
+	}
 }
 
 func (c *CloudflareAccessReusablePolicy) GetIncludeRules() *CloudFlareAccessRules {

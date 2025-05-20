@@ -88,10 +88,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, group)).To(Not(HaveOccurred()))
 
 			//
-			ByExpectingCFResourceToBeReady(ctx,
-				groupNN,
-				&v4alpha1.CloudflareAccessGroup{},
-			).Should(Succeed())
+			ByExpectingCFResourceToBeReady(ctx, group).Should(Succeed())
 		})
 
 		It("should successfully reconcile a custom resource for CloudflareAccessGroup", func() {
@@ -114,31 +111,24 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, group)).To(Not(HaveOccurred()))
 
 			//
-			foundGroup := v4alpha1.CloudflareAccessGroup{}
-			ByExpectingCFResourceToBeReady(ctx,
-				groupNN,
-				&foundGroup,
-			).Should(Succeed())
+			ByExpectingCFResourceToBeReady(ctx, group).Should(Succeed())
 
 			By("Cloudflare resource should equal the spec")
-			cfResource, err := api.AccessGroup(ctx, foundGroup.GetCloudflareUUID())
+			cfResource, err := api.AccessGroup(ctx, group.GetCloudflareUUID())
 			Expect(err).To(Not(HaveOccurred()))
-			Expect(cfResource.Name).To(Equal(foundGroup.Spec.Name))
+			Expect(cfResource.Name).To(Equal(group.Spec.Name))
 
 			By("Updating the name of the resource")
-			addDirtyingSuffix(&foundGroup.Spec.Name)
-			Expect(k8sClient.Update(ctx, &foundGroup)).To(Not(HaveOccurred()))
+			addDirtyingSuffix(&group.Spec.Name)
+			Expect(k8sClient.Update(ctx, group)).To(Not(HaveOccurred()))
 
 			//
-			ByExpectingCFResourceToBeReady(ctx,
-				groupNN,
-				&foundGroup,
-			).Should(Succeed())
+			ByExpectingCFResourceToBeReady(ctx, group).Should(Succeed())
 
 			By("Cloudflare resource should equal the updated spec")
-			cfResource, err = api.AccessGroup(ctx, foundGroup.GetCloudflareUUID())
+			cfResource, err = api.AccessGroup(ctx, group.GetCloudflareUUID())
 			Expect(err).To(Not(HaveOccurred()))
-			Expect(cfResource.Name).To(Equal(foundGroup.Spec.Name))
+			Expect(cfResource.Name).To(Equal(group.Spec.Name))
 		})
 
 		It("should successfully reconcile CloudflareAccessApplication policies with references", func() {
@@ -156,10 +146,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, token)).To(Not(HaveOccurred()))
 
 			//
-			ByExpectingCFResourceToBeReady(ctx,
-				sTokenNN,
-				token,
-			).Should(Succeed())
+			ByExpectingCFResourceToBeReady(ctx, token).Should(Succeed())
 
 			//
 			By("Creating access group")
@@ -181,10 +168,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, group)).To(Not(HaveOccurred()))
 
 			//
-			ByExpectingCFResourceToBeReady(ctx,
-				groupNN,
-				group,
-			).Should(Succeed())
+			ByExpectingCFResourceToBeReady(ctx, group).Should(Succeed())
 		})
 	})
 
@@ -230,10 +214,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, token)).To(Not(HaveOccurred()))
 
 			//
-			ByExpectingCFResourceToBeReady(ctx,
-				sTokenNN,
-				token,
-			).Should(Succeed())
+			ByExpectingCFResourceToBeReady(ctx, token).Should(Succeed())
 
 			//
 			By("Creating access group in namespace two, referencing sToken above")
@@ -255,10 +236,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			Expect(k8sClient.Create(ctx, group)).To(Not(HaveOccurred()))
 
 			//
-			ByExpectingCFResourceToBeReady(ctx,
-				groupNN,
-				group,
-			).Should(Succeed())
+			ByExpectingCFResourceToBeReady(ctx, group).Should(Succeed())
 		})
 	})
 })
