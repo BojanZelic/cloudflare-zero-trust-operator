@@ -59,7 +59,7 @@ func (a *API) CreateAccessGroup(ctx context.Context, group *v4alpha1.CloudflareA
 
 	//
 	if a.optionalTracer != nil {
-		a.optionalTracer.GroupInserted(insert.ID)
+		a.optionalTracer.AccessGroups.TraceInsert(insert.ID, insert.Name)
 	}
 
 	//
@@ -89,7 +89,7 @@ func (a *API) DeleteAccessGroup(ctx context.Context, groupID string) error {
 
 	//
 	if a.optionalTracer != nil && err == nil {
-		a.optionalTracer.GroupDeleted(groupID)
+		a.optionalTracer.AccessGroups.TraceDelete(groupID)
 	}
 
 	return a.wrapPrettyForAPI(err)
@@ -232,7 +232,7 @@ func (a *API) CreateAccessApplication(
 
 	//
 	if a.optionalTracer != nil {
-		a.optionalTracer.ApplicationInserted(cfApp.ID)
+		a.optionalTracer.AccessApplications.TraceInsert(cfApp.ID, cfApp.Name)
 	}
 
 	return a.AccessApplication(ctx, cfApp.ID)
@@ -400,7 +400,7 @@ func (a *API) CreateAccessReusablePolicy(ctx context.Context, from *v4alpha1.Clo
 
 	//
 	if a.optionalTracer != nil {
-		a.optionalTracer.ReusablePolicyInserted(arp.ID)
+		a.optionalTracer.AccessReusablePolicies.TraceInsert(arp.ID, arp.Name)
 	}
 
 	return a.AccessReusablePolicy(ctx, arp.ID)
@@ -410,6 +410,8 @@ func (a *API) UpdateAccessReusablePolicy(ctx context.Context, arp *v4alpha1.Clou
 	//
 	params := zero_trust.AccessPolicyUpdateParams{
 		AccountID: cloudflare.F(a.CFAccountID),
+		Decision:  cloudflare.F(zero_trust.Decision(arp.Spec.Decision)), // always required
+		Name:      cloudflare.F(arp.Spec.Name),                          // always required
 		Include:   cloudflare.F(arp.Spec.Include.ToAccessRuleParams(arp.Status.ResolvedIdpsFromRefs.Include)),
 		Exclude:   cloudflare.F(arp.Spec.Exclude.ToAccessRuleParams(arp.Status.ResolvedIdpsFromRefs.Exclude)),
 		Require:   cloudflare.F(arp.Spec.Require.ToAccessRuleParams(arp.Status.ResolvedIdpsFromRefs.Require)),
@@ -428,7 +430,7 @@ func (a *API) DeleteAccessReusablePolicy(ctx context.Context, policyID string) e
 
 	//
 	if a.optionalTracer != nil && err == nil {
-		a.optionalTracer.ReusablePolicyDeleted(policyID)
+		a.optionalTracer.AccessReusablePolicies.TraceDelete(policyID)
 	}
 
 	return a.wrapPrettyForAPI(err)
@@ -496,7 +498,7 @@ func (a *API) CreateAccessServiceToken(ctx context.Context, token cftypes.Extend
 
 	//
 	if a.optionalTracer != nil {
-		a.optionalTracer.ServiceTokenInserted(sToken.ID)
+		a.optionalTracer.AccessServiceTokens.TraceInsert(sToken.ID, sToken.Name)
 	}
 
 	return &extendedToken, a.wrapPrettyForAPI(err)
@@ -510,7 +512,7 @@ func (a *API) DeleteAccessServiceToken(ctx context.Context, tokenID string) erro
 
 	//
 	if a.optionalTracer != nil && err == nil {
-		a.optionalTracer.ServiceTokenDeleted(tokenID)
+		a.optionalTracer.AccessServiceTokens.TraceDelete(tokenID)
 	}
 
 	return a.wrapPrettyForAPI(err)

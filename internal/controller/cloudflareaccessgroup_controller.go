@@ -36,6 +36,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -49,7 +50,7 @@ type CloudflareAccessGroupReconciler struct {
 	Helper *ctrlhelper.ControllerHelper
 
 	// Mainly used for debug / tests purposes. Should not be instantiated in production run.
-	OptionalTracer *cfapi.InsertedCFRessourcesTracer
+	OptionalTracer *cfapi.CloudflareResourceCreationTracer
 }
 
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups,verbs=get;list;watch;create;update;patch;delete
@@ -89,7 +90,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	//
 
 	//
-	popRes, err, hasPopulated := r.Helper.PopulateWithCloudflareUUIDs(ctx, req.Namespace, &log, accessGroup)
+	popRes, populatedCount, err := r.Helper.PopulateWithCloudflareUUIDs(ctx, req.Namespace, &log, accessGroup)
 
 	// if any result returned, return it to reconcilier along w/ err (if any)
 	if popRes != nil {
@@ -100,27 +101,29 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		log.Info("failed to update access group's referenced CloudFlare UUIDs")
 
 		// patch with status updated
-		_, errPatch := controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
-			meta.SetStatusCondition(&accessGroup.Status.Conditions,
-				metav1.Condition{
-					Type:    StatusAvailable,
-					Status:  metav1.ConditionFalse,
-					Reason:  "InvalidReference",
-					Message: err.Error(),
-				},
-			)
+		newCond := metav1.Condition{
+			Type:    StatusAvailable,
+			Status:  metav1.ConditionFalse,
+			Reason:  "InvalidReference",
+			Message: err.Error(),
+		}
+		_, pErr := controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
+			meta.SetStatusCondition(&accessGroup.Status.Conditions, newCond)
 			return nil
 		})
-
-		//
-		if errPatch != nil {
+		if pErr != nil {
 			// will retry immediately
-			return ctrl.Result{}, fault.Wrap(errPatch, fmsg.With("Failed to update CloudflareAccessGroup status, after a CF UUIDs population failure"))
+			return ctrl.Result{}, fault.Wrap(pErr, fmsg.With("Failed to update CloudflareAccessGroup status, after a CF UUIDs population failure"))
+		} else {
+			log.V(1).Info("Status persisted",
+				"type", newCond.Type,
+				"to", newCond.Status,
+			)
 		}
 
 		// will retry immediately
 		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to populate CF UUIDs"))
-	} else if hasPopulated {
+	} else if populatedCount > 0 {
 
 		//
 		// Record populated values
@@ -129,6 +132,8 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		if err = r.Client.Status().Update(ctx, accessGroup); err != nil {
 			// will retry immediately
 			return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessApplication status"))
+		} else {
+			log.V(1).Info("Persisted Populated UUIDs", "populatedCount", populatedCount)
 		}
 	}
 
@@ -163,20 +168,24 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	//
 
 	// Try to setup "Conditions" field on CRD Manifest associated status
+	newCond := metav1.Condition{
+		Type:    StatusAvailable,
+		Status:  metav1.ConditionUnknown,
+		Reason:  "Reconciling",
+		Message: "CloudflareAccessGroup is reconciling",
+	}
 	_, err = controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
-		meta.SetStatusCondition(&accessGroup.Status.Conditions,
-			metav1.Condition{
-				Type:    StatusAvailable,
-				Status:  metav1.ConditionUnknown,
-				Reason:  "Reconciling",
-				Message: "CloudflareAccessGroup is reconciling",
-			},
-		)
+		meta.SetStatusCondition(&accessGroup.Status.Conditions, newCond)
 		return nil
 	})
 	if err != nil {
 		// will retry immediately
 		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessGroup status"))
+	} else {
+		log.V(1).Info("Status persisted",
+			"type", newCond.Type,
+			"to", newCond.Status,
+		)
 	}
 
 	//
@@ -296,21 +305,24 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 	//
 	// All set, now mark ressource as available
 	//
-
-	if _, err = controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
-		meta.SetStatusCondition(&accessGroup.Status.Conditions,
-			metav1.Condition{
-				Type:    StatusAvailable,
-				Status:  metav1.ConditionTrue,
-				Reason:  "Reconcilied",
-				Message: "App Reconciled Successfully",
-			},
-		)
-
+	newCond = metav1.Condition{
+		Type:    StatusAvailable,
+		Status:  metav1.ConditionTrue,
+		Reason:  "Reconcilied",
+		Message: "App Reconciled Successfully",
+	}
+	_, err = controllerutil.CreateOrPatch(ctx, r.Client, accessGroup, func() error {
+		meta.SetStatusCondition(&accessGroup.Status.Conditions, newCond)
 		return nil
-	}); err != nil {
+	})
+	if err != nil {
 		// will retry immediately
 		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessGroup status"))
+	} else {
+		log.V(1).Info("Status persisted",
+			"type", newCond.Type,
+			"to", newCond.Status,
+		)
 	}
 
 	//
@@ -324,7 +336,11 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 }
 
 //nolint:dupl
-func (r *CloudflareAccessGroupReconciler) MayReconcileStatus(ctx context.Context, cfGroup *zero_trust.AccessGroupGetResponse, k8sGroup *v4alpha1.CloudflareAccessGroup) error {
+func (r *CloudflareAccessGroupReconciler) MayReconcileStatus(
+	ctx context.Context,
+	cfGroup *zero_trust.AccessGroupGetResponse,
+	k8sGroup *v4alpha1.CloudflareAccessGroup,
+) error {
 	if k8sGroup.GetCloudflareUUID() != "" {
 		return nil
 	}
@@ -349,10 +365,18 @@ func (r *CloudflareAccessGroupReconciler) MayReconcileStatus(ctx context.Context
 
 	if err != nil {
 		return fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessGroup status"))
+	} else {
+		r.GetReconcilierLogger(ctx).V(1).Info("UUID persisted in status",
+			"UUID", group.GetCloudflareUUID(),
+		)
 	}
 
 	return nil
 }
+
+//
+//
+//
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CloudflareAccessGroupReconciler) SetupWithManager(mgr ctrl.Manager, override reconcile.Reconciler) error {
@@ -363,5 +387,8 @@ func (r *CloudflareAccessGroupReconciler) SetupWithManager(mgr ctrl.Manager, ove
 	//nolint:wrapcheck
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v4alpha1.CloudflareAccessGroup{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		WithOptions(controller.Options{
+			RateLimiter: ZTOTypedControllerRateLimiter[reconcile.Request](),
+		}).
 		Complete(override)
 }

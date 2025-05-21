@@ -37,7 +37,7 @@ var _ = Describe("AccessApplicationPolicy", Label("AccessApplicationPolicy"), fu
 				}
 			}`))
 
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 
 			first := zero_trust.AccessApplicationGetResponse{
 				Policies: []map[string]any{{

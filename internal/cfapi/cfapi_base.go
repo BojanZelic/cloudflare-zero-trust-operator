@@ -11,11 +11,11 @@ import (
 type API struct {
 	CFAccountID    string
 	client         *cloudflare.Client
-	optionalTracer *InsertedCFRessourcesTracer
+	optionalTracer *CloudflareResourceCreationTracer
 	ctx            context.Context
 }
 
-func FromConfig(ctx context.Context, config config.ZeroTrustConfig, optionalTracer *InsertedCFRessourcesTracer) *API {
+func FromConfig(ctx context.Context, config config.ZeroTrustConfig, optionalTracer *CloudflareResourceCreationTracer) *API {
 	return New(ctx,
 		config.APIToken,
 		config.APIKey,
@@ -31,7 +31,7 @@ func New(
 	cfAPIKey string,
 	cfAPIEmail string,
 	cfAccountID string,
-	optionalTracer *InsertedCFRessourcesTracer,
+	optionalTracer *CloudflareResourceCreationTracer,
 ) *API {
 	//
 	var api *cloudflare.Client

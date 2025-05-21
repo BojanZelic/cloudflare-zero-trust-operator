@@ -90,6 +90,9 @@ spec:
             description: CloudflareServiceTokenStatus defines the observed state of
               CloudflareServiceToken.
             properties:
+              accessServiceTokenId:
+                description: ID of the service token in Cloudflare
+                type: string
               conditions:
                 description: Conditions store the status conditions of the CloudflareAccessApplication
                 items:
@@ -183,9 +186,6 @@ spec:
                 - clientSecretKey
                 - reference
                 type: object
-              serviceTokenId:
-                description: ID of the servicetoken in Cloudflare
-                type: string
               updatedAt:
                 description: Updated timestamp of the resource in Cloudflare
                 format: date-time

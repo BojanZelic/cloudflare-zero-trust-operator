@@ -64,7 +64,7 @@ var (
 	testEnv   *envtest.Environment
 
 	//
-	insertedTracer cfapi.InsertedCFRessourcesTracer
+	insertedTracer cfapi.CloudflareResourceCreationTracer
 
 	// @dev Might get cleared between test sets
 	ctrlErrors controller.ReconcilierErrorTracker
@@ -79,7 +79,9 @@ var (
 )
 
 const (
-	defaultTimeout  = 10 * time.Second
+	// testenv is slow, like really slow to respond when getting overwelmed by spam retries.
+	// 20 secs is the minimum you need to set on a Macbook M1 Pro; adapt this depending on your hardware I guess.
+	defaultTimeout  = 20 * time.Second
 	defaultPollRate = 2 * time.Second
 )
 
@@ -104,6 +106,7 @@ var _ = BeforeSuite(func() {
 		zap.UseDevMode(true),
 		zap.StacktraceLevel(zapcore.DPanicLevel), // only print stacktraces for panics and fatal
 	)
+
 	// bind logger
 	ctrl.SetLogger(
 		logger.NewFaultLogger(zapLogger,
@@ -129,16 +132,16 @@ var _ = BeforeSuite(func() {
 	}
 
 	cfg, err := testEnv.Start() // Required to be shutdown later
-	Expect(err).NotTo(HaveOccurred())
-	Expect(cfg).NotTo(BeNil())
+	Expect(err).ToNot(HaveOccurred())
+	Expect(cfg).ToNot(BeNil())
 
 	err = cloudflarev4alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 
 	// initialize client which we will use in test, emulating operator / remote client
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-	Expect(err).NotTo(HaveOccurred())
-	Expect(k8sClient).NotTo(BeNil())
+	Expect(err).ToNot(HaveOccurred())
+	Expect(k8sClient).ToNot(BeNil())
 
 	//
 	//
@@ -148,9 +151,9 @@ var _ = BeforeSuite(func() {
 	config.SetConfigDefaults()
 	cfConfig := config.ParseCloudflareConfig(&metav1.ObjectMeta{})
 	_, err = cfConfig.IsValid()
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 
-	insertedTracer.ResetCFUUIDs()
+	insertedTracer.ResetStores()
 	api = cfapi.FromConfig(ctrl.SetupSignalHandler(), cfConfig, &insertedTracer)
 
 	//
@@ -178,7 +181,7 @@ var _ = BeforeSuite(func() {
 	}
 
 	isOwned, err := api.IsDomainOwned(ctx, accountOwnedDomain)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 	Expect(isOwned).To(
 		BeTrueBecause("Domain used as prop template during tests must be owned; inferred testing domain '%s' is not.", accountOwnedDomain),
 	)
@@ -274,7 +277,7 @@ var _ = AfterSuite(func() {
 	By("tearing down the test environment")
 	cancel()
 	err := testEnv.Stop()
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 })
 
 //
@@ -334,8 +337,10 @@ func ByExpectingCFResourceToBeReady(ctx context.Context, toExpectOf ctrlhelper.C
 	return expectingCFResourceReadiness(ctx, toExpectOf, metav1.ConditionTrue)
 }
 
+// Contrary to [ByExpectingCFResourceToBeReady]
+//
 // @notice [res] will be populated
-func ByExpectingCFResourceToNOTBeReady(ctx context.Context, toExpectOf ctrlhelper.CloudflareControlledResource) AsyncAssertion {
+func ByExpectingCFResourceTo_NOT_BeReady(ctx context.Context, toExpectOf ctrlhelper.CloudflareControlledResource) AsyncAssertion {
 	return expectingCFResourceReadiness(ctx, toExpectOf, metav1.ConditionFalse)
 }
 
@@ -350,6 +355,13 @@ func expectingCFResourceReadiness(
 
 	// check if [res] is already set, and if so; expect status update date to change while Eventually
 	prevCond := meta.FindStatusCondition(*toExpectOf.GetConditions(), awaitedStatus)
+
+	ctrl.Log.V(1).Info(
+		"Start awaiting for resource to have conditions change",
+		"currentCond", prevCond,
+		"awaitedStatus", awaitedStatus,
+		"awaitedCondition", awaitedCondition,
+	)
 
 	//
 	var byLabel string
@@ -381,16 +393,15 @@ func expectingCFResourceReadiness(
 
 	//
 	return Eventually(func(g Gomega) { //nolint:varnamelen
-		//
-		err := k8sClient.Get(ctx, toExpectOfNN, toExpectOf)
-		g.Expect(err).To(Not(HaveOccurred()))
+		ctrl.Log.V(1).Info("Polling condition changes...")
 
 		//
-		g.Expect(toExpectOf.GetCloudflareUUID()).ToNot(BeEmpty())
+		err := k8sClient.Get(ctx, toExpectOfNN, toExpectOf)
+		g.Expect(err).ToNot(HaveOccurred())
 
 		//
 		cond := meta.FindStatusCondition(*toExpectOf.GetConditions(), awaitedStatus)
-		g.Expect(cond).NotTo(BeNil())
+		g.Expect(cond).ToNot(BeNil())
 		g.Expect(cond.Status).To(Equal(awaitedCondition))
 
 		//

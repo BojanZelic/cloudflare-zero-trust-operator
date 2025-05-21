@@ -14,8 +14,11 @@ import (
 )
 
 var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
-	BeforeAll(func() { insertedTracer.ResetCFUUIDs() })
-	AfterAll(func() { insertedTracer.UninstallFromCF(api) })
+	BeforeAll(func() { insertedTracer.ResetStores() })
+	AfterAll(func() {
+		errs := insertedTracer.UninstallFromCF(api)
+		Expect(errs).To(BeEmpty())
+	})
 
 	//
 	//
@@ -48,7 +51,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			By("Deleting the Namespace to perform the tests")
 			_ = k8sClient.Delete(ctx, testNS)
 			// ignore error because of https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
-			// Expect(err).To(Not(HaveOccurred()))
+			// Expect(err).ToNot(HaveOccurred()))
 		})
 
 		//
@@ -85,7 +88,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, group)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, group)).ToNot(HaveOccurred())
 
 			//
 			ByExpectingCFResourceToBeReady(ctx, group).Should(Succeed())
@@ -108,30 +111,30 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, group)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, group)).ToNot(HaveOccurred())
 
 			//
 			ByExpectingCFResourceToBeReady(ctx, group).Should(Succeed())
 
 			By("Cloudflare resource should equal the spec")
 			cfResource, err := api.AccessGroup(ctx, group.GetCloudflareUUID())
-			Expect(err).To(Not(HaveOccurred()))
+			Expect(err).ToNot(HaveOccurred())
 			Expect(cfResource.Name).To(Equal(group.Spec.Name))
 
 			By("Updating the name of the resource")
 			addDirtyingSuffix(&group.Spec.Name)
-			Expect(k8sClient.Update(ctx, group)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Update(ctx, group)).ToNot(HaveOccurred())
 
 			//
 			ByExpectingCFResourceToBeReady(ctx, group).Should(Succeed())
 
 			By("Cloudflare resource should equal the updated spec")
 			cfResource, err = api.AccessGroup(ctx, group.GetCloudflareUUID())
-			Expect(err).To(Not(HaveOccurred()))
+			Expect(err).ToNot(HaveOccurred())
 			Expect(cfResource.Name).To(Equal(group.Spec.Name))
 		})
 
-		It("should successfully reconcile CloudflareAccessApplication policies with references", func() {
+		It("should successfully reconcile CloudflareAccessGroup policies with references", func() {
 			By("pre-create a service token")
 			sTokenNN := types.NamespacedName{Name: "test-3-stoken", Namespace: testScopedNamespace}
 			token := &v4alpha1.CloudflareServiceToken{
@@ -143,7 +146,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 					Name: "ZTO AccessGroup Tests - 3 - Service Token",
 				},
 			}
-			Expect(k8sClient.Create(ctx, token)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, token)).ToNot(HaveOccurred())
 
 			//
 			ByExpectingCFResourceToBeReady(ctx, token).Should(Succeed())
@@ -165,7 +168,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, group)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, group)).ToNot(HaveOccurred())
 
 			//
 			ByExpectingCFResourceToBeReady(ctx, group).Should(Succeed())
@@ -196,10 +199,10 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			_ = k8sClient.Delete(ctx, oneNS)
 			_ = k8sClient.Delete(ctx, twoNS)
 			// ignore error because of https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
-			// Expect(err).To(Not(HaveOccurred()))
+			// Expect(err).ToNot(HaveOccurred()))
 		})
 
-		It("should successfully reconcile CloudflareAccessApplication policies with references, from another namespace", func() {
+		It("should successfully reconcile CloudflareAccessGroup policies with references, from another namespace", func() {
 			By("pre-create a service token in namespace one")
 			sTokenNN := types.NamespacedName{Name: "test-4-stoken", Namespace: oneNS.Name}
 			token := &v4alpha1.CloudflareServiceToken{
@@ -211,7 +214,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 					Name: "ZTO AccessGroup Tests - 4 - Service Token",
 				},
 			}
-			Expect(k8sClient.Create(ctx, token)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, token)).ToNot(HaveOccurred())
 
 			//
 			ByExpectingCFResourceToBeReady(ctx, token).Should(Succeed())
@@ -233,7 +236,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, group)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, group)).ToNot(HaveOccurred())
 
 			//
 			ByExpectingCFResourceToBeReady(ctx, group).Should(Succeed())

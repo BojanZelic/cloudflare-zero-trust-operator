@@ -37,6 +37,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -50,7 +51,7 @@ type CloudflareAccessReusablePolicyReconciler struct {
 	Helper *ctrlhelper.ControllerHelper
 
 	// Mainly used for debug / tests purposes. Should not be instantiated in production run.
-	OptionalTracer *cfapi.InsertedCFRessourcesTracer
+	OptionalTracer *cfapi.CloudflareResourceCreationTracer
 }
 
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessreusablepolicies,verbs=get;list;watch;create;update;patch;delete
@@ -90,7 +91,7 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 	//
 
 	//
-	popRes, err, hasPopulated := r.Helper.PopulateWithCloudflareUUIDs(ctx, req.Namespace, &log, reusablePolicy)
+	popRes, populatedCount, err := r.Helper.PopulateWithCloudflareUUIDs(ctx, req.Namespace, &log, reusablePolicy)
 
 	// if any result returned, return it to reconcilier along w/ err (if any)
 	if popRes != nil {
@@ -101,27 +102,29 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 		log.Info("failed to update access reusable policy's referenced CloudFlare UUIDs")
 
 		// patch with status updated
-		_, errPatch := controllerutil.CreateOrPatch(ctx, r.Client, reusablePolicy, func() error {
-			meta.SetStatusCondition(&reusablePolicy.Status.Conditions,
-				metav1.Condition{
-					Type:    StatusAvailable,
-					Status:  metav1.ConditionFalse,
-					Reason:  "InvalidReference",
-					Message: err.Error(),
-				},
-			)
+		newCond := metav1.Condition{
+			Type:    StatusAvailable,
+			Status:  metav1.ConditionFalse,
+			Reason:  "InvalidReference",
+			Message: err.Error(),
+		}
+		_, pErr := controllerutil.CreateOrPatch(ctx, r.Client, reusablePolicy, func() error {
+			meta.SetStatusCondition(&reusablePolicy.Status.Conditions, newCond)
 			return nil
 		})
-
-		//
-		if errPatch != nil {
+		if pErr != nil {
 			// will retry immediately
-			return ctrl.Result{}, fault.Wrap(errPatch, fmsg.With("Failed to update CloudflareAccessReusablePolicy status, after a CF UUIDs population failure"))
+			return ctrl.Result{}, fault.Wrap(pErr, fmsg.With("Failed to update CloudflareAccessReusablePolicy status, after a CF UUIDs population failure"))
+		} else {
+			log.V(1).Info("Status persisted",
+				"type", newCond.Type,
+				"to", newCond.Status,
+			)
 		}
 
 		// will retry immediately
 		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to populate CF UUIDs"))
-	} else if hasPopulated {
+	} else if populatedCount > 0 {
 
 		//
 		// Record populated values
@@ -130,6 +133,8 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 		if err = r.Client.Status().Update(ctx, reusablePolicy); err != nil {
 			// will retry immediately
 			return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessApplication status"))
+		} else {
+			log.V(1).Info("Persisted Populated UUIDs", "populatedCount", populatedCount)
 		}
 	}
 
@@ -164,20 +169,24 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 	//
 
 	// Try to setup "Conditions" field on CRD Manifest associated status
+	newCond := metav1.Condition{
+		Type:    StatusAvailable,
+		Status:  metav1.ConditionUnknown,
+		Reason:  "Reconciling",
+		Message: "CloudflareAccessReusablePolicy is reconciling",
+	}
 	_, err = controllerutil.CreateOrPatch(ctx, r.Client, reusablePolicy, func() error {
-		meta.SetStatusCondition(&reusablePolicy.Status.Conditions,
-			metav1.Condition{
-				Type:    StatusAvailable,
-				Status:  metav1.ConditionUnknown,
-				Reason:  "Reconciling",
-				Message: "CloudflareAccessReusablePolicy is reconciling",
-			},
-		)
+		meta.SetStatusCondition(&reusablePolicy.Status.Conditions, newCond)
 		return nil
 	})
 	if err != nil {
 		// will retry immediately
 		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessReusablePolicy status"))
+	} else {
+		log.V(1).Info("Status persisted",
+			"type", newCond.Type,
+			"to", newCond.Status,
+		)
 	}
 
 	//
@@ -287,20 +296,24 @@ func (r *CloudflareAccessReusablePolicyReconciler) Reconcile(ctx context.Context
 	// All set, now mark ressource as available
 	//
 
-	if _, err = controllerutil.CreateOrPatch(ctx, r.Client, reusablePolicy, func() error {
-		meta.SetStatusCondition(&reusablePolicy.Status.Conditions,
-			metav1.Condition{
-				Type:    StatusAvailable,
-				Status:  metav1.ConditionTrue,
-				Reason:  "Reconcilied",
-				Message: "App Reconciled Successfully",
-			},
-		)
-
+	newCond = metav1.Condition{
+		Type:    StatusAvailable,
+		Status:  metav1.ConditionTrue,
+		Reason:  "Reconcilied",
+		Message: "App Reconciled Successfully",
+	}
+	_, err = controllerutil.CreateOrPatch(ctx, r.Client, reusablePolicy, func() error {
+		meta.SetStatusCondition(&reusablePolicy.Status.Conditions, newCond)
 		return nil
-	}); err != nil {
+	})
+	if err != nil {
 		// will retry immediately
 		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessReusablePolicy status"))
+	} else {
+		log.V(1).Info("Status persisted",
+			"type", newCond.Type,
+			"to", newCond.Status,
+		)
 	}
 
 	//
@@ -343,10 +356,18 @@ func (r *CloudflareAccessReusablePolicyReconciler) MayReconcileStatus(
 
 	if err != nil {
 		return fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessReusablePolicy status"))
+	} else {
+		r.GetReconcilierLogger(ctx).V(1).Info("UUID persisted in status",
+			"UUID", reusablePolicy.GetCloudflareUUID(),
+		)
 	}
 
 	return nil
 }
+
+//
+//
+//
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CloudflareAccessReusablePolicyReconciler) SetupWithManager(mgr ctrl.Manager, override reconcile.Reconciler) error {
@@ -357,5 +378,8 @@ func (r *CloudflareAccessReusablePolicyReconciler) SetupWithManager(mgr ctrl.Man
 	//nolint:wrapcheck
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v4alpha1.CloudflareAccessReusablePolicy{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		WithOptions(controller.Options{
+			RateLimiter: ZTOTypedControllerRateLimiter[reconcile.Request](),
+		}).
 		Complete(override)
 }

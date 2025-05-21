@@ -20,7 +20,7 @@ var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 				}
 			}`))
 
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 
 			first := zero_trust.AccessGroupGetResponse{
 				Name: "test",
@@ -48,7 +48,7 @@ var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 				}
 			}`))
 
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 
 			first := zero_trust.AccessGroupGetResponse{
 				Name: "test",
@@ -78,7 +78,7 @@ var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 				}
 			}`))
 
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 
 			rule2 := &zero_trust.AccessRule{}
 			err = rule2.UnmarshalJSON([]byte(`{
@@ -87,7 +87,7 @@ var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 				}
 			}`))
 
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 
 			first := zero_trust.AccessGroupGetResponse{
 				Name: "test",

@@ -36,6 +36,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -53,7 +54,7 @@ type CloudflareAccessApplicationReconciler struct {
 	Helper *ctrlhelper.ControllerHelper
 
 	// Mainly used for debug / tests purposes. Should not be instantiated in production run.
-	OptionalTracer *cfapi.InsertedCFRessourcesTracer
+	OptionalTracer *cfapi.CloudflareResourceCreationTracer
 }
 
 const (
@@ -167,13 +168,15 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		}
 
 		// if ready, we know for sure that AccessReusablePolicyID exists, so we extract it
-		orderedPolicyIds = append(orderedPolicyIds, arp.Status.AccessReusablePolicyID)
+		orderedPolicyIds = append(orderedPolicyIds, arp.GetCloudflareUUID())
 	}
 
 	app.Status.ReusablePolicyIDs = orderedPolicyIds
 	if err = r.Client.Status().Update(ctx, app); err != nil {
 		// will retry immediately
 		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessApplication status"))
+	} else {
+		log.V(1).Info("Persisted ReusablePolicyIDs", "found", len(orderedPolicyIds))
 	}
 
 	//
@@ -207,20 +210,24 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	//
 
 	// Try to setup "Conditions" field on CRD Manifest associated status
+	newCond := metav1.Condition{
+		Type:    StatusAvailable,
+		Status:  metav1.ConditionUnknown,
+		Reason:  "Reconciling",
+		Message: "CloudflareAccessApplication is reconciling",
+	}
 	_, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
-		meta.SetStatusCondition(&app.Status.Conditions,
-			metav1.Condition{
-				Type:    StatusAvailable,
-				Status:  metav1.ConditionUnknown,
-				Reason:  "Reconciling",
-				Message: "CloudflareAccessApplication is reconciling",
-			},
-		)
+		meta.SetStatusCondition(&app.Status.Conditions, newCond)
 		return nil
 	})
 	if err != nil {
 		// will retry immediately
 		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessApplication status"))
+	} else {
+		log.V(1).Info("Status persisted",
+			"type", newCond.Type,
+			"to", newCond.Status,
+		)
 	}
 
 	//
@@ -380,20 +387,24 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	// All set, now mark ressource as available
 	//
 
-	if _, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
-		meta.SetStatusCondition(&app.Status.Conditions,
-			metav1.Condition{
-				Type:    StatusAvailable,
-				Status:  metav1.ConditionTrue,
-				Reason:  "Reconcilied",
-				Message: "App Reconciled Successfully",
-			},
-		)
-
+	newCond = metav1.Condition{
+		Type:    StatusAvailable,
+		Status:  metav1.ConditionTrue,
+		Reason:  "Reconcilied",
+		Message: "App Reconciled Successfully",
+	}
+	_, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
+		meta.SetStatusCondition(&app.Status.Conditions, newCond)
 		return nil
-	}); err != nil {
+	})
+	if err != nil {
 		// will retry immediately
 		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessApplication status"))
+	} else {
+		log.V(1).Info("Status persisted",
+			"type", newCond.Type,
+			"to", newCond.Status,
+		)
 	}
 
 	//
@@ -407,23 +418,47 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 }
 
 //nolint:dupl
-func (r *CloudflareAccessApplicationReconciler) MayReconcileStatus(ctx context.Context, cfApp *zero_trust.AccessApplicationGetResponse, k8sApp *v4alpha1.CloudflareAccessApplication) error {
+func (r *CloudflareAccessApplicationReconciler) MayReconcileStatus(
+	ctx context.Context,
+	cfApp *zero_trust.AccessApplicationGetResponse,
+	k8sApp *v4alpha1.CloudflareAccessApplication,
+) error {
 	if k8sApp.GetCloudflareUUID() != "" {
 		return nil
 	}
+
 	if cfApp == nil {
 		return nil
 	}
 
-	k8sApp.Status.AccessApplicationID = cfApp.ID
-	k8sApp.Status.CreatedAt = metav1.NewTime(cfApp.CreatedAt)
-	k8sApp.Status.UpdatedAt = metav1.NewTime(cfApp.UpdatedAt)
+	app := k8sApp.DeepCopy()
 
-	if err := r.Client.Status().Update(ctx, k8sApp); err != nil {
+	_, err := controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
+		app.Status.AccessApplicationID = cfApp.ID
+		app.Status.CreatedAt = metav1.NewTime(cfApp.CreatedAt)
+		app.Status.UpdatedAt = metav1.NewTime(cfApp.UpdatedAt)
+
+		return nil
+	})
+
+	// CreateOrPatch re-fetches the object from k8s which removes any changes we've made that override them
+	// so thats why we re-apply these settings again on the original object;
+	k8sApp.Status = app.Status
+
+	if err != nil {
 		return fault.Wrap(err, fmsg.With("Failed to update CloudflareAccessApplication status"))
+	} else {
+		r.GetReconcilierLogger(ctx).V(1).Info("UUID persisted in status",
+			"UUID", app.GetCloudflareUUID(),
+		)
 	}
+
 	return nil
 }
+
+//
+//
+//
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CloudflareAccessApplicationReconciler) SetupWithManager(mgr ctrl.Manager, override reconcile.Reconciler) error {
@@ -456,5 +491,8 @@ func (r *CloudflareAccessApplicationReconciler) SetupWithManager(mgr ctrl.Manage
 	//nolint:wrapcheck
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v4alpha1.CloudflareAccessApplication{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		WithOptions(controller.Options{
+			RateLimiter: ZTOTypedControllerRateLimiter[reconcile.Request](),
+		}).
 		Complete(override)
 }

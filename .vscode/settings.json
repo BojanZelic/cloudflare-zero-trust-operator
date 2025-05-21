@@ -1,6 +1,9 @@
 {
   "ginkgotestexplorer.buildTags": "integration",
   "ginkgotestexplorer.testEnvFile": "${workspaceFolder}/.env.integration.test",
+  "ginkgotestexplorer.testEnvVars": {
+    "ACK_GINKGO_DEPRECATIONS": "2.23.4",
+  },
   "go.buildFlags": [
     "-tags=integration"
   ],

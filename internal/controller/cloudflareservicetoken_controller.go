@@ -37,6 +37,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -50,7 +51,7 @@ type CloudflareServiceTokenReconciler struct {
 	Helper *ctrlhelper.ControllerHelper
 
 	// Mainly used for debug / tests purposes. Should not be instantiated in production run.
-	OptionalTracer *cfapi.InsertedCFRessourcesTracer
+	OptionalTracer *cfapi.CloudflareResourceCreationTracer
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -114,23 +115,24 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	//
 	//
 
+	newCond := metav1.Condition{
+		Type:    StatusAvailable,
+		Status:  metav1.ConditionUnknown,
+		Reason:  "Reconciling",
+		Message: "ServiceToken is reconciling",
+	}
 	_, err = controllerutil.CreateOrPatch(ctx, r.Client, serviceToken, func() error {
-		if len(serviceToken.Status.Conditions) == 0 {
-			metav2.SetStatusCondition(&serviceToken.Status.Conditions,
-				metav1.Condition{
-					Type:    StatusAvailable,
-					Status:  metav1.ConditionUnknown,
-					Reason:  "Reconciling",
-					Message: "ServiceToken is reconciling",
-				},
-			)
-		}
-
+		metav2.SetStatusCondition(&serviceToken.Status.Conditions, newCond)
 		return nil
 	})
 	if err != nil {
 		// will retry immediately
 		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareServiceToken status"))
+	} else {
+		log.V(1).Info("Status persisted",
+			"type", newCond.Type,
+			"to", newCond.Status,
+		)
 	}
 
 	//
@@ -326,20 +328,24 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to set status"))
 	}
 
-	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, serviceToken, func() error {
-		metav2.SetStatusCondition(&serviceToken.Status.Conditions,
-			metav1.Condition{
-				Type:    StatusAvailable,
-				Status:  metav1.ConditionTrue,
-				Reason:  "Reconcilied",
-				Message: "CloudflareServiceToken Reconciled Successfully",
-			},
-		)
-
+	newCond = metav1.Condition{
+		Type:    StatusAvailable,
+		Status:  metav1.ConditionTrue,
+		Reason:  "Reconcilied",
+		Message: "CloudflareServiceToken Reconciled Successfully",
+	}
+	_, err = controllerutil.CreateOrPatch(ctx, r.Client, serviceToken, func() error {
+		metav2.SetStatusCondition(&serviceToken.Status.Conditions, newCond)
 		return nil
-	}); err != nil {
+	})
+	if err != nil {
 		// will retry immediately
 		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareServiceToken status"))
+	} else {
+		log.V(1).Info("Status persisted",
+			"type", newCond.Type,
+			"to", newCond.Status,
+		)
 	}
 
 	//
@@ -363,8 +369,8 @@ func (r *CloudflareServiceTokenReconciler) MayReconcileStatus(
 
 	token := k8sToken.DeepCopy()
 
-	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, token, func() error {
-		token.Status.ServiceTokenID = cfToken.ID
+	_, err := controllerutil.CreateOrPatch(ctx, r.Client, token, func() error {
+		token.Status.AccessServiceTokenID = cfToken.ID
 		token.Status.CreatedAt = metav1.NewTime(cfToken.CreatedAt)
 		token.Status.UpdatedAt = metav1.NewTime(cfToken.UpdatedAt)
 		token.Status.ExpiresAt = metav1.NewTime(cfToken.ExpiresAt)
@@ -377,8 +383,13 @@ func (r *CloudflareServiceTokenReconciler) MayReconcileStatus(
 		}
 
 		return nil
-	}); err != nil {
+	})
+	if err != nil {
 		return fault.Wrap(err, fmsg.With("Failed to update CloudflareServiceToken"))
+	} else {
+		r.GetReconcilierLogger(ctx).V(1).Info("UUID persisted in status",
+			"UUID", token.GetCloudflareUUID(),
+		)
 	}
 
 	// CreateOrPatch re-fetches the object from k8s which removes any changes we've made that override them
@@ -387,6 +398,10 @@ func (r *CloudflareServiceTokenReconciler) MayReconcileStatus(
 
 	return nil
 }
+
+//
+//
+//
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CloudflareServiceTokenReconciler) SetupWithManager(mgr ctrl.Manager, override reconcile.Reconciler) error {
@@ -398,5 +413,8 @@ func (r *CloudflareServiceTokenReconciler) SetupWithManager(mgr ctrl.Manager, ov
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v4alpha1.CloudflareServiceToken{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Owns(&corev1.Secret{}).
+		WithOptions(controller.Options{
+			RateLimiter: ZTOTypedControllerRateLimiter[reconcile.Request](),
+		}).
 		Complete(override)
 }

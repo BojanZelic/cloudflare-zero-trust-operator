@@ -82,10 +82,10 @@ type SecretTemplateSpec struct {
 
 // CloudflareServiceTokenStatus defines the observed state of CloudflareServiceToken.
 type CloudflareServiceTokenStatus struct {
-	// ID of the servicetoken in Cloudflare
+	// ID of the service token in Cloudflare
 	//
 	// +optional
-	ServiceTokenID string `json:"serviceTokenId,omitzero"`
+	AccessServiceTokenID string `json:"accessServiceTokenId,omitzero"`
 
 	// Creation timestamp of the resource in Cloudflare
 	//
@@ -142,7 +142,7 @@ func (c *CloudflareServiceToken) GetConditions() *[]metav1.Condition {
 }
 
 func (c *CloudflareServiceToken) GetCloudflareUUID() string {
-	return c.Status.ServiceTokenID
+	return c.Status.AccessServiceTokenID
 }
 
 func (c *CloudflareServiceToken) UnderDeletion() bool {
@@ -166,7 +166,7 @@ func (c *CloudflareServiceToken) ToExtendedToken() cftypes.ExtendedServiceToken 
 			CreatedAt: c.Status.CreatedAt.Time,
 			UpdatedAt: c.Status.UpdatedAt.Time,
 			ExpiresAt: c.Status.ExpiresAt.Time,
-			ID:        c.Status.ServiceTokenID,
+			ID:        c.GetCloudflareUUID(),
 			Name:      c.Spec.Name,
 		},
 	}

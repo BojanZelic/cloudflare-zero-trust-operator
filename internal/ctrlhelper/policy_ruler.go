@@ -59,7 +59,7 @@ func (helper *ControllerHelper) PopulateWithCloudflareUUIDs(
 	contextNamespace string,
 	log *logr.Logger,
 	policyRuler GenericAccessPolicyRuler,
-) (res *ctrl.Result, err error, populated bool) {
+) (res *ctrl.Result, populatedCount int, err error) {
 	// declare index align rules sets with status
 	ruleSets := []struct {
 		rules *v4alpha1.CloudFlareAccessRules
@@ -87,7 +87,7 @@ func (helper *ControllerHelper) PopulateWithCloudflareUUIDs(
 		accessGroupRefs, err := ruleSet.rules.GetNamespacedGroupRefs(ctx, contextNamespace)
 		if err != nil {
 			// will retry immediately
-			return nil, fault.Wrap(err, fmsg.With("issue while extracting group refs")), populated
+			return nil, populatedCount, fault.Wrap(err, fmsg.With("issue while extracting group refs"))
 		}
 		for _, accessGroupRef := range accessGroupRefs {
 			//
@@ -96,13 +96,13 @@ func (helper *ControllerHelper) PopulateWithCloudflareUUIDs(
 			//
 			if err = helper.R.Get(ctx, accessGroupRef, accessGroup); err != nil {
 				// will retry immediately
-				return nil, fault.Wrap(err,
+				return nil, populatedCount, fault.Wrap(err,
 					fmsg.With("unable to reference CloudflareAccessGroup"),
 					fctx.With(ctx,
 						"name", accessGroupRef.Name,
 						"namespace", accessGroupRef.Namespace,
 					),
-				), populated
+				)
 			}
 
 			//
@@ -113,12 +113,12 @@ func (helper *ControllerHelper) PopulateWithCloudflareUUIDs(
 				log.Error(err, "Issue while checking defined Cloudflare UUID")
 
 				// will retry later (setting error here would trigger immediate retry)
-				return &ctrl.Result{RequeueAfter: helper.NormalRequeueDelay}, nil, populated
+				return &ctrl.Result{RequeueAfter: helper.NormalRequeueDelay}, populatedCount, nil
 			}
 
 			//
 			ruleSet.ids.AccessGroupRefCfIds = append(ruleSet.ids.AccessGroupRefCfIds, UUID)
-			populated = true
+			populatedCount++
 		}
 
 		//
@@ -129,7 +129,7 @@ func (helper *ControllerHelper) PopulateWithCloudflareUUIDs(
 		tokenRefs, err := ruleSet.rules.GetNamespacedServiceTokenRefs(ctx, contextNamespace)
 		if err != nil {
 			// will retry immediately
-			return nil, fault.Wrap(err, fmsg.With("issue while extracting service token refs")), populated
+			return nil, populatedCount, fault.Wrap(err, fmsg.With("issue while extracting service token refs"))
 		}
 		for _, tokenRef := range tokenRefs {
 			//
@@ -138,13 +138,13 @@ func (helper *ControllerHelper) PopulateWithCloudflareUUIDs(
 			//
 			if err := helper.R.Get(ctx, tokenRef, serviceToken); err != nil {
 				// will retry immediately
-				return nil, fault.Wrap(err,
+				return nil, populatedCount, fault.Wrap(err,
 					fmsg.With("unable to reference CloudflareServiceToken"),
 					fctx.With(ctx,
 						"name", tokenRef.Name,
 						"namespace", tokenRef.Namespace,
 					),
-				), populated
+				)
 			}
 
 			//
@@ -155,15 +155,15 @@ func (helper *ControllerHelper) PopulateWithCloudflareUUIDs(
 				log.Error(err, "Issue while checking defined Cloudflare UUID")
 
 				// will retry later (setting error here would trigger immediate retry)
-				return &ctrl.Result{RequeueAfter: helper.NormalRequeueDelay}, nil, populated
+				return &ctrl.Result{RequeueAfter: helper.NormalRequeueDelay}, populatedCount, nil
 			}
 
 			//
 			ruleSet.ids.ServiceTokenRefCfIds = append(ruleSet.ids.ServiceTokenRefCfIds, UUID)
-			populated = true
+			populatedCount++
 		}
 	}
 
 	// all went good
-	return nil, nil, populated
+	return nil, populatedCount, nil
 }

@@ -160,7 +160,7 @@ func (a *API) deleteAccessApplication(ctx context.Context, appID string) error {
 
 	//
 	if a.optionalTracer != nil && err == nil {
-		a.optionalTracer.ApplicationDeleted(appID)
+		a.optionalTracer.AccessApplications.TraceDelete(appID)
 	}
 
 	return a.wrapPrettyForAPI(err)

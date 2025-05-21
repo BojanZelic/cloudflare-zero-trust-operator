@@ -18,9 +18,12 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-logr/logr"
 	gink "github.com/onsi/ginkgo/v2"
+	"golang.org/x/time/rate"
+	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -97,4 +100,16 @@ func (rw *ReconcilerWithLoggedErrors) maybeTrackErrors(err error) {
 	if rw.ErrTracker != nil {
 		*rw.ErrTracker = append(*rw.ErrTracker, err)
 	}
+}
+
+//
+//
+//
+
+func ZTOTypedControllerRateLimiter[T comparable]() workqueue.TypedRateLimiter[T] {
+	return workqueue.NewTypedMaxOfRateLimiter(
+		workqueue.NewTypedItemExponentialFailureRateLimiter[T](1*time.Second, 300*time.Second),
+		// 10 qps, 100 bucket size.  This is only for retry speed and its only the overall factor (not per item)
+		&workqueue.TypedBucketRateLimiter[T]{Limiter: rate.NewLimiter(rate.Limit(10), 100)},
+	)
 }

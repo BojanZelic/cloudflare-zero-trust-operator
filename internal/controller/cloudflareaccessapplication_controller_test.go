@@ -16,8 +16,11 @@ import (
 )
 
 var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
-	BeforeAll(func() { insertedTracer.ResetCFUUIDs() })
-	AfterAll(func() { insertedTracer.UninstallFromCF(api) })
+	BeforeAll(func() { insertedTracer.ResetStores() })
+	AfterAll(func() {
+		errs := insertedTracer.UninstallFromCF(api)
+		Expect(errs).To(BeEmpty())
+	})
 
 	//
 	//
@@ -41,7 +44,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 		By("Deleting the Namespace to perform the tests")
 		_ = k8sClient.Delete(ctx, testNS)
 		// ignore error because of https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
-		// Expect(err).To(Not(HaveOccurred()))
+		// Expect(err).ToNot(HaveOccurred()))
 	})
 
 	BeforeEach(func() {
@@ -78,7 +81,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, arp)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, arp)).ToNot(HaveOccurred())
 
 			//
 			ByExpectingCFResourceToBeReady(ctx, arp).Should(Succeed())
@@ -98,7 +101,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, app)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, app)).ToNot(HaveOccurred())
 
 			//
 			ByExpectingCFResourceToBeReady(ctx, app).Should(Succeed())
@@ -124,19 +127,19 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 					Domain: produceOwnedFQDN("zto-test-app-2"),
 				},
 			}
-			Expect(k8sClient.Create(ctx, app)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, app)).ToNot(HaveOccurred())
 
 			//
 			ByExpectingCFResourceToBeReady(ctx, app).Should(Succeed())
 
 			By("Cloudflare resource should equal the spec")
 			cfResource, err := api.AccessApplication(ctx, app.GetCloudflareUUID())
-			Expect(err).To(Not(HaveOccurred()))
+			Expect(err).ToNot(HaveOccurred())
 			Expect(cfResource.Name).To(Equal(app.Spec.Name))
 
 			By("Updating app name")
 			addDirtyingSuffix(&app.Spec.Name)
-			Expect(k8sClient.Update(ctx, app)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Update(ctx, app)).ToNot(HaveOccurred())
 
 			// Await for resource to be ready again
 			ByExpectingCFResourceToBeReady(ctx, app).Should(Succeed())
@@ -145,18 +148,18 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Eventually(func(g Gomega) { //nolint:varnamelen
 				// ctrlErrors.TestEmpty()
 				cfResource, err = api.AccessApplication(ctx, app.GetCloudflareUUID())
-				g.Expect(err).To(Not(HaveOccurred()))
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(cfResource.Name).To(Equal(app.Spec.Name))
 			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed(), ctrlErrors) // sometimes this is cached
 
 			By("Cloudflare resource should be deleted")
-			Expect(k8sClient.Delete(ctx, app)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Delete(ctx, app)).ToNot(HaveOccurred())
 
 			By("Checking if the custom resource was successfully deleted")
 			Eventually(func() error {
 				// ctrlErrors.TestEmpty()
 				return k8sClient.Get(ctx, appNN, app)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Not(Succeed()))
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).ShouldNot(Succeed())
 		})
 
 		It("should be able to set a LogoURL for CloudflareAccessApplication", func() {
@@ -173,14 +176,14 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 					LogoURL: "https://www.cloudflare.com/img/logo-web-badges/cf-logo-on-white-bg.svg",
 				},
 			}
-			Expect(k8sClient.Create(ctx, app)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, app)).ToNot(HaveOccurred())
 
 			//
 			ByExpectingCFResourceToBeReady(ctx, app).Should(Succeed())
 
 			By("Cloudflare resource should equal the spec")
 			cfResource, err := api.AccessApplication(ctx, app.GetCloudflareUUID())
-			Expect(err).To(Not(HaveOccurred()))
+			Expect(err).ToNot(HaveOccurred())
 			Expect(cfResource.Name).To(Equal(app.Spec.Name))
 		})
 
@@ -197,18 +200,18 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 					Domain: produceOwnedFQDN("zto-test-app-4"),
 				},
 			}
-			Expect(k8sClient.Create(ctx, app)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, app)).ToNot(HaveOccurred())
 
 			//
 			ByExpectingCFResourceToBeReady(ctx, app).Should(Succeed())
 
 			By("Delete associated CF Application")
 			oldAccessApplicationID := app.GetCloudflareUUID()
-			Expect(api.DeleteOrResetAccessApplication(ctx, app)).To(Not(HaveOccurred()))
+			Expect(api.DeleteOrResetAccessApplication(ctx, app)).ToNot(HaveOccurred())
 
 			By("re-trigger reconcile by updating access application")
 			addDirtyingSuffix(&app.Spec.Name)
-			Expect(k8sClient.Update(ctx, app)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Update(ctx, app)).ToNot(HaveOccurred())
 
 			//
 			ByExpectingCFResourceToBeReady(ctx, app).Should(Succeed())
@@ -216,7 +219,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			By("Cloudflare resource should equal the updated spec")
 			cfResource, err := api.AccessApplication(ctx, app.GetCloudflareUUID())
-			Expect(err).To(Not(HaveOccurred()))
+			Expect(err).ToNot(HaveOccurred())
 			Expect(cfResource.Name).To(Equal(app.Spec.Name))
 		})
 	})
@@ -252,14 +255,14 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			By("Backing up existing policy UUIDs")
 			oneTimeAppType := extractAppTypeFromLabel()
 			cfAppThen, err = api.FindFirstAccessApplicationOfType(ctx, oneTimeAppType)
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(cfAppThen).To(Not(BeNil()))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cfAppThen).ToNot(BeNil())
 		})
 
 		AfterEach(func() {
 			By("Restore existing policy UUIDs")
 			err = api.RestoreAccessApplicationTo(ctx, cfAppThen)
-			Expect(err).To(Not(HaveOccurred()))
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		//
@@ -289,7 +292,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, reusablePolicy)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, reusablePolicy)).ToNot(HaveOccurred())
 
 			//
 			ByExpectingCFResourceToBeReady(ctx, reusablePolicy).Should(Succeed())
@@ -308,7 +311,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, app)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, app)).ToNot(HaveOccurred())
 
 			//
 			ByExpectingCFResourceToBeReady(ctx, app).Should(Succeed())
@@ -318,11 +321,11 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			//
 
 			By("Deleting (resetting) the WARP resource")
-			Expect(k8sClient.Delete(ctx, app)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Delete(ctx, app)).ToNot(HaveOccurred())
 			Eventually(func() error {
 				// ctrlErrors.TestEmpty()
 				return k8sClient.Get(ctx, appNN, app)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Not(Succeed()))
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).ShouldNot(Succeed())
 		})
 
 		It("Manage App Launcher Access Application", produceLabelFor(zero_trust.ApplicationTypeAppLauncher), func() {
@@ -348,7 +351,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, reusablePolicy)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, reusablePolicy)).ToNot(HaveOccurred())
 
 			//
 			ByExpectingCFResourceToBeReady(ctx, reusablePolicy).Should(Succeed())
@@ -367,7 +370,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, app)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Create(ctx, app)).ToNot(HaveOccurred())
 
 			//
 			ByExpectingCFResourceToBeReady(ctx, app).Should(Succeed())
@@ -377,11 +380,11 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			//
 
 			By("Deleting (resetting) the App Launcher resource")
-			Expect(k8sClient.Delete(ctx, app)).To(Not(HaveOccurred()))
+			Expect(k8sClient.Delete(ctx, app)).ToNot(HaveOccurred())
 			Eventually(func() error {
 				// ctrlErrors.TestEmpty()
 				return k8sClient.Get(ctx, appNN, app)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Not(Succeed()))
+			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).ShouldNot(Succeed())
 		})
 	})
 })
