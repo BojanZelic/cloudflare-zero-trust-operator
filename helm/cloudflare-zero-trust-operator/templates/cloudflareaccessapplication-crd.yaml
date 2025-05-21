@@ -6,7 +6,7 @@ kind: CustomResourceDefinition
 metadata:
   name: cloudflareaccessapplications.cloudflare.zelic.io
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.1
+    controller-gen.kubebuilder.io/version: v0.18.0
   labels:
   {{- include "cloudflare-zero-trust-operator.labels" . | nindent 4 }}
 spec:
@@ -46,7 +46,6 @@ spec:
               CloudflareAccessApplication.
             properties:
               allowedIdps:
-                default: []
                 description: |-
                   The identity providers your users can select when connecting to this application. Defaults to all IdPs configured in your account.
   
@@ -55,35 +54,31 @@ spec:
                   type: string
                 type: array
               appLauncherVisible:
-                default: true
                 description: |-
                   Specify if the application will be visible in the App Launcher.
   
                   Meaningless for "warp" and "app_launcher" app types.
                 type: boolean
               autoRedirectToIdentity:
-                default: false
                 description: |-
                   When set to true, users skip the identity provider selection step during login.
                   You must specify only one identity provider in allowed_idps.
                 type: boolean
               domain:
                 description: |-
-                  The domain and path that Access will secure.
+                  The domain and path that Access will secure. Must be unique by CloudFlare Account.
   
                   Meaningless for "warp" and "app_launcher" app types. Required for "self_hosted".
   
                   ex: "test.example.com/admin"
                 type: string
               enableBindingCookie:
-                default: false
                 description: |-
                   Enables the binding cookie, which increases security against compromised authorization tokens and CSRF attacks.
   
                   Meaningless for "warp" and "app_launcher" app types.
                 type: boolean
               httpOnlyCookieAttribute:
-                default: true
                 description: |-
                   Enables the HttpOnly cookie attribute, which increases security against XSS attacks.
   
@@ -107,7 +102,6 @@ spec:
                   type: string
                 type: array
               sessionDuration:
-                default: 24h
                 description: SessionDuration is the length of the session duration.
                 type: string
               type:
@@ -127,6 +121,7 @@ spec:
               of CloudflareAccessApplication.
             properties:
               accessApplicationId:
+                description: Will contain CloudFlare's UUID of resource once resolved
                 type: string
               conditions:
                 description: Conditions store the status conditions of the CloudflareAccessApplication
@@ -186,6 +181,7 @@ spec:
                   type: object
                 type: array
               createdAt:
+                description: Creation date of Cloudflare's associated resource
                 format: date-time
                 type: string
               reusablePolicyIds:
@@ -195,16 +191,13 @@ spec:
                   type: string
                 type: array
               updatedAt:
+                description: Update date of Cloudflare's associated resource
                 format: date-time
                 type: string
-            required:
-            - createdAt
-            - updatedAt
             type: object
         required:
         - metadata
         - spec
-        - status
         type: object
     served: true
     storage: true

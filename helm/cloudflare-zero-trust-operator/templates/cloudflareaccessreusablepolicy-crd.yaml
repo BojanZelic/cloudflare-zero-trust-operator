@@ -4,7 +4,7 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: cloudflareaccessgroups.cloudflare.zelic.io
+  name: cloudflareaccessreusablepolicies.cloudflare.zelic.io
   annotations:
     controller-gen.kubebuilder.io/version: v0.18.0
   labels:
@@ -12,16 +12,16 @@ metadata:
 spec:
   group: cloudflare.zelic.io
   names:
-    kind: CloudflareAccessGroup
-    listKind: CloudflareAccessGroupList
-    plural: cloudflareaccessgroups
-    singular: cloudflareaccessgroup
+    kind: CloudflareAccessReusablePolicy
+    listKind: CloudflareAccessReusablePolicyList
+    plural: cloudflareaccessreusablepolicies
+    singular: cloudflareaccessreusablepolicy
   scope: Namespaced
   versions:
   - name: v4alpha1
     schema:
       openAPIV3Schema:
-        description: CloudflareAccessGroup is the Schema for the cloudflareaccessgroups
+        description: CloudflareAccessReusablePolicy is the Schema for the cloudflareaccessreusablepolicies
           API.
         properties:
           apiVersion:
@@ -42,8 +42,19 @@ spec:
           metadata:
             type: object
           spec:
-            description: CloudflareAccessGroupSpec defines the desired state of CloudflareAccessGroup.
+            description: CloudflareAccessReusablePolicySpec defines the desired state
+              of CloudflareAccessReusablePolicy.
             properties:
+              decision:
+                default: allow
+                description: The action Access will take if a user matches this policy.
+                  Infrastructure application policies can only use the Allow action.
+                enum:
+                - allow
+                - deny
+                - non_identity
+                - bypass
+                type: string
               exclude:
                 description: Rules evaluated with a NOT logical operator. To match the
                   policy, a user cannot meet any of the Exclude rules.
@@ -299,12 +310,11 @@ spec:
                     type: boolean
                 type: object
               name:
-                description: Name of the Cloudflare Access Group. Must be unique by
-                  CloudFlare Account.
+                description: Name of the Cloudflare Access Reusable Policy
                 type: string
               require:
                 description: Rules evaluated with an AND logical operator. To match
-                  the policy, a user must meet all the Require rules.
+                  the policy, a user must meet all of the Require rules.
                 properties:
                   accessGroupRefs:
                     description: Would match access groups refs by {name} or {namespace/name}
@@ -434,10 +444,11 @@ spec:
             - name
             type: object
           status:
-            description: CloudflareAccessGroupStatus defines the observed state of CloudflareAccessGroup.
+            description: CloudflareAccessReusablePolicyStatus defines the observed state
+              of CloudflareAccessReusablePolicy.
             properties:
-              accessGroupId:
-                description: AccessGroupID is the ID of the reference in Cloudflare
+              accessReusablePolicyId:
+                description: AccessReusablePolicyID is the ID of the reference in Cloudflare
                 type: string
               conditions:
                 description: Conditions store the status conditions of the CloudflareAccessApplication

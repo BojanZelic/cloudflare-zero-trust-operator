@@ -181,7 +181,7 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v5.5.0
+KUSTOMIZE_VERSION ?= v5.6.0
 CONTROLLER_TOOLS_VERSION ?= v0.18.0
 ENVTEST_VERSION ?= latest
 GOLANGCI_LINT_VERSION ?= v2.1.6
@@ -205,11 +205,11 @@ $(ENVTEST): $(LOCALBIN)
 
 HELMIFY = $(LOCALBIN)/helmify
 helmify:
-	test -s $(LOCALBIN)/helmify || GOBIN=$(LOCALBIN) go install github.com/arttor/helmify/cmd/helmify@v0.3.7
+	test -s $(LOCALBIN)/helmify || GOBIN=$(LOCALBIN) go install github.com/arttor/helmify/cmd/helmify@v0.4.18
 
 HELM_DOCS = $(LOCALBIN)/helm-docs
 helm-docs:
-	test -s $(LOCALBIN)/helm-docs || GOBIN=$(LOCALBIN) go install github.com/norwoodj/helm-docs/cmd/helm-docs@v1.11.0
+	test -s $(LOCALBIN)/helm-docs || GOBIN=$(LOCALBIN) go install github.com/norwoodj/helm-docs/cmd/helm-docs@v1.14.2
 
 .PHONY: dlv
 dlv: 
