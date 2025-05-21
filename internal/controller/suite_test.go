@@ -1,4 +1,4 @@
-// TODO: add back //go:build integration
+//go:build integration
 
 /*
 Copyright 2025.

@@ -74,22 +74,9 @@ pre-integration-test: envtest ## Run tests.
 integration-test: manifests generate fmt vet pre-integration-test ## Run integration tests.
 	$(shell cat $(ENV_INT_TEST_FILE) 2>/dev/null | xargs) go test ./... -covermode=atomic -coverpkg=all --tags=integration -coverprofile cover.out
 
-# TODO(maintainer): To use a different vendor for e2e tests, modify the setup under 'tests/e2e'.
-# The default setup assumes Kind is pre-installed and builds/loads the Manager Docker image locally.
-# Prometheus and CertManager are installed by default; skip with:
-# - PROMETHEUS_INSTALL_SKIP=true
-# - CERT_MANAGER_INSTALL_SKIP=true
-.PHONY: test-e2e
-test-e2e: manifests generate fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
-	@command -v kind >/dev/null 2>&1 || { \
-		echo "Kind is not installed. Please install Kind manually."; \
-		exit 1; \
-	}
-	@kind get clusters | grep -q 'kind' || { \
-		echo "No Kind cluster is running. Please start a Kind cluster before running the e2e tests."; \
-		exit 1; \
-	}
-	go test ./test/e2e/ -v -ginkgo.v
+#
+# TODO(maintainer): Add E2E tests (Using Kind + Helm / Kustomize ?)
+#
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter
