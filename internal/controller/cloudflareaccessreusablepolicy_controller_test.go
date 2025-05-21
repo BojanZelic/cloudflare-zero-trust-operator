@@ -83,6 +83,9 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			//
 			By("Removing dangling resource to prevent looping on failure")
 			Expect(k8sClient.Delete(ctx, arp)).ToNot(HaveOccurred())
+
+			//
+			ByExpectingDeletionOf(arp).Should(Succeed())
 		})
 
 		It("should successfully reconcile CloudflareAccessReusablePolicy policies with references", func() {
@@ -212,7 +215,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			addDirtyingSuffix(&arp.Spec.Name)
 			Expect(k8sClient.Update(ctx, arp)).ToNot(HaveOccurred())
 
-			//
+			// Await for resource to be ready again
 			ByExpectingCFResourceToBeReady(ctx, arp).Should(Succeed())
 
 			By("Cloudflare resource should equal the updated spec")
@@ -223,11 +226,8 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			By("Cloudflare resource should be deleted")
 			Expect(k8sClient.Delete(ctx, arp)).ToNot(HaveOccurred())
 
-			By("Checking if the custom resource was successfully deleted")
-			Eventually(func() error {
-				// ctrlErrors.TestEmpty()
-				return k8sClient.Get(ctx, arpNN, arp)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).ShouldNot(Succeed())
+			//
+			ByExpectingDeletionOf(arp).Should(Succeed())
 		})
 
 		It("should successfully reconcile CloudflareAccessReusablePolicy whose AccessReusablePolicyID references a missing Reusable Policy", func() {
@@ -260,7 +260,7 @@ var _ = Describe("CloudflareAccessReusablePolicy controller", Ordered, func() {
 			addDirtyingSuffix(&arp.Spec.Name)
 			Expect(k8sClient.Update(ctx, arp)).ToNot(HaveOccurred())
 
-			//
+			// Await for resource to be ready again
 			ByExpectingCFResourceToBeReady(ctx, arp).Should(Succeed())
 			Expect(arp.GetCloudflareUUID()).ToNot(Equal(oldAccessReusablePolicyID))
 

@@ -26,7 +26,7 @@ import (
 
 // CloudflareAccessReusablePolicySpec defines the desired state of CloudflareAccessReusablePolicy.
 type CloudflareAccessReusablePolicySpec struct {
-	// Name of the Cloudflare Access's reusable Policy
+	// Name of the Cloudflare Access Reusable Policy
 	//
 	// +required
 	Name string `json:"name"`

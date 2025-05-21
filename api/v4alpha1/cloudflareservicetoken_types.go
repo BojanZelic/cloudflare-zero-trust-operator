@@ -29,23 +29,10 @@ import (
 
 // CloudflareServiceTokenSpec defines the desired state of CloudflareServiceToken.
 type CloudflareServiceTokenSpec struct {
-	// Name of the Cloudflare Access Group
+	// Name of the Cloudflare Access Service Token. Once created, updating this will have no effect.
 	//
 	// +required
 	Name string `json:"name"`
-
-	// Time before the token should be automatically renewed. Defaults to "0"
-	// Automatically renewing a service token will change the service token value upon renewal.
-	// Tokens will get automatically renewed if the token is expired
-	//
-	// +optional
-	// +kubebuilder:default="0"
-	MinTimeBeforeRenewal string `json:"minTimeBeforeRenewal,omitzero"`
-
-	// Recreate the token if the secret with the service token value is missing or doesn't exist
-	//
-	// +kubebuilder:default=true
-	RecreateMissing bool `json:"recreateMissing,omitzero"`
 
 	// Template to apply for the generated secret
 	//
@@ -156,6 +143,18 @@ func (c *CloudflareServiceToken) Describe() string {
 func (c *CloudflareServiceToken) GetNamespacedName() types.NamespacedName {
 	return types.NamespacedName{
 		Name:      c.Name,
+		Namespace: c.Namespace,
+	}
+}
+
+//
+//
+//
+
+// produce the expected NamespacedName that the secret created by [CloudflareServiceToken] should have
+func (c *CloudflareServiceToken) GetSecretNamespacedName() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      c.Spec.Template.Name,
 		Namespace: c.Namespace,
 	}
 }

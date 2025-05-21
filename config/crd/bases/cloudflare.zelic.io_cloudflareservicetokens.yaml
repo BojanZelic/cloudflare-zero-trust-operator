@@ -40,21 +40,10 @@ spec:
           spec:
             description: CloudflareServiceTokenSpec defines the desired state of CloudflareServiceToken.
             properties:
-              minTimeBeforeRenewal:
-                default: "0"
-                description: |-
-                  Time before the token should be automatically renewed. Defaults to "0"
-                  Automatically renewing a service token will change the service token value upon renewal.
-                  Tokens will get automatically renewed if the token is expired
-                type: string
               name:
-                description: Name of the Cloudflare Access Group
+                description: Name of the Cloudflare Access Service Token. Once created,
+                  updating this will have no effect.
                 type: string
-              recreateMissing:
-                default: true
-                description: Recreate the token if the secret with the service token
-                  value is missing or doesn't exist
-                type: boolean
               template:
                 default:
                   metadata: {}
@@ -84,7 +73,6 @@ spec:
                 type: object
             required:
             - name
-            - recreateMissing
             type: object
           status:
             description: CloudflareServiceTokenStatus defines the observed state of

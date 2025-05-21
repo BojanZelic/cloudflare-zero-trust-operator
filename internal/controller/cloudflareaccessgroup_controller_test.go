@@ -125,7 +125,7 @@ var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
 			addDirtyingSuffix(&group.Spec.Name)
 			Expect(k8sClient.Update(ctx, group)).ToNot(HaveOccurred())
 
-			//
+			// Await for resource to be ready again
 			ByExpectingCFResourceToBeReady(ctx, group).Should(Succeed())
 
 			By("Cloudflare resource should equal the updated spec")

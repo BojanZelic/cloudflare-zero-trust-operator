@@ -453,22 +453,6 @@ func (a *API) AccessServiceToken(ctx context.Context, tokenId string) (*cftypes.
 	return &cftypes.ExtendedServiceToken{ServiceToken: *token}, nil
 }
 
-func (a *API) AccessServiceTokens(ctx context.Context) (*[]cftypes.ExtendedServiceToken, error) {
-
-	iter := a.client.ZeroTrust.Access.ServiceTokens.ListAutoPaging(ctx, zero_trust.AccessServiceTokenListParams{
-		AccountID: cloudflare.F(a.CFAccountID),
-	})
-
-	extendedTokens := []cftypes.ExtendedServiceToken{}
-	for iter.Next() {
-		extendedTokens = append(extendedTokens, cftypes.ExtendedServiceToken{
-			ServiceToken: iter.Current(),
-		})
-	}
-
-	return &extendedTokens, a.wrapPrettyForAPI(iter.Err())
-}
-
 func (a *API) CreateAccessServiceToken(ctx context.Context, token cftypes.ExtendedServiceToken) (*cftypes.ExtendedServiceToken, error) {
 	//
 	res, err := a.client.ZeroTrust.Access.ServiceTokens.New(ctx, zero_trust.AccessServiceTokenNewParams{

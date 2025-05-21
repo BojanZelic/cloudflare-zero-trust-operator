@@ -306,7 +306,7 @@ spec:
                     type: boolean
                 type: object
               name:
-                description: Name of the Cloudflare Access's reusable Policy
+                description: Name of the Cloudflare Access Reusable Policy
                 type: string
               require:
                 description: Rules evaluated with an AND logical operator. To match

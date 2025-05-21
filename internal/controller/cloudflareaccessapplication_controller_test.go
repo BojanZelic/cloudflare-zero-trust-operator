@@ -152,14 +152,11 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 				g.Expect(cfResource.Name).To(Equal(app.Spec.Name))
 			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).Should(Succeed(), ctrlErrors) // sometimes this is cached
 
-			By("Cloudflare resource should be deleted")
+			By("Deleting cloudflare resource")
 			Expect(k8sClient.Delete(ctx, app)).ToNot(HaveOccurred())
 
-			By("Checking if the custom resource was successfully deleted")
-			Eventually(func() error {
-				// ctrlErrors.TestEmpty()
-				return k8sClient.Get(ctx, appNN, app)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).ShouldNot(Succeed())
+			//
+			ByExpectingDeletionOf(app).Should(Succeed())
 		})
 
 		It("should be able to set a LogoURL for CloudflareAccessApplication", func() {
@@ -213,7 +210,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			addDirtyingSuffix(&app.Spec.Name)
 			Expect(k8sClient.Update(ctx, app)).ToNot(HaveOccurred())
 
-			//
+			// Await for resource to be ready again
 			ByExpectingCFResourceToBeReady(ctx, app).Should(Succeed())
 			Expect(app.GetCloudflareUUID()).ToNot(Equal(oldAccessApplicationID))
 
@@ -322,10 +319,9 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			By("Deleting (resetting) the WARP resource")
 			Expect(k8sClient.Delete(ctx, app)).ToNot(HaveOccurred())
-			Eventually(func() error {
-				// ctrlErrors.TestEmpty()
-				return k8sClient.Get(ctx, appNN, app)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).ShouldNot(Succeed())
+
+			//
+			ByExpectingDeletionOf(app).Should(Succeed())
 		})
 
 		It("Manage App Launcher Access Application", produceLabelFor(zero_trust.ApplicationTypeAppLauncher), func() {
@@ -381,10 +377,9 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 
 			By("Deleting (resetting) the App Launcher resource")
 			Expect(k8sClient.Delete(ctx, app)).ToNot(HaveOccurred())
-			Eventually(func() error {
-				// ctrlErrors.TestEmpty()
-				return k8sClient.Get(ctx, appNN, app)
-			}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate).ShouldNot(Succeed())
+
+			//
+			ByExpectingDeletionOf(app).Should(Succeed())
 		})
 	})
 })

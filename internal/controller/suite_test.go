@@ -49,6 +49,7 @@ import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/controller"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/logger"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
@@ -331,6 +332,27 @@ func produceOwnedFQDN(subdomain string) string {
 //
 //
 //
+
+// will expect the CRD ressource to be absent from the cluster
+func ByExpectingDeletionOf(toExpectOf ctrlhelper.CloudflareControlledResource) AsyncAssertion {
+	//
+	By(
+		fmt.Sprintf(
+			"Await for %s resource to be deleted",
+			toExpectOf.Describe(),
+		),
+	)
+
+	//
+	toExpectOfNN := toExpectOf.GetNamespacedName()
+
+	//
+	return Eventually(func(g Gomega) { //nolint:varnamelen
+		err := k8sClient.Get(ctx, toExpectOfNN, toExpectOf)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+	}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate)
+}
 
 // @notice [res] will be populated
 func ByExpectingCFResourceToBeReady(ctx context.Context, toExpectOf ctrlhelper.CloudflareControlledResource) AsyncAssertion {
