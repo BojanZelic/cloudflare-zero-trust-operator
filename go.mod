@@ -2,7 +2,7 @@ module github.com/bojanzelic/cloudflare-zero-trust-operator
 
 go 1.23.0
 
-toolchain go1.23.4
+toolchain go1.25.1
 
 require (
 	github.com/cloudflare/cloudflare-go v0.114.0
