@@ -11,7 +11,7 @@ Cloudflare Zero-Trust operator allow you to manage your zero-trust configuration
 [![codecov](https://codecov.io/gh/BojanZelic/cloudflare-zero-trust-operator/branch/main/graph/badge.svg?token=BRSGWWVA2W)](https://codecov.io/gh/BojanZelic/cloudflare-zero-trust-operator)
 
 ## Example Usage
-test
+
 Cloudflare Access Group
 ```yaml
 apiVersion: cloudflare.zelic.io/v1alpha1
