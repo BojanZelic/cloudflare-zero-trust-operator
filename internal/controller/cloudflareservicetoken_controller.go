@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,31 +19,39 @@ package controller
 import (
 	"context"
 
-	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fctx"
+	"github.com/Southclaws/fault/fmsg"
+	v4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
-	"github.com/pkg/errors"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/meta"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
+	metav2 "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	logger "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // CloudflareServiceTokenReconciler reconciles a CloudflareServiceToken object.
 type CloudflareServiceTokenReconciler struct {
+	CloudflareAccessReconciler
 	client.Client
 	Scheme *runtime.Scheme
 	Helper *ctrlhelper.ControllerHelper
+
+	// Mainly used for debug / tests purposes. Should not be instantiated in production run.
+	OptionalTracer *cfapi.CloudflareResourceCreationTracer
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -51,236 +59,322 @@ type CloudflareServiceTokenReconciler struct {
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareservicetokens/finalizers,verbs=update
 
-// nolint: gocognit,cyclop,gocyclo,maintidx
+func (r *CloudflareServiceTokenReconciler) GetReconcilierLogger(ctx context.Context) logr.Logger {
+	return ctrl.LoggerFrom(ctx).WithName("CloudflareServiceTokenController::Reconcile")
+}
+
+//nolint:gocognit,cyclop,gocyclo,maintidx
 func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
-	var existingServiceToken *cftypes.ExtendedServiceToken
 	var api *cfapi.API
 
-	log := logger.FromContext(ctx).WithName("CloudflareServiceTokenController")
+	log := r.GetReconcilierLogger(ctx)
 
-	serviceToken := &v1alpha1.CloudflareServiceToken{}
+	//
+	// Find the service token resource
+	//
 
-	err = r.Client.Get(ctx, req.NamespacedName, serviceToken)
-
+	serviceToken := &v4alpha1.CloudflareServiceToken{}
+	err = r.Get(ctx, req.NamespacedName, serviceToken)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
+			// will stop
 			return ctrl.Result{}, nil
 		}
 
-		log.Error(err, "Failed to get CloudflareServiceToken", "CloudflareServiceToken.Name", req.Name)
-
-		return ctrl.Result{}, errors.Wrap(err, "Failed to get CloudflareServiceToken")
+		// will retry immediately
+		return ctrl.Result{}, fault.Wrap(err,
+			fmsg.With("Failed to get CloudflareServiceToken"),
+			fctx.With(ctx, "serviceTokenName", req.Name),
+		)
 	}
+
+	//
+	// Configure CF API access
+	//
 
 	cfConfig := config.ParseCloudflareConfig(serviceToken)
 	validConfig, err := cfConfig.IsValid()
 	if !validConfig {
-		return ctrl.Result{}, errors.Wrap(err, "invalid config")
+		// will retry immediately
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("invalid config"))
 	}
+	api = cfapi.FromConfig(ctx, cfConfig, r.OptionalTracer)
 
-	api, err = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
-
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "unable to initialize cloudflare object")
-	}
+	//
+	//
+	//
 
 	continueReconcilliation, err := r.Helper.ReconcileDeletion(ctx, api, serviceToken)
 	if !continueReconcilliation || err != nil {
-		if err != nil {
-			log.Error(err, "unable to reconcile deletion for service token")
-		}
-
-		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile deletion")
+		// will retry immediately
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to reconcile deletion for service token"))
 	}
 
-	_, err = controllerutil.CreateOrPatch(ctx, r.Client, serviceToken, func() error {
-		if len(serviceToken.Status.Conditions) == 0 {
-			meta.SetStatusCondition(&serviceToken.Status.Conditions, metav1.Condition{
-				Type:    statusAvailable,
-				Status:  metav1.ConditionUnknown,
-				Reason:  "Reconciling",
-				Message: "ServiceToken is reconciling",
-			})
-		}
+	//
+	//
+	//
 
+	newCond := metav1.Condition{
+		Type:    StatusAvailable,
+		Status:  metav1.ConditionUnknown,
+		Reason:  "Reconciling",
+		Message: "ServiceToken is reconciling",
+	}
+	_, err = controllerutil.CreateOrPatch(ctx, r.Client, serviceToken, func() error {
+		metav2.SetStatusCondition(&serviceToken.Status.Conditions, newCond)
 		return nil
 	})
-
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareServiceToken status")
+		// will retry immediately
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareServiceToken status"))
+	} else {
+		log.V(1).Info("Status persisted",
+			"type", newCond.Type,
+			"to", newCond.Status,
+		)
 	}
+
+	//
+	// Try to find an existing associated Secret
+	//
 
 	// this is used just for populating existingServiceToken
-	secretList := &corev1.SecretList{}
-	if err := r.Client.List(ctx, secretList,
-		client.MatchingLabels{v1alpha1.LabelOwnedBy: serviceToken.Name},
+	associatedSecretList := &corev1.SecretList{}
+	if err = r.List(ctx, associatedSecretList,
+		client.MatchingLabels{meta.LabelOwnedBy: serviceToken.Name},
 		client.InNamespace(serviceToken.Namespace),
 	); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "unable to list created secrets")
+		// will retry immediately
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to list secrets associated with a CloudflareServiceToken"))
 	}
 
-	secret := &corev1.Secret{}
+	// should not happen
+	if len(associatedSecretList.Items) > 1 {
+		log.Info("Found multiple secrets with the same owner label",
+			"label", meta.LabelOwnedBy,
+			"owner", serviceToken.Name,
+		)
+	}
 
-	if len(secretList.Items) > 0 {
-		// we already have a secret created
-		secret = &secretList.Items[0]
-
-		if len(secretList.Items) > 1 {
-			log.Info("Found multiple secrets with the same owner label", "label", v1alpha1.LabelOwnedBy, "owner", serviceToken.Name)
+	//
+	associatedSecret := func() *corev1.Secret {
+		if len(associatedSecretList.Items) > 0 {
+			return &associatedSecretList.Items[0] // exists
 		}
-	}
+		return nil
+	}()
 
-	if !secret.CreationTimestamp.IsZero() {
-		allTokens, err := api.ServiceTokens(ctx)
+	//
+	// get CF Service Token From its associated secret (if possible)
+	//
+
+	var existingServiceToken *cftypes.ExtendedServiceToken
+	if associatedSecret != nil {
+		// CF UUID bound to Secret
+		cfTokenID := string(associatedSecret.Data[associatedSecret.Annotations[meta.AnnotationTokenIDKey]])
+		existingServiceToken, err = api.AccessServiceToken(ctx, cfTokenID)
+
 		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "unable to create access service token")
-		}
-		for i, token := range allTokens {
-			if token.ID == string(secret.Data[secret.Annotations[v1alpha1.AnnotationTokenIDKey]]) {
-				existingServiceToken = &allTokens[i]
-
-				break
-			}
+			log.Info("Secret bound to CloudflareServiceToken does not refer to an existing Cloudflare Service Token. Recreating.")
 		}
 	}
+
+	//
+	// else, create it
+	//
 
 	if existingServiceToken == nil {
-		token, err := api.CreateAccessServiceToken(ctx, serviceToken.ToExtendedToken())
-		log.Info("created access service token", "token_id", token.ID)
-		existingServiceToken = &token
+		existingServiceToken, err = api.CreateAccessServiceToken(ctx, serviceToken.ToExtendedToken())
 		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "unable to create access service token")
+			// will retry immediately
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to create access service token"))
+		}
+
+		log.Info("created access service token",
+			"token_id", existingServiceToken.ID,
+		)
+	}
+
+	//
+	//
+	//
+
+	if associatedSecret != nil {
+		if err = existingServiceToken.SetSecretValues(*associatedSecret); err != nil {
+			// will retry immediately
+			return ctrl.Result{}, fault.Wrap(err, fmsg.With("failed to set Secret values, associated to CloudflareServiceToken"))
 		}
 	}
 
-	// update object with secret ref
-	if !secret.CreationTimestamp.IsZero() {
-		if err := existingServiceToken.SetSecretValues(*secret); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to set secret")
-		}
-	}
+	//
+	//
+	//
 
-	// reconcile  secret
-	secretNamespacedName := types.NamespacedName{
+	// reconcile  associatedSecret
+	wantedSecretMeta := metav1.ObjectMeta{
 		Namespace: req.Namespace,
 		Name:      req.Name,
 	}
-
 	if serviceToken.Spec.Template.Name != "" {
-		secretNamespacedName.Name = serviceToken.Spec.Template.Name
+		wantedSecretMeta.Name = serviceToken.Spec.Template.Name
 	}
 
 	var secretToDelete *corev1.Secret
-	// secret exists & was renamed; remove the old one
-	if !secret.CreationTimestamp.IsZero() && secretNamespacedName.Name != secret.Name {
-		secretToDelete = secret
+	// associatedSecret exists & was renamed; remove the old one
+	if associatedSecret != nil && wantedSecretMeta.Name != associatedSecret.Name {
+		// so, we need to remove the old one
+		secretToDelete = associatedSecret
 	}
 
-	secret = &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretNamespacedName.Name,
-			Namespace: secretNamespacedName.Namespace,
-		},
+	//
+	//
+	//
+
+	associatedSecret = &corev1.Secret{
+		ObjectMeta: wantedSecretMeta,
 	}
 
-	secretAnnotations := map[string]string{
-		v1alpha1.AnnotationClientIDKey:     serviceToken.Spec.Template.ClientIDKey,
-		v1alpha1.AnnotationClientSecretKey: serviceToken.Spec.Template.ClientSecretKey,
-		v1alpha1.AnnotationTokenIDKey:      "serviceTokenID",
-	}
+	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, associatedSecret, func() error { //nolint:varnamelen
+		const serviceTokenID_label = "serviceTokenID"
 
-	if serviceToken.Spec.Template.Annotations != nil {
-		for annotationKey, annotationValue := range serviceToken.Spec.Template.Annotations {
-			if _, exists := secretAnnotations[annotationKey]; !exists {
-				secretAnnotations[annotationKey] = annotationValue
+		//
+		//
+		//
+		secretAnnotations := map[string]string{
+			meta.AnnotationClientIDKey:     serviceToken.Spec.Template.ClientIDKey,
+			meta.AnnotationClientSecretKey: serviceToken.Spec.Template.ClientSecretKey,
+			meta.AnnotationTokenIDKey:      serviceTokenID_label,
+		}
+		if serviceToken.Spec.Template.Annotations != nil {
+			for annotationKey, annotationValue := range serviceToken.Spec.Template.Annotations {
+				if _, exists := secretAnnotations[annotationKey]; !exists {
+					secretAnnotations[annotationKey] = annotationValue
+				}
 			}
 		}
-	}
+		associatedSecret.SetAnnotations(secretAnnotations)
 
-	secretLabels := map[string]string{
-		v1alpha1.LabelOwnedBy: serviceToken.Name,
-	}
-
-	if serviceToken.Spec.Template.Labels != nil {
-		for labelKey, labelValue := range serviceToken.Spec.Template.Labels {
-			if _, exists := secretLabels[labelKey]; !exists {
-				secretLabels[labelKey] = labelValue
+		//
+		//
+		//
+		secretLabels := map[string]string{
+			meta.LabelOwnedBy: serviceToken.Name,
+		}
+		if serviceToken.Spec.Template.Labels != nil {
+			for labelKey, labelValue := range serviceToken.Spec.Template.Labels {
+				if _, exists := secretLabels[labelKey]; !exists {
+					secretLabels[labelKey] = labelValue
+				}
 			}
 		}
-	}
+		associatedSecret.SetLabels(secretLabels)
 
-	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
-		secret.SetLabels(secretLabels)
-		secret.SetAnnotations(secretAnnotations)
-
-		secret.Data = map[string][]byte{}
-		secret.Data[serviceToken.Spec.Template.ClientSecretKey] = []byte(existingServiceToken.ClientSecret)
-		secret.Data[serviceToken.Spec.Template.ClientIDKey] = []byte(existingServiceToken.ClientID)
-		secret.Data["serviceTokenID"] = []byte(existingServiceToken.ID)
-
-		if err := existingServiceToken.SetSecretValues(*secret); err != nil {
-			return errors.Wrap(err, "unable to CreateOrUpdate Secret")
+		//
+		//
+		//
+		associatedSecret.Data = map[string][]byte{
+			serviceToken.Spec.Template.ClientSecretKey: []byte(existingServiceToken.ClientSecret),
+			serviceToken.Spec.Template.ClientIDKey:     []byte(existingServiceToken.ClientID),
+			serviceTokenID_label:                       []byte(existingServiceToken.ID),
 		}
 
-		if err := ctrl.SetControllerReference(serviceToken, secret, r.Scheme); err != nil {
-			return errors.Wrap(err, "unable to set secret owner reference")
+		//
+		//
+		//
+
+		if err = existingServiceToken.SetSecretValues(*associatedSecret); err != nil {
+			return fault.Wrap(err, fmsg.With("unable to CreateOrUpdate Secret associated to CloudflareServiceToken"))
+		}
+
+		if err = ctrl.SetControllerReference(serviceToken, associatedSecret, r.Scheme); err != nil {
+			return fault.Wrap(err, fmsg.With("unable to set Secret owner reference, associated to CloudflareServiceToken"))
 		}
 
 		return nil
 	})
+
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "Failed to create/update Secret")
-	}
-	if op == controllerutil.OperationResultCreated {
-		log.Info("created secret")
-	} else if op == controllerutil.OperationResultUpdated {
-		log.Info("updated secret")
+		// will retry immediately
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to create/update Secret associated to CloudflareServiceToken"))
 	}
 
+	switch op {
+	case controllerutil.OperationResultCreated:
+		log.Info("created Secret associated to CloudflareServiceToken")
+	case controllerutil.OperationResultUpdated:
+		log.Info("updated Secret associated to CloudflareServiceToken")
+	}
+
+	//
+	//
+	//
+
 	if secretToDelete != nil {
-		if err := r.Client.Delete(ctx, secretToDelete); err != nil {
-			log.Error(nil, "failed to remove old secret")
+		if err = r.Delete(ctx, secretToDelete); err != nil {
+			log.Error(err, "failed to remove old Secret associated to CloudflareServiceToken")
 		} else {
-			log.Info("removed old secret")
+			log.Info("removed old Secret associated to CloudflareServiceToken")
 		}
 	}
 
-	if err := existingServiceToken.SetSecretValues(*secret); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to set secret")
-	}
+	//
+	//
+	//
 
-	existingServiceToken.SetSecretReference(serviceToken.Spec.Template.ClientIDKey, serviceToken.Spec.Template.ClientSecretKey, *secret)
-
-	err = r.ReconcileStatus(ctx, existingServiceToken, serviceToken)
+	err = r.MayReconcileStatus(ctx, existingServiceToken, serviceToken)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "unable to set status")
+		// will retry immediately
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("unable to set status"))
 	}
 
-	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, serviceToken, func() error {
-		meta.SetStatusCondition(&serviceToken.Status.Conditions, metav1.Condition{Type: statusAvailable, Status: metav1.ConditionTrue, Reason: "Reconciling", Message: "CloudflareServiceToken Reconciled Successfully"})
-
+	newCond = metav1.Condition{
+		Type:    StatusAvailable,
+		Status:  metav1.ConditionTrue,
+		Reason:  "Reconcilied",
+		Message: "CloudflareServiceToken Reconciled Successfully",
+	}
+	_, err = controllerutil.CreateOrPatch(ctx, r.Client, serviceToken, func() error {
+		metav2.SetStatusCondition(&serviceToken.Status.Conditions, newCond)
 		return nil
-	}); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "Failed to update CloudflareServiceToken status")
+	})
+	if err != nil {
+		// will retry immediately
+		return ctrl.Result{}, fault.Wrap(err, fmsg.With("Failed to update CloudflareServiceToken status"))
+	} else {
+		log.V(1).Info("Status persisted",
+			"type", newCond.Type,
+			"to", newCond.Status,
+		)
 	}
 
+	//
+	// All good !
+	//
+
+	log.Info("changes successfully acknoledged")
+
+	// will stop normally
 	return ctrl.Result{}, nil
 }
 
-func (r *CloudflareServiceTokenReconciler) ReconcileStatus(ctx context.Context, cfToken *cftypes.ExtendedServiceToken, k8sToken *v1alpha1.CloudflareServiceToken) error {
+func (r *CloudflareServiceTokenReconciler) MayReconcileStatus(
+	ctx context.Context,
+	cfToken *cftypes.ExtendedServiceToken,
+	k8sToken *v4alpha1.CloudflareServiceToken,
+) error {
 	if cfToken == nil {
 		return nil
 	}
 
 	token := k8sToken.DeepCopy()
 
-	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, token, func() error {
-		token.Status.ServiceTokenID = cfToken.ID
-		token.Status.CreatedAt = metav1.NewTime(*cfToken.CreatedAt)
-		token.Status.UpdatedAt = metav1.NewTime(*cfToken.UpdatedAt)
-		token.Status.ExpiresAt = metav1.NewTime(*cfToken.ExpiresAt)
-		token.Status.SecretRef = &v1alpha1.SecretRef{
+	_, err := controllerutil.CreateOrPatch(ctx, r.Client, token, func() error {
+		token.Status.AccessServiceTokenID = cfToken.ID
+		token.Status.CreatedAt = metav1.NewTime(cfToken.CreatedAt)
+		token.Status.UpdatedAt = metav1.NewTime(cfToken.UpdatedAt)
+		token.Status.ExpiresAt = metav1.NewTime(cfToken.ExpiresAt)
+		token.Status.SecretRef = v4alpha1.SecretRef{
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: cfToken.K8sSecretRef.SecretName,
 			},
@@ -289,8 +383,13 @@ func (r *CloudflareServiceTokenReconciler) ReconcileStatus(ctx context.Context, 
 		}
 
 		return nil
-	}); err != nil {
-		return errors.Wrap(err, "Failed to update CloudflareServiceToken")
+	})
+	if err != nil {
+		return fault.Wrap(err, fmsg.With("Failed to update CloudflareServiceToken"))
+	} else {
+		r.GetReconcilierLogger(ctx).V(1).Info("UUID persisted in status",
+			"UUID", token.GetCloudflareUUID(),
+		)
 	}
 
 	// CreateOrPatch re-fetches the object from k8s which removes any changes we've made that override them
@@ -300,11 +399,22 @@ func (r *CloudflareServiceTokenReconciler) ReconcileStatus(ctx context.Context, 
 	return nil
 }
 
+//
+//
+//
+
 // SetupWithManager sets up the controller with the Manager.
-func (r *CloudflareServiceTokenReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *CloudflareServiceTokenReconciler) SetupWithManager(mgr ctrl.Manager, override reconcile.Reconciler) error {
+	if override == nil {
+		override = r
+	}
+
 	//nolint:wrapcheck
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.CloudflareServiceToken{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		For(&v4alpha1.CloudflareServiceToken{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Owns(&corev1.Secret{}).
-		Complete(r)
+		WithOptions(controller.Options{
+			RateLimiter: ZTOTypedControllerRateLimiter[reconcile.Request](),
+		}).
+		Complete(override)
 }

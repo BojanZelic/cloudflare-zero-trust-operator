@@ -17,14 +17,18 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"os"
+	"time"
 
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
+	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, SAML, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -35,25 +39,28 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	cloudflarev1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	cloudflarev4 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/controller"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/logger"
+	"github.com/go-logr/logr"
 	// +kubebuilder:scaffold:imports
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme = runtime.NewScheme()
 )
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(cloudflarev1.AddToScheme(scheme))
+	utilruntime.Must(cloudflarev4.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
+//nolint:cyclop
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
@@ -71,13 +78,22 @@ func main() {
 		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
+
+	// Configure logger
 	opts := zap.Options{
 		Development: true,
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
+	zapLogger := zap.New(
+		zap.UseFlagOptions(&opts),
+	)
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	// Bind logger
+	ctrl.SetLogger(
+		logger.NewFaultLogger(zapLogger, nil),
+	)
+	setupLog := ctrl.Log.WithName("setup")
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
@@ -115,7 +131,7 @@ func main() {
 		// https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.1/pkg/metrics/filters#WithAuthenticationAndAuthorization
 		metricsServerOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
 
-		// TODO(user): If CertDir, CertName, and KeyName are not specified, controller-runtime will automatically
+		// TODO(maintainer): If CertDir, CertName, and KeyName are not specified, controller-runtime will automatically
 		// generate self-signed certificates for the metrics server. While convenient for development and testing,
 		// this setup is not recommended for production.
 	}
@@ -145,33 +161,63 @@ func main() {
 	}
 
 	config.SetConfigDefaults()
+	displayAvailableIdentityProviders(&setupLog)
 
 	controllerHelper := &ctrlhelper.ControllerHelper{
-		R: mgr.GetClient(),
+		R:                  mgr.GetClient(),
+		NormalRequeueDelay: 10 * time.Second,
 	}
 
-	if err = (&controller.CloudflareAccessGroupReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Helper: controllerHelper,
+	if err = (&controller.ReconcilerWithLoggedErrors{
+		Inner: &controller.CloudflareAccessReusablePolicyReconciler{
+			Client:         mgr.GetClient(),
+			Scheme:         mgr.GetScheme(),
+			Helper:         controllerHelper,
+			OptionalTracer: nil,
+		},
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "CloudflareAccessGroup")
+		setupLog.Error(err, "unable to create controller",
+			"controller", "CloudflareAccessReusablePolicy",
+		)
 		os.Exit(1)
 	}
-	if err = (&controller.CloudflareServiceTokenReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Helper: controllerHelper,
+	if err = (&controller.ReconcilerWithLoggedErrors{
+		Inner: &controller.CloudflareAccessGroupReconciler{
+			Client:         mgr.GetClient(),
+			Scheme:         mgr.GetScheme(),
+			Helper:         controllerHelper,
+			OptionalTracer: nil,
+		},
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "CloudflareServiceToken")
+		setupLog.Error(err, "unable to create controller",
+			"controller", "CloudflareAccessGroup",
+		)
 		os.Exit(1)
 	}
-	if err = (&controller.CloudflareAccessApplicationReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Helper: controllerHelper,
+	if err = (&controller.ReconcilerWithLoggedErrors{
+		Inner: &controller.CloudflareServiceTokenReconciler{
+			Client:         mgr.GetClient(),
+			Scheme:         mgr.GetScheme(),
+			Helper:         controllerHelper,
+			OptionalTracer: nil,
+		},
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "CloudflareAccessApplication")
+		setupLog.Error(err, "unable to create controller",
+			"controller", "CloudflareServiceToken",
+		)
+		os.Exit(1)
+	}
+	if err = (&controller.ReconcilerWithLoggedErrors{
+		Inner: &controller.CloudflareAccessApplicationReconciler{
+			Client:         mgr.GetClient(),
+			Scheme:         mgr.GetScheme(),
+			Helper:         controllerHelper,
+			OptionalTracer: nil,
+		},
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller",
+			"controller", "CloudflareAccessApplication",
+		)
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
@@ -191,3 +237,75 @@ func main() {
 		os.Exit(1)
 	}
 }
+
+// show in the logs what Identity providers are available
+func displayAvailableIdentityProviders(setupLog *logr.Logger) {
+	//
+	idpsUsedIn := []string{
+		"CloudflareAccessApplication.Spec.allowedIdps",
+		"CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.loginMethods[]",
+		"CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.googleGroups[].identityProviderId",
+		"CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.oktaGroups[].identityProviderId",
+		"CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.samlGroups[].identityProviderId",
+		"CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.githubOrganizations[].identityProviderId",
+	}
+
+	//
+	setupLog.Info("Checking available Identity Providers "+
+		"that you may use to configure this operator...",
+		"IdentityProvidersUsedIn",
+		idpsUsedIn,
+	)
+
+	// Gather credentials to connect to Cloudflare's API
+	cfConfig := config.ParseCloudflareConfig(&metav1.ObjectMeta{})
+	validConfig, err := cfConfig.IsValid()
+	if !validConfig {
+		setupLog.Error(err, "invalid config")
+		os.Exit(1)
+	}
+
+	// Initialize Cloudflare's API wrapper
+	ctx := context.Background()
+	api := cfapi.FromConfig(ctx, cfConfig, nil)
+	idProviders, err := api.IdentityProviders(ctx)
+	if err != nil {
+		setupLog.Error(err, "failed to fetch env account identity providers")
+		os.Exit(1)
+	}
+
+	if len(*idProviders) == 0 {
+		setupLog.Info(
+			//
+			"No identity providers found; "+
+				"you might want to enable some through CloudFlare's dashboard "+
+				"to leverage most of this operator's features.",
+			//
+			"moreInfosAt", "https://developers.cloudflare.com/cloudflare-one/identity/",
+		)
+		return
+	}
+
+	//
+	setupLog.Info(
+		//
+		"Enumerating found identity providers; "+
+			"please use their UUID as reference within this operator, as listed below.",
+		//
+		"AvailableIDPs", len(*idProviders),
+	)
+
+	for i, idProvider := range *idProviders {
+		setupLog.Info("Found IdentityProvider",
+			//
+			"order", i,
+			"type", idProvider.Type,
+			"name", idProvider.Name,
+			"uuid", idProvider.ID,
+		)
+	}
+}
+
+//
+//
+//

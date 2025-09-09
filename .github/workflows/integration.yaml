@@ -31,7 +31,7 @@ jobs:
         ref: "refs/pull/${{ github.event.number }}/merge"
     - uses: actions/setup-go@v4
       with:
-        go-version: '1.22'
+        go-version: '1.24'
     - run: make integration-test
       if: github.event_name == 'push' || (github.event_name == 'pull_request_target' && contains(github.event.pull_request.labels.*.name, 'safe to test'))
       env:

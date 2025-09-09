@@ -1,23 +1,23 @@
 package cftypes
 
 import (
-	"errors"
-
-	"github.com/cloudflare/cloudflare-go"
+	"github.com/Southclaws/fault"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/meta"
+	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	corev1 "k8s.io/api/core/v1"
 )
 
 var (
-	ErrMissingClientIDKey               = errors.New("missing clientIDKey field in secret data")
-	ErrMissingClientSecretKey           = errors.New("missing clientSecretKey field in secret data")
-	ErrMissingTokenIDKey                = errors.New("missing TokenID field in secret data")
-	ErrMissingAnnotationClientIDKey     = errors.New("missing clientIDKey annotation in secret")
-	ErrMissingAnnotationClientSecretKey = errors.New("missing clientSecretKey annotation in secret")
-	ErrMissingAnnotationTokenIDKey      = errors.New("missing TokenID annotation in secret")
+	ErrMissingClientIDKey               = fault.New("missing clientIDKey field in secret data")
+	ErrMissingClientSecretKey           = fault.New("missing clientSecretKey field in secret data")
+	ErrMissingTokenIDKey                = fault.New("missing TokenID field in secret data")
+	ErrMissingAnnotationClientIDKey     = fault.New("missing clientIDKey annotation in secret")
+	ErrMissingAnnotationClientSecretKey = fault.New("missing clientSecretKey annotation in secret")
+	ErrMissingAnnotationTokenIDKey      = fault.New("missing TokenID annotation in secret")
 )
 
 type ExtendedServiceToken struct {
-	cloudflare.AccessServiceToken
+	zero_trust.ServiceToken
 	ClientSecret string
 	K8sSecretRef struct {
 		ClientIDKey     string
@@ -26,40 +26,51 @@ type ExtendedServiceToken struct {
 	}
 }
 
-func (s *ExtendedServiceToken) SetSecretValues(secret corev1.Secret) error {
-	if _, ok := secret.Annotations["cloudflare.zelic.io/client-id-key"]; !ok {
-		return ErrMissingAnnotationClientIDKey
+// Updates ExtendedServiceToken with values
+func (st *ExtendedServiceToken) SetSecretValues(secret corev1.Secret) error {
+	var ok bool //nolint:varnamelen
+
+	//
+	// Check Annotations
+	//
+	clientIDKey, ok := secret.Annotations[meta.AnnotationClientIDKey]
+	if !ok {
+		return ErrMissingAnnotationClientIDKey //nolint:wrapcheck
+	}
+	clientSecretKey, ok := secret.Annotations[meta.AnnotationClientSecretKey]
+	if !ok {
+		return ErrMissingAnnotationClientSecretKey //nolint:wrapcheck
+	}
+	if _, ok = secret.Annotations[meta.AnnotationTokenIDKey]; !ok {
+		return ErrMissingAnnotationTokenIDKey //nolint:wrapcheck
 	}
 
-	if _, ok := secret.Annotations["cloudflare.zelic.io/client-secret-key"]; !ok {
-		return ErrMissingAnnotationClientSecretKey
+	//
+	// Check Data
+	//
+	clientID, ok := secret.Data[clientIDKey]
+	if !ok {
+		return ErrMissingClientIDKey //nolint:wrapcheck
+	}
+	clientSecret, ok := secret.Data[clientSecretKey]
+	if !ok {
+		return ErrMissingClientSecretKey //nolint:wrapcheck
 	}
 
-	if _, ok := secret.Annotations["cloudflare.zelic.io/token-id-key"]; !ok {
-		return ErrMissingAnnotationTokenIDKey
-	}
+	//
+	// Bind
+	//
 
-	clientIDKey := secret.Annotations["cloudflare.zelic.io/client-id-key"]
-	clientSecretKey := secret.Annotations["cloudflare.zelic.io/client-secret-key"]
-
-	if _, ok := secret.Data[clientIDKey]; !ok {
-		return ErrMissingClientIDKey
-	}
-
-	if _, ok := secret.Data[clientSecretKey]; !ok {
-		return ErrMissingClientSecretKey
-	}
-
-	s.ClientID = string(secret.Data[clientIDKey])
-	s.ClientSecret = string(secret.Data[clientSecretKey])
-	s.SetSecretReference(clientIDKey, clientSecretKey, secret)
+	st.ClientID = string(clientID)
+	st.ClientSecret = string(clientSecret)
+	st.SetSecretReference(clientIDKey, clientSecretKey, secret)
 
 	return nil
 }
 
-// depricated.
-func (s *ExtendedServiceToken) SetSecretReference(clientIDKey, clientSecretKey string, secret corev1.Secret) {
-	s.K8sSecretRef.ClientIDKey = clientIDKey
-	s.K8sSecretRef.ClientSecretKey = clientSecretKey
-	s.K8sSecretRef.SecretName = secret.Name
+// deprecated.
+func (st *ExtendedServiceToken) SetSecretReference(clientIDKey, clientSecretKey string, secret corev1.Secret) {
+	st.K8sSecretRef.ClientIDKey = clientIDKey
+	st.K8sSecretRef.ClientSecretKey = clientSecretKey
+	st.K8sSecretRef.SecretName = secret.Name
 }

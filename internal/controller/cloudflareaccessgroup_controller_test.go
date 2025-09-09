@@ -1,14 +1,11 @@
 //go:build integration
 
-package controller
+package controller_test
 
 import (
 	"context"
-	"time"
 
-	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
-	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
-	"github.com/cloudflare/cloudflare-go"
+	v4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -17,195 +14,232 @@ import (
 )
 
 var _ = Describe("CloudflareAccessGroup controller", Ordered, func() {
-	BeforeAll(func() {
-		ctx := context.Background()
-
-		By("Removing all existing access groups")
-		groups, err := api.AccessGroups(ctx)
-		Expect(err).To(Not(HaveOccurred()))
-		for _, group := range groups {
-			_ = api.DeleteAccessGroup(ctx, group.ID)
-			//Expect(err).To(Not(HaveOccurred()))
-		}
+	BeforeAll(func() { insertedTracer.ResetStores() })
+	AfterAll(func() {
+		errs := insertedTracer.UninstallFromCF(api)
+		Expect(errs).To(BeEmpty())
 	})
 
-	Context("CloudflareAccessGroup controller test", func() {
+	//
+	//
+	//
 
-		const cloudflareName = "test-cloudflare"
+	const testScopedNamespace = "zto-testing-group"
 
+	BeforeEach(func() {
+		ctrlErrors.Clear()
+	})
+	AfterEach(func() {
+		// By("expect no reconcile errors occurred")
+		// Expect(ctrlErrors).To(BeEmpty())
+	})
+
+	Context("CloudflareAccessGroup controller test - single namespace", func() {
+		//
 		ctx := context.Background()
-
-		namespace := &corev1.Namespace{
+		testNS := &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      cloudflareName,
-				Namespace: cloudflareName,
+				Name: testScopedNamespace,
 			},
 		}
 
-		typeNamespaceName := types.NamespacedName{Name: cloudflareName, Namespace: cloudflareName}
-
-		BeforeEach(func() {
-			logOutput.Clear()
-
+		BeforeAll(func() {
 			By("Creating the Namespace to perform the tests")
-			k8sClient.Create(ctx, namespace)
-
-			//Expect(err).To(Not(HaveOccurred()))
+			_ = k8sClient.Create(ctx, testNS)
+		})
+		AfterAll(func() {
+			By("Deleting the Namespace to perform the tests")
+			_ = k8sClient.Delete(ctx, testNS)
+			// ignore error because of https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
+			// Expect(err).ToNot(HaveOccurred()))
 		})
 
-		AfterEach(func() {
-			By("expect no reconcile errors occured")
-			Expect(logOutput.GetErrorCount()).To(Equal(0), logOutput.GetOutput())
-			// By("Deleting the Namespace to perform the tests")
-			// _ = k8sClient.Delete(ctx, namespace)
-		})
+		//
+		//
+		//
 
-		It("should successfully reconcile if a CloudflareAccessGroup AlreadyExists", func() {
+		It("should successfully reconcile if a CloudflareAccessGroup already exists with the same name", func() {
 			By("Pre-creating a cloudflare access group")
-
-			ag, err := api.CreateAccessGroup(ctx, cloudflare.AccessGroup{
-				Name: "existing-access-group",
-				Include: []interface{}{
-					cfapi.NewAccessGroupEmail("test1@cf-operator-tests.uk"),
+			ag, err := api.CreateAccessGroup(ctx, &v4alpha1.CloudflareAccessGroup{ //nolint:varnamelen
+				Spec: v4alpha1.CloudflareAccessGroupSpec{
+					Name: "ZTO AccessGroup Tests - 1 - Group",
+					Include: v4alpha1.CloudFlareAccessRules{
+						Emails: []string{
+							produceOwnedEmail("zto-test-group-1"),
+						},
+					},
 				},
 			})
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Creating the same custom resource for the Kind CloudflareAccessGroup")
-			group := &v1alpha1.CloudflareAccessGroup{
+			groupNN := types.NamespacedName{Name: "test-1-group", Namespace: testScopedNamespace}
+			group := &v4alpha1.CloudflareAccessGroup{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      ag.Name,
-					Namespace: namespace.Name,
+					Name:      groupNN.Name,
+					Namespace: groupNN.Namespace,
 				},
-				Spec: v1alpha1.CloudflareAccessGroupSpec{
-					Name: ag.Name,
-					Include: []v1alpha1.CloudFlareAccessGroupRule{
-						{
-							Emails: []string{"test2@cf-operator-tests.uk"},
+				Spec: v4alpha1.CloudflareAccessGroupSpec{
+					Name: ag.Name, // same name !
+					Include: v4alpha1.CloudFlareAccessRules{
+						Emails: []string{
+							produceOwnedEmail("zto-test-group-1"),
 						},
 					},
 				},
 			}
+			Expect(k8sClient.Create(ctx, group)).ToNot(HaveOccurred())
 
-			err = k8sClient.Create(ctx, group)
-			Expect(err).To(Not(HaveOccurred()))
-
-			found := &v1alpha1.CloudflareAccessGroup{}
-			By("Checking the latest Status should have the ID of the resource")
-			Eventually(func() string {
-				found = &v1alpha1.CloudflareAccessGroup{}
-				k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: group.Namespace}, found)
-				return found.Status.AccessGroupID
-			}, time.Second*10, time.Second).Should(Equal(ag.ID))
+			//
+			ByExpectingCFResourceToBeReady(ctx, group).Should(Succeed())
 		})
 
 		It("should successfully reconcile a custom resource for CloudflareAccessGroup", func() {
 			By("Creating the custom resource for the Kind CloudflareAccessGroup")
-			group := &v1alpha1.CloudflareAccessGroup{
+			groupNN := types.NamespacedName{Name: "test-2-group", Namespace: testScopedNamespace}
+			group := &v4alpha1.CloudflareAccessGroup{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      cloudflareName,
-					Namespace: namespace.Name,
+					Name:      groupNN.Name,
+					Namespace: groupNN.Namespace,
 				},
-				Spec: v1alpha1.CloudflareAccessGroupSpec{
-					Name: "integration accessgroup test",
-					Include: []v1alpha1.CloudFlareAccessGroupRule{
-						{
-							Emails: []string{"test@cf-operator-tests.uk"},
+				Spec: v4alpha1.CloudflareAccessGroupSpec{
+					Name: "ZTO AccessGroup Tests - 2 - Group",
+					Include: v4alpha1.CloudFlareAccessRules{
+						Emails: []string{
+							produceOwnedEmail("zto-test-group-2"),
 						},
 					},
 				},
 			}
+			Expect(k8sClient.Create(ctx, group)).ToNot(HaveOccurred())
 
-			err := k8sClient.Create(ctx, group)
-			Expect(err).To(Not(HaveOccurred()))
-
-			By("Checking if the custom resource was successfully created")
-			Eventually(func() error {
-				found := &v1alpha1.CloudflareAccessGroup{}
-				return k8sClient.Get(ctx, typeNamespaceName, found)
-			}, time.Minute, time.Second).Should(Succeed())
-
-			found := &v1alpha1.CloudflareAccessGroup{}
-			By("Checking the latest Status should have the ID of the resource")
-			Eventually(func() string {
-				found = &v1alpha1.CloudflareAccessGroup{}
-				k8sClient.Get(ctx, typeNamespaceName, found)
-				return found.Status.AccessGroupID
-			}, time.Minute, time.Second).Should(Not(BeEmpty()))
+			//
+			ByExpectingCFResourceToBeReady(ctx, group).Should(Succeed())
 
 			By("Cloudflare resource should equal the spec")
-			cfResource, err := api.AccessGroup(ctx, found.Status.AccessGroupID)
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(cfResource.Name).To(Equal(found.Spec.Name))
+			cfResource, err := api.AccessGroup(ctx, group.GetCloudflareUUID())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cfResource.Name).To(Equal(group.Spec.Name))
 
 			By("Updating the name of the resource")
-			found.Spec.Name = "updated name"
-			k8sClient.Update(ctx, found)
-			Expect(err).To(Not(HaveOccurred()))
+			addDirtyingSuffix(&group.Spec.Name)
+			Expect(k8sClient.Update(ctx, group)).ToNot(HaveOccurred())
+
+			// Await for resource to be ready again
+			ByExpectingCFResourceToBeReady(ctx, group).Should(Succeed())
 
 			By("Cloudflare resource should equal the updated spec")
-			Eventually(func() string {
-				cfResource, err = api.AccessGroup(ctx, found.Status.AccessGroupID)
-				return cfResource.Name
-
-			}, time.Minute, time.Second).Should(Equal(found.Spec.Name))
+			cfResource, err = api.AccessGroup(ctx, group.GetCloudflareUUID())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cfResource.Name).To(Equal(group.Spec.Name))
 		})
 
-		It("should successfully reconcile CloudflareAccessApplication policies with references", func() {
-
-			typeNamespaceName := types.NamespacedName{Name: "cloudflare-app-three", Namespace: cloudflareName}
-
+		It("should successfully reconcile CloudflareAccessGroup policies with references", func() {
 			By("pre-create a service token")
-			token := &v1alpha1.CloudflareServiceToken{
+			sTokenNN := types.NamespacedName{Name: "test-3-stoken", Namespace: testScopedNamespace}
+			token := &v4alpha1.CloudflareServiceToken{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      typeNamespaceName.Name,
-					Namespace: typeNamespaceName.Namespace,
+					Name:      sTokenNN.Name,
+					Namespace: sTokenNN.Namespace,
 				},
-				Spec: v1alpha1.CloudflareServiceTokenSpec{
-					Name: "reference test group",
+				Spec: v4alpha1.CloudflareServiceTokenSpec{
+					Name: "ZTO AccessGroup Tests - 3 - Service Token",
 				},
 			}
+			Expect(k8sClient.Create(ctx, token)).ToNot(HaveOccurred())
 
-			Expect(k8sClient.Create(ctx, token)).To(Not(HaveOccurred()))
-			Expect(k8sClient.Get(ctx, typeNamespaceName, token)).To(Not(HaveOccurred()))
+			//
+			ByExpectingCFResourceToBeReady(ctx, token).Should(Succeed())
 
-			By("Make sure the token exists on cloudflare")
-			Eventually(func(g Gomega) {
-				k8sClient.Get(ctx, typeNamespaceName, token)
-				g.Expect(token.Status.ServiceTokenID).ToNot(BeEmpty())
-			}, time.Second*10, time.Second).Should(Succeed())
-
-			group := &v1alpha1.CloudflareAccessGroup{
+			//
+			By("Creating access group")
+			groupNN := types.NamespacedName{Name: "test-3-group", Namespace: testScopedNamespace}
+			group := &v4alpha1.CloudflareAccessGroup{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      typeNamespaceName.Name,
-					Namespace: typeNamespaceName.Namespace,
+					Name:      groupNN.Name,
+					Namespace: groupNN.Namespace,
 				},
-				Spec: v1alpha1.CloudflareAccessGroupSpec{
-					Name: "reference test group",
-					Include: []v1alpha1.CloudFlareAccessGroupRule{
-						{
-							ServiceToken: []v1alpha1.ServiceToken{
-								{
-									ValueFrom: &v1alpha1.ServiceTokenReference{
-										Name:      token.Name,
-										Namespace: token.Namespace,
-									},
-								},
-							},
+				Spec: v4alpha1.CloudflareAccessGroupSpec{
+					Name: "ZTO AccessGroup Tests - 3 - Group",
+					Include: v4alpha1.CloudFlareAccessRules{
+						ServiceTokenRefs: []string{
+							v4alpha1.ParsedNamespacedName(sTokenNN),
 						},
 					},
 				},
 			}
+			Expect(k8sClient.Create(ctx, group)).ToNot(HaveOccurred())
 
-			Expect(k8sClient.Create(ctx, group)).To(Not(HaveOccurred()))
+			//
+			ByExpectingCFResourceToBeReady(ctx, group).Should(Succeed())
+		})
+	})
 
-			By("Checking the Status")
-			Eventually(func(g Gomega) {
-				err := k8sClient.Get(ctx, typeNamespaceName, group)
-				g.Expect(err).To(Not(HaveOccurred()))
-				g.Expect(group.Status.Conditions).ToNot(BeEmpty())
-				g.Expect(group.Status.Conditions[0].Status).To(Equal(metav1.ConditionTrue))
-			}, time.Second*10, time.Second).Should(Succeed())
+	Context("CloudflareAccessGroup controller test - multiple namespaces", func() {
+		//
+		ctx := context.Background()
+		oneNS := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: testScopedNamespace + "-1",
+			},
+		}
+		twoNS := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: testScopedNamespace + "-2",
+			},
+		}
+
+		BeforeAll(func() {
+			By("Creating the Namespaces to perform the tests")
+			_ = k8sClient.Create(ctx, oneNS)
+			_ = k8sClient.Create(ctx, twoNS)
+		})
+		AfterAll(func() {
+			By("Deleting the Namespaces to perform the tests")
+			_ = k8sClient.Delete(ctx, oneNS)
+			_ = k8sClient.Delete(ctx, twoNS)
+			// ignore error because of https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
+			// Expect(err).ToNot(HaveOccurred()))
+		})
+
+		It("should successfully reconcile CloudflareAccessGroup policies with references, from another namespace", func() {
+			By("pre-create a service token in namespace one")
+			sTokenNN := types.NamespacedName{Name: "test-4-stoken", Namespace: oneNS.Name}
+			token := &v4alpha1.CloudflareServiceToken{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      sTokenNN.Name,
+					Namespace: sTokenNN.Namespace,
+				},
+				Spec: v4alpha1.CloudflareServiceTokenSpec{
+					Name: "ZTO AccessGroup Tests - 4 - Service Token",
+				},
+			}
+			Expect(k8sClient.Create(ctx, token)).ToNot(HaveOccurred())
+
+			//
+			ByExpectingCFResourceToBeReady(ctx, token).Should(Succeed())
+
+			//
+			By("Creating access group in namespace two, referencing sToken above")
+			groupNN := types.NamespacedName{Name: "test-4-group", Namespace: twoNS.Name}
+			group := &v4alpha1.CloudflareAccessGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      groupNN.Name,
+					Namespace: groupNN.Namespace,
+				},
+				Spec: v4alpha1.CloudflareAccessGroupSpec{
+					Name: "ZTO AccessGroup Tests - 4 - Group",
+					Include: v4alpha1.CloudFlareAccessRules{
+						ServiceTokenRefs: []string{
+							v4alpha1.ParsedNamespacedName(sTokenNN),
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, group)).ToNot(HaveOccurred())
+
+			//
+			ByExpectingCFResourceToBeReady(ctx, group).Should(Succeed())
 		})
 	})
 })

@@ -1,8 +1,7 @@
 //go:build integration
-// +build integration
 
 /*
-Copyright 2022.
+Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,49 +16,75 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+//
+// Heavily inspired by https://github.com/kubernetes-sigs/kubebuilder/blob/master/docs/book/src/cronjob-tutorial/testdata/project/internal/controller/suite_test.go
+//
+
+package controller_test
 
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
-	"strings"
-	"sync"
 	"testing"
 	"time"
 
-	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/spf13/viper"
+	"go.uber.org/zap/zapcore"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	cloudflarev1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
+	cloudflarev4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/controller"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/logger"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
-	//+kubebuilder:scaffold:imports
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-var cfg *rest.Config
-var k8sClient client.Client
-var testEnv *envtest.Environment
-var api *cfapi.API
-var ctx context.Context
-var cancel context.CancelFunc
+// @dev prevent direct access in tests
+const defaultAccountOwnedDomain = "cf-operator-tests.uk"
 
-// var logger logr.Logger
-var logOutput *TestLogger
+var (
+	k8sClient client.Client
+	api       *cfapi.API
+	testEnv   *envtest.Environment
+
+	//
+	insertedTracer cfapi.CloudflareResourceCreationTracer
+
+	// @dev Might get cleared between test sets
+	ctrlErrors controller.ReconcilierErrorTracker
+
+	ctx    context.Context
+	cancel context.CancelFunc
+
+	// Domain which will be used as base for testing purposes (allowed email targets, allowed domains, access application domains...)
+	//
+	// This domain should be owned by provided CloudFlare account (by CLOUDFLARE_API_KEY / CLOUDFLARE_API_TOKEN / CLOUDFLARE_API_EMAIL)
+	accountOwnedDomain string
+)
+
+const (
+	// testenv is slow, like really slow to respond when getting overwelmed by spam retries.
+	// 20 secs is the minimum you need to set on a Macbook M1 Pro; adapt this depending on your hardware I guess.
+	defaultTimeout  = 20 * time.Second
+	defaultPollRate = 2 * time.Second
+)
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -68,144 +93,343 @@ func TestAPIs(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	outLogger := zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))
-	logf.SetLogger(outLogger)
 
 	ctx, cancel = context.WithCancel(context.TODO())
 
+	//
+	//
+	//
+
+	By("bootstrapping logger")
+	// configure logger
+	zapLogger := zap.New(
+		zap.WriteTo(GinkgoWriter),
+		zap.UseDevMode(true),
+		zap.StacktraceLevel(zapcore.DPanicLevel), // only print stacktraces for panics and fatal
+	)
+
+	// bind logger
+	ctrl.SetLogger(
+		logger.NewFaultLogger(zapLogger,
+			&logger.FaultLoggerOptions{
+				DismissErrorVerbose: true,
+			},
+		),
+	)
+
+	//
+	//
+	//
+
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
-		ErrorIfCRDPathMissing: true,
+		CRDDirectoryPaths:       []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		ErrorIfCRDPathMissing:   true,
+		ControlPlaneStopTimeout: 1 * time.Minute, // Or any duration that suits your tests
 	}
 
-	var err error
-	// cfg is defined in this file globally.
-	cfg, err = testEnv.Start()
-	Expect(err).NotTo(HaveOccurred())
-	Expect(cfg).NotTo(BeNil())
+	if getFirstFoundEnvTestBinaryDir() != "" {
+		testEnv.BinaryAssetsDirectory = getFirstFoundEnvTestBinaryDir()
+	}
 
-	err = cloudflarev1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	cfg, err := testEnv.Start() // Required to be shutdown later
+	Expect(err).ToNot(HaveOccurred())
+	Expect(cfg).ToNot(BeNil())
 
-	//+kubebuilder:scaffold:scheme
+	err = cloudflarev4alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).ToNot(HaveOccurred())
 
+	// initialize client which we will use in test, emulating operator / remote client
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-	Expect(err).NotTo(HaveOccurred())
-	Expect(k8sClient).NotTo(BeNil())
+	Expect(err).ToNot(HaveOccurred())
+	Expect(k8sClient).ToNot(BeNil())
+
+	//
+	//
+	//
 
 	By("bootstrapping cloudflare api client")
 	config.SetConfigDefaults()
-	cfConfig := config.ParseCloudflareConfig(&v1.ObjectMeta{})
-	api, err = cfapi.New(cfConfig.APIToken, cfConfig.APIKey, cfConfig.APIEmail, cfConfig.AccountID)
-	Expect(err).NotTo(HaveOccurred())
+	cfConfig := config.ParseCloudflareConfig(&metav1.ObjectMeta{})
+	_, err = cfConfig.IsValid()
+	Expect(err).ToNot(HaveOccurred())
 
-	logOutput = NewTestLogger(logr.RuntimeInfo{CallDepth: 1})
+	insertedTracer.ResetStores()
+	api = cfapi.FromConfig(ctrl.SetupSignalHandler(), cfConfig, &insertedTracer)
 
+	//
+	// Picking testing domain
+	//
+
+	// Read from env
+	accountOwnedDomain = viper.GetString("TEST_ACCOUNT_OWNED_DOMAIN")
+
+	// if still empty...
+	if accountOwnedDomain == "" {
+		// resolves to default
+		accountOwnedDomain = defaultAccountOwnedDomain
+
+		//
+		ctrl.Log.Info(
+			"No account-owned domain picked from environment variable; resorting to default",
+			"defaultedTestDomain", defaultAccountOwnedDomain,
+		)
+	} else {
+		ctrl.Log.Info(
+			"Using account-owned test domain, picked from environment",
+			"testDomain", defaultAccountOwnedDomain,
+		)
+	}
+
+	isOwned, err := api.IsDomainOwned(ctx, accountOwnedDomain)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(isOwned).To(
+		BeTrueBecause("Domain used as prop template during tests must be owned; inferred testing domain '%s' is not.", accountOwnedDomain),
+	)
+
+	//
+	//
+	//
+
+	/*
+		One thing that this autogenerated file is missing, however, is a way to actually start your controller.
+		The code above will set up a client for interacting with your custom Kind,
+		but will not be able to test your controller behavior.
+		If you want to test your custom controller logic, you’ll need to add some familiar-looking manager logic
+		to your BeforeSuite() function, so you can register your custom controller to run on this test cluster.
+
+		You may notice that the code below runs your controller with nearly identical logic to your CronJob project’s main.go!
+		The only difference is that the manager is started in a separate goroutine so it does not block the cleanup of envtest
+		when you’re done running your tests.
+
+		Note that we set up both a "live" k8s client and a separate client from the manager. This is because when making
+		assertions in tests, you generally want to assert against the live state of the API server. If you use the client
+		from the manager (`k8sManager.GetClient`), you'd end up asserting against the contents of the cache instead, which is
+		slower and can introduce flakiness into your tests. We could use the manager's `APIReader` to accomplish the same
+		thing, but that would leave us with two clients in our test assertions and setup (one for reading, one for writing),
+		and it'd be easy to make mistakes.
+
+		Note that we keep the reconciler running against the manager's cache client, though -- we want our controller to
+		behave as it would in production, and we use features of the cache (like indices) in our controller which aren't
+		available when talking directly to the API server.
+	*/
 	By("bootstrapping managers")
-	logger := logr.New(logOutput)
-	ctrl.SetLogger(logger)
-
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:  scheme.Scheme,
 		Metrics: metricsserver.Options{BindAddress: "0"},
-		Logger:  logger,
 	})
 	Expect(err).ToNot(HaveOccurred())
 
 	controllerHelper := &ctrlhelper.ControllerHelper{
-		R: k8sClient,
+		R:                  k8sManager.GetClient(),
+		NormalRequeueDelay: 2 * time.Second,
 	}
+	ctrlErrors = controller.ReconcilierErrorTracker{}
 
-	Expect((&CloudflareAccessGroupReconciler{
-		Client: k8sClient,
-		Scheme: k8sClient.Scheme(),
-		Helper: controllerHelper,
+	Expect((&controller.ReconcilerWithLoggedErrors{
+		ErrTracker: &ctrlErrors,
+		Inner: &controller.CloudflareAccessGroupReconciler{
+			Client:         k8sManager.GetClient(),
+			Scheme:         k8sManager.GetScheme(),
+			Helper:         controllerHelper,
+			OptionalTracer: &insertedTracer,
+		},
 	}).SetupWithManager(k8sManager)).ToNot(HaveOccurred())
-	Expect((&CloudflareAccessApplicationReconciler{
-		Client: k8sClient,
-		Scheme: k8sClient.Scheme(),
-		Helper: controllerHelper,
+	Expect((&controller.ReconcilerWithLoggedErrors{
+		ErrTracker: &ctrlErrors,
+		Inner: &controller.CloudflareAccessApplicationReconciler{
+			Client:         k8sManager.GetClient(),
+			Scheme:         k8sManager.GetScheme(),
+			Helper:         controllerHelper,
+			OptionalTracer: &insertedTracer,
+		},
 	}).SetupWithManager(k8sManager)).ToNot(HaveOccurred())
-	Expect((&CloudflareServiceTokenReconciler{
-		Client: k8sClient,
-		Scheme: k8sClient.Scheme(),
-		Helper: controllerHelper,
+	Expect((&controller.ReconcilerWithLoggedErrors{
+		ErrTracker: &ctrlErrors,
+		Inner: &controller.CloudflareServiceTokenReconciler{
+			Client:         k8sManager.GetClient(),
+			Scheme:         k8sManager.GetScheme(),
+			Helper:         controllerHelper,
+			OptionalTracer: &insertedTracer,
+		},
 	}).SetupWithManager(k8sManager)).ToNot(HaveOccurred())
+	Expect((&controller.ReconcilerWithLoggedErrors{
+		ErrTracker: &ctrlErrors,
+		Inner: &controller.CloudflareAccessReusablePolicyReconciler{
+			Client:         k8sManager.GetClient(),
+			Scheme:         k8sManager.GetScheme(),
+			Helper:         controllerHelper,
+			OptionalTracer: &insertedTracer,
+		},
+	}).SetupWithManager(k8sManager)).ToNot(HaveOccurred())
+
+	//
+	// start !
+	//
 
 	go func() {
 		defer GinkgoRecover()
-
-		err := k8sManager.Start(ctx)
-		Expect(err).ToNot(HaveOccurred())
-
-		err = testEnv.Stop()
-		Expect(err).ToNot(HaveOccurred())
+		err = k8sManager.Start(ctx)
+		Expect(err).ToNot(HaveOccurred(), "failed to run manager")
 	}()
 })
 
-func NewTestLogger(info logr.RuntimeInfo) *TestLogger {
-	return &TestLogger{
-		Output: []map[string]interface{}{},
-		r:      info,
-		mutex:  sync.RWMutex{},
+var _ = AfterSuite(func() {
+	By("tearing down the test environment")
+	cancel()
+	err := testEnv.Stop()
+	Expect(err).ToNot(HaveOccurred())
+})
+
+//
+//
+//
+
+// getFirstFoundEnvTestBinaryDir locates the first binary in the specified path.
+// ENVTEST-based tests depend on specific binaries, usually located in paths set by
+// controller-runtime. When running tests directly (e.g., via an IDE) without using
+// Makefile targets, the 'BinaryAssetsDirectory' must be explicitly configured.
+//
+// This function streamlines the process by finding the required binaries, similar to
+// setting the 'KUBEBUILDER_ASSETS' environment variable. To ensure the binaries are
+// properly set up, run 'make setup-envtest' beforehand.
+func getFirstFoundEnvTestBinaryDir() string {
+	basePath := filepath.Join("..", "..", "bin", "k8s")
+	entries, err := os.ReadDir(basePath)
+	if err != nil {
+		logf.Log.Error(err, "Failed to read directory", "path", basePath)
+		return ""
 	}
-}
-
-type TestLogger struct {
-	Output []map[string]interface{}
-	r      logr.RuntimeInfo
-	mutex  sync.RWMutex
-}
-
-func (t *TestLogger) doLog(level int, msg string, keysAndValues ...interface{}) {
-	t.mutex.Lock()
-	m := map[string]interface{}{}
-	m["lvl"] = level
-	m["keys"] = keysAndValues
-	m["msg"] = msg
-	m["time"] = time.Now()
-	t.Output = append(t.Output, m)
-	t.mutex.Unlock()
-}
-
-func (t *TestLogger) Clear() {
-	t.mutex.Lock()
-	t.Output = []map[string]interface{}{}
-	t.mutex.Unlock()
-}
-
-func (t *TestLogger) Init(info logr.RuntimeInfo) { t.r = info }
-func (t *TestLogger) Enabled(level int) bool     { return true }
-func (t *TestLogger) Info(level int, msg string, keysAndValues ...interface{}) {
-	t.doLog(level, msg, keysAndValues...)
-}
-func (t *TestLogger) Error(err error, msg string, keysAndValues ...interface{}) {
-	t.doLog(1, msg, append(keysAndValues, err)...)
-}
-func (t *TestLogger) WithValues(keysAndValues ...interface{}) logr.LogSink { return t }
-func (t *TestLogger) WithName(name string) logr.LogSink                    { return t }
-func (t *TestLogger) GetErrorCount() int {
-	count := 0
-	for _, out := range t.Output {
-		if out["lvl"] == 1 {
-			count++
+	for _, entry := range entries {
+		if entry.IsDir() {
+			return filepath.Join(basePath, entry.Name())
 		}
 	}
-	return count
+	return ""
 }
 
-func (t *TestLogger) GetOutput() string {
-	typeMap := map[int]string{
-		1: "ERROR",
-		0: "INFO",
-	}
-	out := []string{}
+//
+//
+//
 
-	for _, val := range t.Output {
-		t := val["time"].(time.Time)
-		out = append(out, fmt.Sprintf("%v - %02d:%02d:%02d - %v - %v", typeMap[val["lvl"].(int)], t.Hour(), t.Minute(), t.Second(), val["msg"], val["keys"]))
+// call this to update a CRD spec name, which should normally make it dirty by controllers
+func addDirtyingSuffix(toUpdate *string) {
+	if toUpdate != nil {
+		*toUpdate = fmt.Sprintf("%s - updated name", *toUpdate)
+	}
+}
+
+// Will generate an email address ([accountName]@<accountOwnedDomain>) that the configured CF account controls
+func produceOwnedEmail(accountName string) string {
+	return fmt.Sprintf("%s@%s", accountName, accountOwnedDomain)
+}
+
+// Will generate a Fully Qualified Domain name ([subdomain].<accountOwnedDomain>) that the configured CF account owns
+func produceOwnedFQDN(subdomain string) string {
+	return fmt.Sprintf("%s.%s", subdomain, accountOwnedDomain)
+}
+
+//
+//
+//
+
+// will expect the CRD ressource to be absent from the cluster
+func ByExpectingDeletionOf(toExpectOf ctrlhelper.CloudflareControlledResource) AsyncAssertion {
+	//
+	By(
+		fmt.Sprintf(
+			"Await for %s resource to be deleted",
+			toExpectOf.Describe(),
+		),
+	)
+
+	//
+	toExpectOfNN := toExpectOf.GetNamespacedName()
+
+	//
+	return Eventually(func(g Gomega) { //nolint:varnamelen
+		err := k8sClient.Get(ctx, toExpectOfNN, toExpectOf)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+	}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate)
+}
+
+// @notice [res] will be populated
+func ByExpectingCFResourceToBeReady(ctx context.Context, toExpectOf ctrlhelper.CloudflareControlledResource) AsyncAssertion {
+	return expectingCFResourceReadiness(ctx, toExpectOf, metav1.ConditionTrue)
+}
+
+// Contrary to [ByExpectingCFResourceToBeReady]
+//
+// @notice [res] will be populated
+func ByExpectingCFResourceTo_NOT_BeReady(ctx context.Context, toExpectOf ctrlhelper.CloudflareControlledResource) AsyncAssertion {
+	return expectingCFResourceReadiness(ctx, toExpectOf, metav1.ConditionFalse)
+}
+
+// @notice [res] will be populated
+func expectingCFResourceReadiness(
+	ctx context.Context,
+	toExpectOf ctrlhelper.CloudflareControlledResource,
+	awaitedCondition metav1.ConditionStatus,
+) AsyncAssertion {
+	//
+	const awaitedStatus = controller.StatusAvailable
+
+	// check if [res] is already set, and if so; expect status update date to change while Eventually
+	prevCond := meta.FindStatusCondition(*toExpectOf.GetConditions(), awaitedStatus)
+
+	ctrl.Log.V(1).Info(
+		"Start awaiting for resource to have conditions change",
+		"currentCond", prevCond,
+		"awaitedStatus", awaitedStatus,
+		"awaitedCondition", awaitedCondition,
+	)
+
+	//
+	var byLabel string
+	var prevTransTime time.Time
+	if prevCond != nil {
+		prevTransTime = prevCond.LastTransitionTime.Time
+		byLabel = fmt.Sprintf(
+			"Await for %s resource to process back to \"%s\"",
+			toExpectOf.Describe(),
+			awaitedStatus,
+		)
+	} else {
+		byLabel = fmt.Sprintf(
+			"Await for %s resource to be \"%s\"",
+			toExpectOf.Describe(),
+			awaitedStatus,
+		)
 	}
 
-	return "\n" + strings.Join(out, "\n")
+	//
+	//
+	//
+
+	//
+	By(byLabel)
+
+	//
+	toExpectOfNN := toExpectOf.GetNamespacedName()
+
+	//
+	return Eventually(func(g Gomega) { //nolint:varnamelen
+		ctrl.Log.V(1).Info("Polling condition changes...")
+
+		//
+		err := k8sClient.Get(ctx, toExpectOfNN, toExpectOf)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		//
+		cond := meta.FindStatusCondition(*toExpectOf.GetConditions(), awaitedStatus)
+		g.Expect(cond).ToNot(BeNil())
+		g.Expect(cond.Status).To(Equal(awaitedCondition))
+
+		//
+		if !prevTransTime.IsZero() {
+			g.Expect(cond.LastTransitionTime.Time).To(BeTemporally(">", prevTransTime))
+		}
+
+	}).WithTimeout(defaultTimeout).WithPolling(defaultPollRate)
 }

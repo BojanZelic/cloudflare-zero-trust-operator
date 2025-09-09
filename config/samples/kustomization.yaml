@@ -1,6 +1,7 @@
 ## Append samples you want in your CSV to this file as resources ##
 resources:
-- cloudflare_v1alpha1_cloudflareaccessgroup.yaml
-- cloudflare_v1alpha1_cloudflareaccessapplication.yaml
-- cloudflare_v1alpha1_cloudflareservicetoken.yaml
+- CloudflareAccessApplication.yaml
+- CloudflareAccessReusablePolicy.yaml
+- CloudflareAccessGroup.yaml
+- CloudflareAccessServiceToken.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples
