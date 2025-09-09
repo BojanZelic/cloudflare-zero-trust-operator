@@ -27,8 +27,13 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout PR HEAD
         uses: actions/checkout@v4
+        with:
+          # Pull the contributor's branch, even from a fork
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
