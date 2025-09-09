@@ -59,20 +59,13 @@ fmt: ## Run go fmt against code.
 vet: ## Run go vet against code.
 	go vet ./...
 
-.PHONY: test
+.PHONY: test 
 test: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
 
-ENV_INT_TEST_FILE=.env.integration.test
-
-.PHONY: pre-integration-test
-pre-integration-test: envtest ## Run tests.
-	@echo "KUBEBUILDER_ASSETS=$$($(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" > $(ENV_INT_TEST_FILE)
-	@cat .env.integration 2>/dev/null | xargs -n1 >> $(ENV_INT_TEST_FILE)
-
 .PHONY: integration-test
 integration-test: manifests generate fmt vet pre-integration-test ## Run integration tests.
-	$(shell cat $(ENV_INT_TEST_FILE) 2>/dev/null | xargs) go test ./... -covermode=atomic -coverpkg=all --tags=integration -coverprofile cover.out
+	$(shell cat .env.integration 2>/dev/null | xargs) KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -covermode=atomic -coverpkg=all --tags=integration -coverprofile cover.out
 
 #
 # TODO(maintainer): Add E2E tests (Using Kind + Helm / Kustomize ?)
