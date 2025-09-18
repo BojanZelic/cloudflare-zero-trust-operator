@@ -249,17 +249,18 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 		}
 
 		BeforeEach(func() {
-			By("Backing up existing policy UUIDs")
+			By("Backing up existing policy UUIDs if one-app configured on account")
 			oneTimeAppType := extractAppTypeFromLabel()
 			cfAppThen, err = api.FindFirstAccessApplicationOfType(ctx, oneTimeAppType)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(cfAppThen).ToNot(BeNil())
 		})
 
 		AfterEach(func() {
-			By("Restore existing policy UUIDs")
-			err = api.RestoreAccessApplicationTo(ctx, cfAppThen)
-			Expect(err).ToNot(HaveOccurred())
+			By("If one-app is configured on account, restore existing policy UUIDs")
+			if cfAppThen != nil {
+				err = api.RestoreAccessApplicationTo(ctx, cfAppThen)
+				Expect(err).ToNot(HaveOccurred())
+			}
 		})
 
 		//

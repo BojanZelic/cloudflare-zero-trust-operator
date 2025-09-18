@@ -72,6 +72,10 @@ func p_update_SH(ids []string) (out []zero_trust.AccessApplicationUpdateParamsBo
 
 // Extract a simple, precedence ordered slice of associated [app] policy UUIDs
 func GetOrderedPolicyUUIDs(app *zero_trust.AccessApplicationGetResponse) (orderedUUIDs []string, err error) {
+	if app == nil {
+		return nil, fault.New("Cannot retrieve policy UUIDs", fmsg.With("No app was provided"))
+	}
+
 	switch v := app.Policies.(type) { //nolint:varnamelen
 	case []zero_trust.AccessApplicationGetResponseDeviceEnrollmentPermissionsApplicationPolicy:
 		{
