@@ -261,7 +261,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		case string(zero_trust.ApplicationTypeWARP),
 			string(zero_trust.ApplicationTypeAppLauncher):
 			{
-				cfAccessApp, err = api.FindFirstAccessApplicationOfType(ctx, app.Spec.Type)
+				cfAccessApp, err = api.MayFindFirstAccessApplicationOfType(ctx, app.Spec.Type)
 
 				if cfAccessApp == nil {
 					//

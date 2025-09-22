@@ -24,6 +24,7 @@ package controller_test
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -85,6 +86,19 @@ const (
 	defaultTimeout  = 20 * time.Second
 	defaultPollRate = 2 * time.Second
 )
+
+//
+// Tests configuration
+//
+
+var skipUnconfiguredOneApp = flag.Bool(
+	"skipUnconfiguredOneApp", false, 
+	"Would skip any tests regarding unconfigured `one-app` applications types on the targeted CloudFlare Account (`warp`, `app_launcher`...)"
+)
+
+//
+//
+//
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)

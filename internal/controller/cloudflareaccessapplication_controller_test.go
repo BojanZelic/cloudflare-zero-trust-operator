@@ -4,6 +4,7 @@ package controller_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	v4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
@@ -251,14 +252,22 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 		BeforeEach(func() {
 			By("Backing up existing policy UUIDs if one-app configured on account")
 			oneTimeAppType := extractAppTypeFromLabel()
-			cfAppThen, err = api.FindFirstAccessApplicationOfType(ctx, oneTimeAppType)
+			cfAppThen, err = api.MayFindFirstAccessApplicationOfType(ctx, oneTimeAppType)
 			Expect(err).ToNot(HaveOccurred())
+
+			//
+			if cfAppThen == nil && skipUnconfiguredOneApp {
+				Skip(fmt.Sprintf("Skipping test for `%s` one-app since it is not configured on the targeted CF account.", oneTimeAppType))
+			} else {
+				Expect(cfAppThen).ToNot(BeNil())
+			}
 		})
 
 		AfterEach(func() {
 			By("If one-app is configured on account, restore existing policy UUIDs")
 			if cfAppThen != nil {
 				err = api.RestoreAccessApplicationTo(ctx, cfAppThen)
+				cfAppThen = nil // always cleanup afterward
 				Expect(err).ToNot(HaveOccurred())
 			}
 		})

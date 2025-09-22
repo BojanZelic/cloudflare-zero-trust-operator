@@ -114,8 +114,10 @@ func (a *API) FindAccessApplicationByDomain(ctx context.Context, domain string) 
 	return nil, a.wrapPrettyForAPI(iter.Err())
 }
 
-// not finding app type would probably not produce an error
-func (a *API) FindFirstAccessApplicationOfType(ctx context.Context, app_type string) (*zero_trust.AccessApplicationGetResponse, error) {
+// Tries to find the first application of a given `app_type` type name; if none found, returns nil without failing.
+//
+// Some special "one-app" type of application (like `warp`, `app_launcher`...) will only be retrievable if configured on the targeted CloudFlare account.
+func (a *API) MayFindFirstAccessApplicationOfType(ctx context.Context, app_type string) (*zero_trust.AccessApplicationGetResponse, error) {
 	//
 	iter := a.client.ZeroTrust.Access.Applications.ListAutoPaging(ctx, zero_trust.AccessApplicationListParams{
 		AccountID: cloudflare.F(a.CFAccountID),
@@ -348,7 +350,7 @@ func (a *API) DeleteOrResetAccessApplication(ctx context.Context, targetedApp *v
 		string(zero_trust.ApplicationTypeWARP):
 		{
 			//
-			appToPreserveFrom, err := a.FindFirstAccessApplicationOfType(ctx, targetedApp.Spec.Type)
+			appToPreserveFrom, err := a.MayFindFirstAccessApplicationOfType(ctx, targetedApp.Spec.Type)
 			if err != nil {
 				return fault.Wrap(
 					a.wrapPrettyForAPI(err),
