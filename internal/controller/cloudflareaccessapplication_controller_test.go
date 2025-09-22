@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	v4alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1"
+	. "github.com/bojanzelic/cloudflare-zero-trust-operator/tests"
 	"github.com/cloudflare/cloudflare-go/v4/zero_trust"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -256,7 +257,7 @@ var _ = Describe("CloudflareAccessApplication controller", Ordered, func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			//
-			if cfAppThen == nil && skipUnconfiguredOneApp {
+			if cfAppThen == nil && *TestFlags.SkipUnconfiguredOneApp {
 				Skip(fmt.Sprintf("Skipping test for `%s` one-app since it is not configured on the targeted CF account.", oneTimeAppType))
 			} else {
 				Expect(cfAppThen).ToNot(BeNil())

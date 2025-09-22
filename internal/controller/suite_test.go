@@ -24,13 +24,13 @@ package controller_test
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	. "github.com/bojanzelic/cloudflare-zero-trust-operator/tests"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/spf13/viper"
@@ -88,19 +88,11 @@ const (
 )
 
 //
-// Tests configuration
-//
-
-var skipUnconfiguredOneApp = flag.Bool(
-	"skipUnconfiguredOneApp", false, 
-	"Would skip any tests regarding unconfigured `one-app` applications types on the targeted CloudFlare Account (`warp`, `app_launcher`...)"
-)
-
-//
 //
 //
 
 func TestAPIs(t *testing.T) {
+	_ = TestFlags // import mandatory, so that `go test` do not complain about `flag provided but not defined`
 	RegisterFailHandler(Fail)
 
 	RunSpecs(t, "Controller Suite")
