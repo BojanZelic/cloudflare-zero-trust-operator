@@ -5,6 +5,7 @@ resources:
 - bases/cloudflare.zelic.io_cloudflareaccessgroups.yaml
 - bases/cloudflare.zelic.io_cloudflareservicetokens.yaml
 - bases/cloudflare.zelic.io_cloudflareaccessapplications.yaml
+- bases/cloudflare.zelic.io_cloudflareaccessreusablepolicies.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

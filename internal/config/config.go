@@ -1,8 +1,7 @@
 package config
 
 import (
-	"errors"
-
+	"github.com/Southclaws/fault"
 	"github.com/spf13/viper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -15,10 +14,11 @@ type ZeroTrustConfig struct {
 }
 
 var (
-	ErrMissingCFFields  = errors.New("missing one of CLOUDFLARE_API_TOKEN or (CLOUDFLARE_API_EMAIL and CLOUDFLARE_API_KEY) needs to be set")
-	ErrMissingAccountID = errors.New("missing CLOUDFLARE_ACCOUNT_ID needs to be set")
+	ErrMissingCFFields  = fault.New("missing one of CLOUDFLARE_API_TOKEN or (CLOUDFLARE_API_EMAIL and CLOUDFLARE_API_KEY) needs to be set")
+	ErrMissingAccountID = fault.New("missing CLOUDFLARE_ACCOUNT_ID needs to be set")
 )
 
+// Loads defaults from env variables
 func SetConfigDefaults() {
 	viper.SetDefault("cloudflare_api_email", "")
 	viper.SetDefault("cloudflare_api_key", "")
@@ -27,6 +27,7 @@ func SetConfigDefaults() {
 	viper.AutomaticEnv()
 }
 
+// allows overriding of "account_id" from resource annotations
 func ParseCloudflareConfig(obj metav1.Object) ZeroTrustConfig {
 	cloudflareConfig := ZeroTrustConfig{}
 
@@ -48,11 +49,11 @@ func ParseCloudflareConfig(obj metav1.Object) ZeroTrustConfig {
 
 func (c ZeroTrustConfig) IsValid() (bool, error) {
 	if c.AccountID == "" {
-		return false, ErrMissingAccountID
+		return false, ErrMissingAccountID //nolint:wrapcheck
 	}
 
 	if c.APIToken == "" && (c.APIEmail == "" && c.APIKey == "") {
-		return false, ErrMissingCFFields
+		return false, ErrMissingCFFields //nolint:wrapcheck
 	}
 
 	return true, nil

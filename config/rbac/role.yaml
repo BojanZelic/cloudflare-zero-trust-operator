@@ -21,6 +21,7 @@ rules:
   resources:
   - cloudflareaccessapplications
   - cloudflareaccessgroups
+  - cloudflareaccessreusablepolicies
   - cloudflareservicetokens
   verbs:
   - create
@@ -35,6 +36,7 @@ rules:
   resources:
   - cloudflareaccessapplications/finalizers
   - cloudflareaccessgroups/finalizers
+  - cloudflareaccessreusablepolicies/finalizers
   - cloudflareservicetokens/finalizers
   verbs:
   - update
@@ -43,6 +45,7 @@ rules:
   resources:
   - cloudflareaccessapplications/status
   - cloudflareaccessgroups/status
+  - cloudflareaccessreusablepolicies/status
   - cloudflareservicetokens/status
   verbs:
   - get

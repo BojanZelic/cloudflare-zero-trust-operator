@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.4
+    controller-gen.kubebuilder.io/version: v0.18.0
   name: cloudflareservicetokens.cloudflare.zelic.io
 spec:
   group: cloudflare.zelic.io
@@ -14,7 +14,7 @@ spec:
     singular: cloudflareservicetoken
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - name: v4alpha1
     schema:
       openAPIV3Schema:
         description: CloudflareServiceToken is the Schema for the cloudflareservicetokens
@@ -40,21 +40,10 @@ spec:
           spec:
             description: CloudflareServiceTokenSpec defines the desired state of CloudflareServiceToken.
             properties:
-              minTimeBeforeRenewal:
-                default: "0"
-                description: |-
-                  Time before the token should be automatically renewed. Defaults to "0"
-                  Automatically renewing a service token will change the service token value upon renewal.
-                  Tokens will get automatically renewed if the token is expired
-                type: string
               name:
-                description: Name of the Cloudflare Access Group
+                description: Name of the Cloudflare Access Service Token. Once created,
+                  updating this will have no effect.
                 type: string
-              recreateMissing:
-                default: true
-                description: Recreate the token if the secret with the service token
-                  value is missing or doesn't exist
-                type: boolean
               template:
                 default:
                   metadata: {}
@@ -64,17 +53,19 @@ spec:
                     default: cloudflareClientId
                     description: |-
                       Key that should store the secret data. Defaults to cloudflareServiceToken.
+
                       Warning: changing this value will recreate the secret
                     type: string
                   clientSecretKey:
                     default: cloudflareSecretKey
                     description: |-
                       Key that should store the secret data. Defaults to cloudflareServiceToken
+
                       Warning: changing this value will recreate the secret
                     type: string
                   metadata:
                     description: |-
-                      Standard object's metadata.
+                      Standard object's metadata, for secret definition.
                       More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
                     nullable: true
                     type: object
@@ -87,6 +78,9 @@ spec:
             description: CloudflareServiceTokenStatus defines the observed state of
               CloudflareServiceToken.
             properties:
+              accessServiceTokenId:
+                description: ID of the service token in Cloudflare
+                type: string
               conditions:
                 description: Conditions store the status conditions of the CloudflareAccessApplication
                 items:
@@ -154,7 +148,6 @@ spec:
                 type: string
               secretRef:
                 description: SecretRef is the reference to the secret
-                nullable: true
                 properties:
                   clientIdKey:
                     description: Key that stores the secret data.
@@ -176,15 +169,19 @@ spec:
                         type: string
                     type: object
                     x-kubernetes-map-type: atomic
+                required:
+                - clientIdKey
+                - clientSecretKey
+                - reference
                 type: object
-              serviceTokenId:
-                description: ID of the servicetoken in Cloudflare
-                type: string
               updatedAt:
                 description: Updated timestamp of the resource in Cloudflare
                 format: date-time
                 type: string
             type: object
+        required:
+        - metadata
+        - spec
         type: object
     served: true
     storage: true

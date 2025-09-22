@@ -13,9 +13,18 @@ resources:
   controller: true
   domain: zelic.io
   group: cloudflare
+  kind: CloudflareAccessReusablePolicy
+  path: github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1
+  version: v4alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: zelic.io
+  group: cloudflare
   kind: CloudflareAccessGroup
-  path: github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1
-  version: v1alpha1
+  path: github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1
+  version: v4alpha1
 - api:
     crdVersion: v1
     namespaced: true
@@ -23,8 +32,8 @@ resources:
   domain: zelic.io
   group: cloudflare
   kind: CloudflareAccessApplication
-  path: github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1
-  version: v1alpha1
+  path: github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1
+  version: v4alpha1
 - api:
     crdVersion: v1
     namespaced: true
@@ -32,6 +41,6 @@ resources:
   domain: zelic.io
   group: cloudflare
   kind: CloudflareServiceToken
-  path: github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1
-  version: v1alpha1
+  path: github.com/bojanzelic/cloudflare-zero-trust-operator/api/v4alpha1
+  version: v4alpha1
 version: "3"

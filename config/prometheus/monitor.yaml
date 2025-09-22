@@ -15,7 +15,7 @@ spec:
       scheme: https
       bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
       tlsConfig:
-        # TODO(user): The option insecureSkipVerify: true is not recommended for production since it disables
+        # TODO(maintainer): The option insecureSkipVerify: true is not recommended for production since it disables
         # certificate verification. This poses a significant security risk by making the system vulnerable to
         # man-in-the-middle attacks, where an attacker could intercept and manipulate the communication between
         # Prometheus and the monitored services. This could lead to unauthorized access to sensitive metrics data,

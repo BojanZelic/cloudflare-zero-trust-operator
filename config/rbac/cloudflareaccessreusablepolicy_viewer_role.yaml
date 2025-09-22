@@ -1,0 +1,23 @@
+# permissions for end users to view cloudflareaccessreusablepolicies.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: bojanzelic-cloudflare-zero-trust-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: cloudflareaccessreusablepolicy-viewer-role
+rules:
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareaccessreusablepolicies
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cloudflare.zelic.io
+  resources:
+  - cloudflareaccessreusablepolicies/status
+  verbs:
+  - get

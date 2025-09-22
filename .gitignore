@@ -29,3 +29,5 @@ Dockerfile.cross
 .env.secret
 .env.integration
 *.secret.yaml
+
+__debug*

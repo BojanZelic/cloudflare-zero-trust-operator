@@ -1,4 +1,4 @@
-apiVersion: cloudflare.zelic.io/v1alpha1
+apiVersion: cloudflare.zelic.io/v4alpha1
 kind: CloudflareAccessApplication
 metadata:
   name: domain-example
@@ -7,9 +7,5 @@ metadata:
 spec:
   name: my application
   domain: example.cf-operator-tests.uk
-  policies: 
-    - name: Allow testemail1
-      decision: allow
-      include:
-        - emails:
-          - testemail1@domain.com
+  policyRefs:
+    - cloudflareaccessreusablepolicy-sample

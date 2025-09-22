@@ -1,14 +1,23 @@
 # Advanced Usage
 
-## Reference other resources
+## Regarding Identity Provider IDs
+You might need to specify Identity Provider IDs in your specifications; to know which are available to you and configured on your CloudFlare's account, you might find a recap of those in the log when you start your operator.
+```
+2025-05-12T01:52:22+02:00	INFO	setup	Checking available Identity Providers that you may use to configure this operator...	{"IdentityProvidersUsedIn": ["CloudflareAccessApplication.Spec.allowedIdps", "CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.loginMethods[]", "CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.googleGroups[].identityProviderId", "CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.oktaGroups[].identityProviderId", "CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.samlGroups[].identityProviderId", "CloudflareAccessReusablePolicy.Spec.{include,exclude,require}.githubOrganizations[].identityProviderId"]}
+2025-05-12T01:52:23+02:00	INFO	setup	Found Identity providers; please use their UUID as reference within this operator. Enumerating...	{"AvailableIDPs": 2}
+2025-05-12T01:52:23+02:00	INFO	setup	Found IdentityProvider	{"order": 0, "type": "github", "name": "Epic Games", "uuid": "4cbe376a-8e8b-4ffc-bb94-00000000"}
+2025-05-12T01:52:23+02:00	INFO	setup	Found IdentityProvider	{"order": 1, "type": "onetimepin", "name": "", "uuid": "0864ee42-87eb-4379-9176-00000000"}
+```
 
-We can reference other resources (ex: CloudflareServiceToken or CloudflareAccessGroup) directly from an CloudflareAccessApplicaion
+## Reference other resources from another namespace
+
+We can reference secondary resources (eg `CloudflareServiceToken`, `CloudflareAccessGroup`, `CloudflareAccessReusablePolicy`) directly from another namespace. Just ensure RBAC permissions are set accordingly.
 
 ex:
 
 Cloudflare Access Group
 ```yaml
-apiVersion: cloudflare.zelic.io/v1alpha1
+apiVersion: cloudflare.zelic.io/v4alpha1
 kind: CloudflareAccessGroup
 metadata:
   name: accessgroup-example
@@ -21,25 +30,75 @@ spec:
       - testemail2@domain.com
 ```
 
+Cloudflare Reusable Policy
+```yaml
+apiVersion: cloudflare.zelic.io/v4alpha1
+kind: CloudflareAccessReusablePolicy
+metadata:
+  name: allow-testemail1
+  namespace: default
+spec:
+  name: Allow testemail1
+  decision: allow
+  include:
+    - emails:
+      - testemail3@domain.com
+    - accessGroupRefs:
+      - accessgroup-example # or, use "{metadata.namespace}/{metadata.name}" for explicit targeting
+```
+
 Cloudflare Application
 ```yaml
-apiVersion: cloudflare.zelic.io/v1alpha1
+apiVersion: cloudflare.zelic.io/v4alpha1
 kind: CloudflareAccessApplication
 metadata:
   name: domain-example
-  namespace: default
+  namespace: default2 # another namespace here
 spec:
   name: my application
   domain: domain.example.com
+  # type: self_hosted (implicit)
   autoRedirectToIdentity: true
-  policies: 
-    - name: Allow testemail1
-      decision: allow
-      include:
-        - emails:
-          - testemail3@domain.com
-        - accessGroups:
-            - valueFrom:
-                name: accessgroup-example
-                namespace: default
+  policyRefs:
+    - default/allow-testemail1 # access resource from "default" instead of "default2"
+```
+
+## Regarding `WARP` and `App Launcher` special applications
+
+In Cloudflare's Zero Trust Official Dashboard UI, both `WARP`'s Device enrollment permissions and `App Launcher` are not explicitely considered Access Applications per-se; You cannot find them in `Zero Trust > [YourAccount] > Access > Applications`.
+
+But, considering them with CloudFlare's backend / API logic, they are ! These are special cases of Access Applications, in a sense that both types are to be unique per CloudFlare Account.
+
+As such, you can still use a `CloudflareAccessApplication` to configure their policies. Just make sure to not declare any of those multiple times in your cluster, and to activate any of these functionalities accordingly beforehand in your CloudFlare's Zero Trust Dashboard.
+
+ex:
+
+For WARP's Device Enrollment Permissions
+```yaml
+apiVersion: cloudflare.zelic.io/v4alpha1
+kind: CloudflareAccessGroup
+metadata:
+  name: unique_warp_dep_app
+  namespace: default
+spec:
+  type: warp
+  # name: Warp Login App # WILL BE IGNORED ! "Warp Login App" is the default name (per CloudFlare's API) and cannot be changed
+  # domain: "whatever.com" # WILL BE IGNORED ! Meaningless in context
+  policyRefs:
+    - # configure as usual
+```
+
+For App Launcher
+```yaml
+apiVersion: cloudflare.zelic.io/v4alpha1
+kind: CloudflareAccessApplication
+metadata:
+  name: unique_app_launcher_app
+  namespace: default
+spec:
+  type: app_launcher
+  # name: App Launcher # WILL BE IGNORED ! "App Launcher" is the default name (per CloudFlare's API) and cannot be changed
+  # domain: "whatever.com" # WILL BE IGNORED ! Meaningless in context
+  policyRefs:
+    - # configure as usual
 ```
