@@ -3,7 +3,6 @@ package cftypes
 import (
 	"errors"
 
-	"github.com/cloudflare/cloudflare-go"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -17,7 +16,7 @@ var (
 )
 
 type ExtendedServiceToken struct {
-	cloudflare.AccessServiceToken
+	AccessServiceToken
 	ClientSecret string
 	K8sSecretRef struct {
 		ClientIDKey     string
@@ -57,7 +56,7 @@ func (s *ExtendedServiceToken) SetSecretValues(secret corev1.Secret) error {
 	return nil
 }
 
-// depricated.
+// SetSecretReference sets the Kubernetes secret reference metadata on the token.
 func (s *ExtendedServiceToken) SetSecretReference(clientIDKey, clientSecretKey string, secret corev1.Secret) {
 	s.K8sSecretRef.ClientIDKey = clientIDKey
 	s.K8sSecretRef.ClientSecretKey = clientSecretKey

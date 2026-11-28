@@ -18,7 +18,6 @@ package v1alpha1
 
 import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
-	cloudflare "github.com/cloudflare/cloudflare-go"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -129,7 +128,7 @@ func (c *CloudflareServiceToken) UnderDeletion() bool {
 
 func (c CloudflareServiceToken) ToExtendedToken() cftypes.ExtendedServiceToken {
 	return cftypes.ExtendedServiceToken{
-		AccessServiceToken: cloudflare.AccessServiceToken{
+		AccessServiceToken: cftypes.AccessServiceToken{
 			CreatedAt: &c.Status.CreatedAt.Time,
 			UpdatedAt: &c.Status.UpdatedAt.Time,
 			ExpiresAt: &c.Status.ExpiresAt.Time,

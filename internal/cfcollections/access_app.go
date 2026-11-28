@@ -4,10 +4,13 @@ import (
 	"reflect"
 	"strings"
 
-	cloudflare "github.com/cloudflare/cloudflare-go"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 )
 
-func AccessAppEqual(first cloudflare.AccessApplication, second cloudflare.AccessApplication) bool {
+func AccessAppEqual(first cftypes.AccessApplication, second cftypes.AccessApplication) bool {
+	allowedIdpsEqual := (len(first.AllowedIdps) == 0 && len(second.AllowedIdps) == 0) ||
+		reflect.DeepEqual(first.AllowedIdps, second.AllowedIdps)
+
 	return strings.TrimSpace(first.Name) == strings.TrimSpace(second.Name) &&
 		strings.TrimSpace(first.Domain) == strings.TrimSpace(second.Domain) &&
 		first.Type == second.Type &&
@@ -17,5 +20,5 @@ func AccessAppEqual(first cloudflare.AccessApplication, second cloudflare.Access
 		reflect.DeepEqual(first.HttpOnlyCookieAttribute, second.HttpOnlyCookieAttribute) &&
 		reflect.DeepEqual(first.LogoURL, second.LogoURL) &&
 		strings.TrimSpace(first.SessionDuration) == strings.TrimSpace(second.SessionDuration) &&
-		reflect.DeepEqual(first.AllowedIdps, second.AllowedIdps)
+		allowedIdpsEqual
 }

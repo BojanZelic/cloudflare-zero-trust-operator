@@ -4,44 +4,44 @@ import (
 	"encoding/json"
 	"reflect"
 
-	cloudflare "github.com/cloudflare/cloudflare-go"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 )
 
-type AccessGroupCollection []cloudflare.AccessGroup
+type AccessGroupCollection []cftypes.AccessGroup
 
 func (c AccessGroupCollection) Len() int { return len(c) }
 
-func (c AccessGroupCollection) GetByName(name string) *cloudflare.AccessGroup {
-	for _, policy := range c {
-		if policy.Name == name {
-			return &policy
+func (c AccessGroupCollection) GetByName(name string) *cftypes.AccessGroup {
+	for i := range c {
+		if c[i].Name == name {
+			return &c[i]
 		}
 	}
 
 	return nil
 }
 
-func AccessGroupEqual(first cloudflare.AccessGroup, second cloudflare.AccessGroup) bool {
+func AccessGroupEqual(first cftypes.AccessGroup, second cftypes.AccessGroup) bool {
 	if first.Name != second.Name {
 		return false
 	}
 
-	v1, _ := json.Marshal(first.Include)  //nolint:errchkjson,varnamelen
-	v2, _ := json.Marshal(second.Include) //nolint:errchkjson,varnamelen
+	return ruleSlicesEqual(first.Include, second.Include) &&
+		ruleSlicesEqual(first.Exclude, second.Exclude) &&
+		ruleSlicesEqual(first.Require, second.Require)
+}
 
-	if !reflect.DeepEqual(v1, v2) {
+func ruleSlicesEqual(first []interface{}, second []interface{}) bool {
+	if len(first) == 0 && len(second) == 0 {
+		return true
+	}
+
+	if len(first) != len(second) {
 		return false
 	}
 
-	v1, _ = json.Marshal(first.Exclude)  //nolint:errchkjson
-	v2, _ = json.Marshal(second.Exclude) //nolint:errchkjson
-
-	if !reflect.DeepEqual(v1, v2) {
-		return false
-	}
-
-	v1, _ = json.Marshal(first.Require)  //nolint:errchkjson
-	v2, _ = json.Marshal(second.Require) //nolint:errchkjson
+	v1, _ := json.Marshal(first)  //nolint:errchkjson
+	v2, _ := json.Marshal(second) //nolint:errchkjson
 
 	return reflect.DeepEqual(v1, v2)
 }

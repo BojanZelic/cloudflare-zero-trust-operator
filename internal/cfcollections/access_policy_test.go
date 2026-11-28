@@ -1,8 +1,9 @@
 package cfcollections_test
 
 import (
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
-	"github.com/cloudflare/cloudflare-go"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -10,7 +11,7 @@ import (
 var _ = Describe("AccessPolicy", Label("AccessPolicy"), func() {
 	Context("AccessPolicy test", func() {
 		It("should be able to determine equality", func() {
-			first := cloudflare.AccessPolicy{
+			first := cftypes.AccessPolicy{
 				Name:       "test",
 				Precedence: 1,
 				Include: []interface{}{
@@ -22,16 +23,12 @@ var _ = Describe("AccessPolicy", Label("AccessPolicy"), func() {
 				},
 			}
 
-			second := cloudflare.AccessPolicy{
+			second := cftypes.AccessPolicy{
 				Name:       "test",
 				Precedence: 1,
-				Include: []interface{}{cloudflare.AccessGroupEmail{
-					Email: struct {
-						Email string "json:\"email\""
-					}{
-						Email: "test@test.com",
-					},
-				}},
+				Include: []interface{}{
+					cfapi.NewAccessGroupEmail("test@test.com"),
+				},
 			}
 
 			Expect(cfcollections.AccessPoliciesEqual(&first, &second)).To(BeTrue())
@@ -64,7 +61,7 @@ var _ = Describe("AccessPolicy", Label("AccessPolicy"), func() {
 
 			aps.SortByPrecidence()
 
-			prevAP := cloudflare.AccessPolicy{Precedence: 0}
+			prevAP := cftypes.AccessPolicy{Precedence: 0}
 			for _, ap := range aps {
 				Expect(ap.Precedence > prevAP.Precedence).To(BeTrue())
 				prevAP = ap

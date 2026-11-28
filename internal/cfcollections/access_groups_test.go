@@ -1,17 +1,17 @@
 package cfcollections_test
 
 import (
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	cloudflare "github.com/cloudflare/cloudflare-go"
 )
 
 var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 	Context("AccessGroup test", func() {
 		It("should be able able to find non-equality", func() {
-			first := cloudflare.AccessGroup{
+			first := cftypes.AccessGroup{
 				Name: "test",
 				Include: []interface{}{
 					map[string]interface{}{
@@ -22,21 +22,17 @@ var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 				},
 			}
 
-			second := cloudflare.AccessGroup{
+			second := cftypes.AccessGroup{
 				Name: "test",
-				Include: []interface{}{cloudflare.AccessGroupEmail{
-					Email: struct {
-						Email string "json:\"email\""
-					}{
-						Email: "bad@test.com",
-					},
-				}},
+				Include: []interface{}{
+					cfapi.NewAccessGroupEmail("bad@test.com"),
+				},
 			}
 
 			Expect(cfcollections.AccessGroupEqual(first, second)).To(BeFalse())
 		})
 		It("should be able able to find equality", func() {
-			first := cloudflare.AccessGroup{
+			first := cftypes.AccessGroup{
 				Name: "test",
 				Include: []interface{}{
 					map[string]interface{}{
@@ -47,22 +43,18 @@ var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 				},
 			}
 
-			second := cloudflare.AccessGroup{
+			second := cftypes.AccessGroup{
 				Name: "test",
-				Include: []interface{}{cloudflare.AccessGroupEmail{
-					Email: struct {
-						Email string "json:\"email\""
-					}{
-						Email: "test@test.com",
-					},
-				}},
+				Include: []interface{}{
+					cfapi.NewAccessGroupEmail("test@test.com"),
+				},
 			}
 
 			Expect(cfcollections.AccessGroupEqual(first, second)).To(BeTrue())
 		})
 
 		It("should be able able to find equality with an array of elements", func() {
-			first := cloudflare.AccessGroup{
+			first := cftypes.AccessGroup{
 				Name: "test",
 				Include: []interface{}{
 					map[string]interface{}{
@@ -78,23 +70,11 @@ var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 				},
 			}
 
-			second := cloudflare.AccessGroup{
+			second := cftypes.AccessGroup{
 				Name: "test",
 				Include: []interface{}{
-					cloudflare.AccessGroupEmail{
-						Email: struct {
-							Email string "json:\"email\""
-						}{
-							Email: "test@test.com",
-						},
-					},
-					cloudflare.AccessGroupEmail{
-						Email: struct {
-							Email string "json:\"email\""
-						}{
-							Email: "test2@test.com",
-						},
-					},
+					cfapi.NewAccessGroupEmail("test@test.com"),
+					cfapi.NewAccessGroupEmail("test2@test.com"),
 				},
 			}
 
@@ -107,25 +87,13 @@ var _ = Describe("AccessGroups", Label("AccessGroup"), func() {
 				{
 					Name: "first",
 					Include: []interface{}{
-						cloudflare.AccessGroupEmail{
-							Email: struct {
-								Email string "json:\"email\""
-							}{
-								Email: "test@test.com",
-							},
-						},
+						cfapi.NewAccessGroupEmail("test@test.com"),
 					},
 				},
 				{
 					Name: "second",
 					Include: []interface{}{
-						cloudflare.AccessGroupEmail{
-							Email: struct {
-								Email string "json:\"email\""
-							}{
-								Email: "test2@test.com",
-							},
-						},
+						cfapi.NewAccessGroupEmail("test2@test.com"),
 					},
 				},
 			}

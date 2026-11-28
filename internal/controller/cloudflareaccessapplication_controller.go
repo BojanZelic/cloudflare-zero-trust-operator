@@ -18,14 +18,15 @@ package controller
 
 import (
 	"context"
+	"reflect"
 
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/services"
-	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -35,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
@@ -57,10 +59,10 @@ const (
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessapplications/finalizers,verbs=update
 
-//nolint:cyclop,gocognit
+//nolint:cyclop,gocognit,gocyclo
 func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
-	var existingaccessApp *cloudflare.AccessApplication
+	var existingaccessApp *cftypes.AccessApplication
 	var api *cfapi.API
 
 	log := logger.FromContext(ctx).WithName("CloudflareAccessApplicationController::Reconcile")
@@ -121,6 +123,8 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 			return ctrl.Result{}, errors.Wrap(err, "error querying application app from cloudflare")
 		}
 
+		existingaccessApp = accessApp
+
 		err = r.ReconcileStatus(ctx, accessApp, app)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "issue updating status")
@@ -128,8 +132,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 	} else {
 		accessApp, err := api.AccessApplication(ctx, app.Status.AccessApplicationID)
 		if err != nil {
-			var apiErr *cloudflare.NotFoundError
-			if errors.As(err, &apiErr) {
+			if cfapi.IsNotFoundError(err) {
 				log.Info("access application not found - recreating...", "accessApplicationID", app.Status.AccessApplicationID)
 				app.Status.AccessApplicationID = ""
 			} else {
@@ -147,7 +150,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 		accessapp, err := api.CreateAccessApplication(ctx, newApp)
 		existingaccessApp = &accessapp
 		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "unable to create access group")
+			return ctrl.Result{}, errors.Wrap(err, "unable to create access application")
 		}
 
 		if err = r.ReconcileStatus(ctx, &accessapp, app); err != nil {
@@ -157,9 +160,11 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 
 	if !cfcollections.AccessAppEqual(*existingaccessApp, app.ToCloudflare()) {
 		log.Info("app has changed - updating...", "name", app.Spec.Name, "domain", app.Spec.Domain)
-		accessapp, err := api.UpdateAccessApplication(ctx, app.ToCloudflare())
+		updatedSpec := app.ToCloudflare()
+		updatedSpec.PolicyIDs = existingaccessApp.PolicyIDs
+		accessapp, err := api.UpdateAccessApplication(ctx, updatedSpec)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "unable to update access group")
+			return ctrl.Result{}, errors.Wrap(err, "unable to update access application")
 		}
 
 		err = r.ReconcileStatus(ctx, &accessapp, app)
@@ -195,7 +200,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 
 	err = r.ReconcilePolicies(ctx, api, app, currentPolicies, expectedPolicies)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "unable get access policies")
+		return ctrl.Result{}, errors.Wrap(err, "unable to reconcile access policies")
 	}
 
 	if _, err = controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
@@ -210,7 +215,7 @@ func (r *CloudflareAccessApplicationReconciler) Reconcile(ctx context.Context, r
 }
 
 // nolint:dupl
-func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Context, cfApp *cloudflare.AccessApplication, k8sApp *v1alpha1.CloudflareAccessApplication) error {
+func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Context, cfApp *cftypes.AccessApplication, k8sApp *v1alpha1.CloudflareAccessApplication) error {
 	if k8sApp.Status.AccessApplicationID != "" {
 		return nil
 	}
@@ -223,8 +228,12 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Cont
 
 	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, app, func() error {
 		app.Status.AccessApplicationID = cfApp.ID
-		app.Status.CreatedAt = metav1.NewTime(*cfApp.CreatedAt)
-		app.Status.UpdatedAt = metav1.NewTime(*cfApp.UpdatedAt)
+		if cfApp.CreatedAt != nil {
+			app.Status.CreatedAt = metav1.NewTime(*cfApp.CreatedAt)
+		}
+		if cfApp.UpdatedAt != nil {
+			app.Status.UpdatedAt = metav1.NewTime(*cfApp.UpdatedAt)
+		}
 
 		return nil
 	}); err != nil {
@@ -238,42 +247,152 @@ func (r *CloudflareAccessApplicationReconciler) ReconcileStatus(ctx context.Cont
 	return nil
 }
 
-//nolint:gocognit,cyclop
+//nolint:gocognit,cyclop,gocyclo
 func (r *CloudflareAccessApplicationReconciler) ReconcilePolicies(ctx context.Context, api *cfapi.API, app *v1alpha1.CloudflareAccessApplication, current, expected cfcollections.AccessPolicyCollection) error {
 	log := logger.FromContext(ctx)
 
-	for i := 0; i < len(current) || i < len(expected); i++ { //nolint:varnamelen
-		var k8sPolicy *cloudflare.AccessPolicy
-		var cfPolicy *cloudflare.AccessPolicy
-		var err error
-		var action string
-		if i < len(current) {
-			cfPolicy = &current[i]
+	allReusable := true
+	for _, p := range current {
+		if !p.Reusable {
+			allReusable = false
+
+			break
 		}
-		if i < len(expected) {
-			k8sPolicy = &expected[i]
+	}
+
+	allEqual := len(current) == len(expected)
+	if allEqual {
+		for i := range expected {
+			if !cfcollections.AccessPoliciesEqual(&current[i], &expected[i]) {
+				allEqual = false
+
+				break
+			}
+		}
+	}
+
+	if allReusable && allEqual {
+		return nil
+	}
+
+	migratedLegacy := false
+	for i := range current {
+		if !current[i].Reusable {
+			migratedLegacy = true
+			if i < len(expected) {
+				log.Info("migrating legacy application policy to reusable policy", "policyId", current[i].ID, "policyName", current[i].Name, "domain", app.Spec.Domain)
+				if err := api.MakeAccessPolicyReusable(ctx, app.Status.AccessApplicationID, current[i].ID); err == nil {
+					current[i].Reusable = true
+				} else {
+					log.Info("make_reusable fallback: replacing legacy application policy", "policyId", current[i].ID, "reason", err.Error())
+					if delErr := api.DeleteLegacyApplicationPolicy(ctx, app.Status.AccessApplicationID, current[i].ID); delErr != nil && !cfapi.IsNotFoundError(delErr) {
+						return errors.Wrap(delErr, "unable to delete legacy application policy during migration")
+					}
+					current[i].ID = ""
+				}
+			} else {
+				log.Info("deleting excess legacy application policy", "policyId", current[i].ID, "policyName", current[i].Name, "domain", app.Spec.Domain)
+				if err := api.DeleteLegacyApplicationPolicy(ctx, app.Status.AccessApplicationID, current[i].ID); err != nil && !cfapi.IsNotFoundError(err) {
+					return errors.Wrap(err, "unable to delete excess legacy application policy")
+				}
+				current[i].ID = ""
+			}
+		}
+	}
+
+	currentReusableIDs := make([]string, 0, len(current))
+	for _, p := range current {
+		if p.Reusable && p.ID != "" {
+			currentReusableIDs = append(currentReusableIDs, p.ID)
+		}
+	}
+
+	desiredPolicyIDs := make([]string, 0, len(expected))
+	for i := range expected {
+		exp := expected[i]
+		exp.Precedence = i + 1
+
+		if i < len(current) && current[i].Reusable && current[i].ID != "" {
+			if !cfcollections.AccessPolicyContentEqual(&current[i], &exp) {
+				polInfo, err := api.GetAccessPolicy(ctx, current[i].ID)
+				if err == nil && polInfo.AppCount <= 1 {
+					exp.ID = current[i].ID
+					log.Info("accesspolicy is changed - updating...", "policyId", exp.ID, "policyName", exp.Name, "domain", app.Spec.Domain)
+					if _, err = api.UpdateAccessPolicy(ctx, exp); err != nil {
+						return errors.Wrap(err, "Unable to update access policy")
+					}
+					desiredPolicyIDs = append(desiredPolicyIDs, current[i].ID)
+
+					continue
+				}
+
+				if err != nil && !cfapi.IsNotFoundError(err) {
+					return errors.Wrap(err, "Unable to inspect access policy")
+				}
+
+				log.Info("creating dedicated reusable accesspolicy...", "policyName", exp.Name, "domain", app.Spec.Domain)
+				created, createErr := api.CreateAccessPolicy(ctx, exp)
+				if createErr != nil {
+					return errors.Wrap(createErr, "Unable to create access policy")
+				}
+				desiredPolicyIDs = append(desiredPolicyIDs, created.ID)
+
+				continue
+			}
+
+			desiredPolicyIDs = append(desiredPolicyIDs, current[i].ID)
+
+			continue
 		}
 
-		if !cfcollections.AccessPoliciesEqual(cfPolicy, k8sPolicy) {
-			if cfPolicy == nil && k8sPolicy != nil {
-				action = "create"
-				log.Info("accesspolicy is missing - creating...", "policyName", k8sPolicy.Name, "domain", app.Spec.Domain)
-				_, err = api.CreateAccessPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
-			}
-			if k8sPolicy == nil && cfPolicy != nil {
-				action = "delete"
-				log.Info("accesspolicy is removed - deleting...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
-				err = api.DeleteAccessPolicy(ctx, app.Status.AccessApplicationID, cfPolicy.ID)
-			}
-			if cfPolicy != nil && k8sPolicy != nil {
-				action = "update"
-				k8sPolicy.ID = cfPolicy.ID
-				log.Info("accesspolicy is changed - updating...", "policyId", cfPolicy.ID, "policyName", cfPolicy.Name, "domain", app.Spec.Domain)
-				_, err = api.UpdateAccessPolicy(ctx, app.Status.AccessApplicationID, *k8sPolicy)
-			}
+		log.Info("accesspolicy is missing - creating...", "policyName", exp.Name, "domain", app.Spec.Domain)
+		created, err := api.CreateAccessPolicy(ctx, exp)
+		if err != nil {
+			return errors.Wrap(err, "Unable to create access policy")
+		}
+		desiredPolicyIDs = append(desiredPolicyIDs, created.ID)
+	}
 
-			if err != nil {
-				return errors.Wrapf(err, "Unable to %s access policy", action)
+	precedencesChanged := false
+	if len(current) == len(expected) {
+		for i := range expected {
+			if current[i].Precedence != i+1 {
+				precedencesChanged = true
+
+				break
+			}
+		}
+	}
+
+	if migratedLegacy || precedencesChanged || !reflect.DeepEqual(currentReusableIDs, desiredPolicyIDs) {
+		if _, err := api.SetAccessApplicationPolicies(ctx, app.ToCloudflare(), desiredPolicyIDs); err != nil {
+			return errors.Wrap(err, "Unable to link access policies to application")
+		}
+	}
+
+	desiredSet := make(map[string]struct{}, len(desiredPolicyIDs))
+	for _, id := range desiredPolicyIDs {
+		desiredSet[id] = struct{}{}
+	}
+
+	for _, curPol := range current {
+		if curPol.Reusable && curPol.ID != "" {
+			if _, stillUsed := desiredSet[curPol.ID]; !stillUsed {
+				polInfo, err := api.GetAccessPolicy(ctx, curPol.ID)
+				if err != nil {
+					if cfapi.IsNotFoundError(err) {
+						continue
+					}
+
+					return errors.Wrap(err, "Unable to check removed access policy")
+				}
+
+				if polInfo.AppCount == 0 {
+					log.Info("accesspolicy is removed - deleting...", "policyId", curPol.ID, "policyName", curPol.Name, "domain", app.Spec.Domain)
+					if err := api.DeleteAccessPolicy(ctx, curPol.ID); err != nil && !cfapi.IsNotFoundError(err) {
+						return errors.Wrap(err, "Unable to delete access policy")
+					}
+				}
 			}
 		}
 	}
@@ -285,6 +404,15 @@ func (r *CloudflareAccessApplicationReconciler) ReconcilePolicies(ctx context.Co
 func (r *CloudflareAccessApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	//nolint:wrapcheck
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.CloudflareAccessApplication{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		For(&v1alpha1.CloudflareAccessApplication{}, builder.WithPredicates(predicate.Or(
+			predicate.GenerationChangedPredicate{},
+			predicate.Funcs{
+				UpdateFunc: func(e event.UpdateEvent) bool {
+					return e.ObjectOld != nil && e.ObjectNew != nil &&
+						e.ObjectOld.GetDeletionTimestamp().IsZero() &&
+						!e.ObjectNew.GetDeletionTimestamp().IsZero()
+				},
+			},
+		))).
 		Complete(r)
 }

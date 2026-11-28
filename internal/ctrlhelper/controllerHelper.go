@@ -6,7 +6,6 @@ import (
 
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
-	"github.com/cloudflare/cloudflare-go"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -82,8 +81,7 @@ func (h *ControllerHelper) ReconcileDeletion(ctx context.Context, api *cfapi.API
 			}
 
 			if err != nil {
-				var notFound *cloudflare.NotFoundError
-				if errors.As(err, &notFound) {
+				if cfapi.IsNotFoundError(err) {
 					log.Info("unable to remove resource from cloudflare - appears to be already deleted")
 				} else {
 					log.Error(err, "unable to delete")
