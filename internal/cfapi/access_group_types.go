@@ -1,138 +1,116 @@
 package cfapi
 
 import (
-	cloudflare "github.com/cloudflare/cloudflare-go"
+	cloudflare "github.com/cloudflare/cloudflare-go/v6"
+	"github.com/cloudflare/cloudflare-go/v6/zero_trust"
 )
 
-func NewAccessGroupEmail(email string) cloudflare.AccessGroupEmail {
-	return cloudflare.AccessGroupEmail{Email: struct {
-		Email string `json:"email"`
-	}{
-		Email: email,
-	}}
-}
-
-func NewAccessGroupEmailDomains(domain string) cloudflare.AccessGroupEmailDomain {
-	return cloudflare.AccessGroupEmailDomain{EmailDomain: struct {
-		Domain string `json:"domain"`
-	}{
-		Domain: domain,
-	}}
-}
-
-func NewAccessGroupIP(ip string) cloudflare.AccessGroupIP {
-	return cloudflare.AccessGroupIP{
-		IP: struct {
-			IP string `json:"ip"`
-		}{
-			IP: ip,
-		},
+func NewAccessGroupEmail(email string) zero_trust.EmailRuleParam {
+	return zero_trust.EmailRuleParam{
+		Email: cloudflare.F(zero_trust.EmailRuleEmailParam{
+			Email: cloudflare.F(email),
+		}),
 	}
 }
 
-func NewAccessGroupGSuite(email string, identityProviderID string) cloudflare.AccessGroupGSuite {
-	return cloudflare.AccessGroupGSuite{
-		Gsuite: struct {
-			Email              string `json:"email"`
-			IdentityProviderID string `json:"identity_provider_id"`
-		}{
-			Email:              email,
-			IdentityProviderID: identityProviderID,
-		},
+func NewAccessGroupEmailDomains(domain string) zero_trust.DomainRuleParam {
+	return zero_trust.DomainRuleParam{
+		EmailDomain: cloudflare.F(zero_trust.DomainRuleEmailDomainParam{
+			Domain: cloudflare.F(domain),
+		}),
 	}
 }
 
-func NewAccessGroupServiceToken(token string) cloudflare.AccessGroupServiceToken {
-	return cloudflare.AccessGroupServiceToken{
-		ServiceToken: struct {
-			ID string `json:"token_id"`
-		}{
-			ID: token,
-		},
+func NewAccessGroupIP(ip string) zero_trust.IPRuleParam {
+	return zero_trust.IPRuleParam{
+		IP: cloudflare.F(zero_trust.IPRuleIPParam{
+			IP: cloudflare.F(ip),
+		}),
 	}
 }
 
-func NewAccessGroupAccessGroup(id string) cloudflare.AccessGroupAccessGroup {
-	return cloudflare.AccessGroupAccessGroup{
-		Group: struct {
-			ID string `json:"id"`
-		}{
-			ID: id,
-		},
+func NewAccessGroupGSuite(email string, identityProviderID string) zero_trust.GSuiteGroupRuleParam {
+	return zero_trust.GSuiteGroupRuleParam{
+		GSuite: cloudflare.F(zero_trust.GSuiteGroupRuleGSuiteParam{
+			Email:              cloudflare.F(email),
+			IdentityProviderID: cloudflare.F(identityProviderID),
+		}),
 	}
 }
 
-func NewAccessGroupAnyValidServiceToken() cloudflare.AccessGroupAnyValidServiceToken {
-	return cloudflare.AccessGroupAnyValidServiceToken{
-		AnyValidServiceToken: struct{}{},
+func NewAccessGroupServiceToken(token string) zero_trust.ServiceTokenRuleParam {
+	return zero_trust.ServiceTokenRuleParam{
+		ServiceToken: cloudflare.F(zero_trust.ServiceTokenRuleServiceTokenParam{
+			TokenID: cloudflare.F(token),
+		}),
 	}
 }
 
-func NewAccessGroupGeo(country string) cloudflare.AccessGroupGeo {
-	return cloudflare.AccessGroupGeo{
-		Geo: struct {
-			CountryCode string `json:"country_code"`
-		}{
-			CountryCode: country,
-		},
+func NewAccessGroupAccessGroup(id string) zero_trust.GroupRuleParam {
+	return zero_trust.GroupRuleParam{
+		Group: cloudflare.F(zero_trust.GroupRuleGroupParam{
+			ID: cloudflare.F(id),
+		}),
 	}
 }
 
-func NewAccessGroupEveryone() cloudflare.AccessGroupEveryone {
-	return cloudflare.AccessGroupEveryone{
-		Everyone: struct{}{},
+func NewAccessGroupAnyValidServiceToken() zero_trust.AnyValidServiceTokenRuleParam {
+	return zero_trust.AnyValidServiceTokenRuleParam{
+		AnyValidServiceToken: cloudflare.F(zero_trust.AnyValidServiceTokenRuleAnyValidServiceTokenParam{}),
 	}
 }
 
-func NewAccessGroupCertificate() cloudflare.AccessGroupCertificate {
-	return cloudflare.AccessGroupCertificate{
-		Certificate: struct{}{},
+func NewAccessGroupGeo(country string) zero_trust.CountryRuleParam {
+	return zero_trust.CountryRuleParam{
+		Geo: cloudflare.F(zero_trust.CountryRuleGeoParam{
+			CountryCode: cloudflare.F(country),
+		}),
 	}
 }
 
-func NewAccessGroupLoginMethod(id string) cloudflare.AccessGroupLoginMethod {
-	return cloudflare.AccessGroupLoginMethod{
-		LoginMethod: struct {
-			ID string `json:"id"`
-		}{
-			ID: id,
-		},
+func NewAccessGroupEveryone() zero_trust.EveryoneRuleParam {
+	return zero_trust.EveryoneRuleParam{
+		Everyone: cloudflare.F(zero_trust.EveryoneRuleEveryoneParam{}),
 	}
 }
 
-func NewAccessGroupOktaGroup(name string, identityProviderID string) cloudflare.AccessGroupOkta {
-	return cloudflare.AccessGroupOkta{
-		Okta: struct {
-			Name               string `json:"name"`
-			IdentityProviderID string `json:"identity_provider_id"`
-		}{
-			Name:               name,
-			IdentityProviderID: identityProviderID,
-		},
+func NewAccessGroupCertificate() zero_trust.CertificateRuleParam {
+	return zero_trust.CertificateRuleParam{
+		Certificate: cloudflare.F(zero_trust.CertificateRuleCertificateParam{}),
 	}
 }
 
-func NewAccessGroupOIDCClaim(name string, value string, identityProviderID string) AccessGroupOIDCClaim {
-	return AccessGroupOIDCClaim{
-		OIDC: struct {
-			Name               string `json:"claim_name"`
-			Value              string `json:"claim_value"`
-			IdentityProviderID string `json:"identity_provider_id"`
-		}{
-			Name:               name,
-			Value:              value,
-			IdentityProviderID: identityProviderID,
-		},
+func NewAccessGroupCommonName(commonName string) zero_trust.AccessRuleAccessCommonNameRuleParam {
+	return zero_trust.AccessRuleAccessCommonNameRuleParam{
+		CommonName: cloudflare.F(zero_trust.AccessRuleAccessCommonNameRuleCommonNameParam{
+			CommonName: cloudflare.F(commonName),
+		}),
 	}
 }
 
-// AccessGroupOIDCClaim is used to configure access based on an OIDC claim.
-// This type lives here because it is not supported by cloudflare-go, but
-// is supported by the Cloudflare API.
-type AccessGroupOIDCClaim struct {
-	OIDC struct {
-		Name               string `json:"claim_name"`
-		Value              string `json:"claim_value"`
-		IdentityProviderID string `json:"identity_provider_id"`
-	} `json:"oidc"`
+func NewAccessGroupLoginMethod(id string) zero_trust.AccessRuleAccessLoginMethodRuleParam {
+	return zero_trust.AccessRuleAccessLoginMethodRuleParam{
+		LoginMethod: cloudflare.F(zero_trust.AccessRuleAccessLoginMethodRuleLoginMethodParam{
+			ID: cloudflare.F(id),
+		}),
+	}
+}
+
+func NewAccessGroupOktaGroup(name string, identityProviderID string) zero_trust.OktaGroupRuleParam {
+	return zero_trust.OktaGroupRuleParam{
+		Okta: cloudflare.F(zero_trust.OktaGroupRuleOktaParam{
+			Name:               cloudflare.F(name),
+			IdentityProviderID: cloudflare.F(identityProviderID),
+		}),
+	}
+}
+
+func NewAccessGroupOIDCClaim(name string, value string, identityProviderID string) zero_trust.AccessRuleAccessOIDCClaimRuleParam {
+	return zero_trust.AccessRuleAccessOIDCClaimRuleParam{
+		OIDC: cloudflare.F(zero_trust.AccessRuleAccessOIDCClaimRuleOIDCParam{
+			ClaimName:          cloudflare.F(name),
+			ClaimValue:         cloudflare.F(value),
+			IdentityProviderID: cloudflare.F(identityProviderID),
+		}),
+	}
 }

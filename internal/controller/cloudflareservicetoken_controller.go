@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
@@ -134,7 +135,7 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 	if !secret.CreationTimestamp.IsZero() {
 		allTokens, err := api.ServiceTokens(ctx)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "unable to create access service token")
+			return ctrl.Result{}, errors.Wrap(err, "unable to list access service tokens")
 		}
 		for i, token := range allTokens {
 			if token.ID == string(secret.Data[secret.Annotations[v1alpha1.AnnotationTokenIDKey]]) {
@@ -151,6 +152,20 @@ func (r *CloudflareServiceTokenReconciler) Reconcile(ctx context.Context, req ct
 		existingServiceToken = &token
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "unable to create access service token")
+		}
+	} else if existingServiceToken.Name != serviceToken.Spec.Name {
+		updated := *existingServiceToken
+		updated.Name = serviceToken.Spec.Name
+		res, err := api.UpdateAccessServiceToken(ctx, updated)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "unable to update access service token")
+		}
+		existingServiceToken.Name = res.Name
+		if res.UpdatedAt != nil {
+			existingServiceToken.UpdatedAt = res.UpdatedAt
+		}
+		if res.ExpiresAt != nil {
+			existingServiceToken.ExpiresAt = res.ExpiresAt
 		}
 	}
 
@@ -277,9 +292,15 @@ func (r *CloudflareServiceTokenReconciler) ReconcileStatus(ctx context.Context, 
 
 	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, token, func() error {
 		token.Status.ServiceTokenID = cfToken.ID
-		token.Status.CreatedAt = metav1.NewTime(*cfToken.CreatedAt)
-		token.Status.UpdatedAt = metav1.NewTime(*cfToken.UpdatedAt)
-		token.Status.ExpiresAt = metav1.NewTime(*cfToken.ExpiresAt)
+		if cfToken.CreatedAt != nil {
+			token.Status.CreatedAt = metav1.NewTime(*cfToken.CreatedAt)
+		}
+		if cfToken.UpdatedAt != nil {
+			token.Status.UpdatedAt = metav1.NewTime(*cfToken.UpdatedAt)
+		}
+		if cfToken.ExpiresAt != nil {
+			token.Status.ExpiresAt = metav1.NewTime(*cfToken.ExpiresAt)
+		}
 		token.Status.SecretRef = &v1alpha1.SecretRef{
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: cfToken.K8sSecretRef.SecretName,
@@ -304,7 +325,16 @@ func (r *CloudflareServiceTokenReconciler) ReconcileStatus(ctx context.Context, 
 func (r *CloudflareServiceTokenReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	//nolint:wrapcheck
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.CloudflareServiceToken{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		For(&v1alpha1.CloudflareServiceToken{}, builder.WithPredicates(predicate.Or(
+			predicate.GenerationChangedPredicate{},
+			predicate.Funcs{
+				UpdateFunc: func(e event.UpdateEvent) bool {
+					return e.ObjectOld != nil && e.ObjectNew != nil &&
+						e.ObjectOld.GetDeletionTimestamp().IsZero() &&
+						!e.ObjectNew.GetDeletionTimestamp().IsZero()
+				},
+			},
+		))).
 		Owns(&corev1.Secret{}).
 		Complete(r)
 }

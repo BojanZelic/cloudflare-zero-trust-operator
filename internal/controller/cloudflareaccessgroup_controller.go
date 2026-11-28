@@ -22,10 +22,10 @@ import (
 	v1alpha1 "github.com/bojanzelic/cloudflare-zero-trust-operator/api/v1alpha1"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/config"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/ctrlhelper"
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/services"
-	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
@@ -50,10 +51,10 @@ type CloudflareAccessGroupReconciler struct {
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cloudflare.zelic.io,resources=cloudflareaccessgroups/finalizers,verbs=update
 
-//nolint:cyclop,gocognit
+//nolint:cyclop,gocognit,gocyclo
 func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
-	var existingCfAG *cloudflare.AccessGroup
+	var existingCfAG *cftypes.AccessGroup
 	var api *cfapi.API
 
 	log := logger.FromContext(ctx).WithName("CloudflareAccessGroupController")
@@ -126,9 +127,15 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 		}
 	} else {
 		cfAG, err := api.AccessGroup(ctx, accessGroup.Status.AccessGroupID)
-		existingCfAG = &cfAG
 		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "unable to get access groups")
+			if cfapi.IsNotFoundError(err) {
+				log.Info("access group not found - recreating...", "accessGroupID", accessGroup.Status.AccessGroupID)
+				accessGroup.Status.AccessGroupID = ""
+			} else {
+				return ctrl.Result{}, errors.Wrap(err, "unable to get access groups")
+			}
+		} else {
+			existingCfAG = &cfAG
 		}
 	}
 
@@ -192,7 +199,7 @@ func (r *CloudflareAccessGroupReconciler) Reconcile(ctx context.Context, req ctr
 }
 
 // nolint:dupl
-func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, cfGroup *cloudflare.AccessGroup, k8sGroup *v1alpha1.CloudflareAccessGroup) error {
+func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, cfGroup *cftypes.AccessGroup, k8sGroup *v1alpha1.CloudflareAccessGroup) error {
 	if k8sGroup.Status.AccessGroupID != "" {
 		return nil
 	}
@@ -205,8 +212,12 @@ func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, c
 
 	_, err := controllerutil.CreateOrPatch(ctx, r.Client, group, func() error {
 		group.Status.AccessGroupID = cfGroup.ID
-		group.Status.CreatedAt = metav1.NewTime(*cfGroup.CreatedAt)
-		group.Status.UpdatedAt = metav1.NewTime(*cfGroup.UpdatedAt)
+		if cfGroup.CreatedAt != nil {
+			group.Status.CreatedAt = metav1.NewTime(*cfGroup.CreatedAt)
+		}
+		if cfGroup.UpdatedAt != nil {
+			group.Status.UpdatedAt = metav1.NewTime(*cfGroup.UpdatedAt)
+		}
 
 		return nil
 	})
@@ -226,6 +237,15 @@ func (r *CloudflareAccessGroupReconciler) ReconcileStatus(ctx context.Context, c
 func (r *CloudflareAccessGroupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	//nolint:wrapcheck
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.CloudflareAccessGroup{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		For(&v1alpha1.CloudflareAccessGroup{}, builder.WithPredicates(predicate.Or(
+			predicate.GenerationChangedPredicate{},
+			predicate.Funcs{
+				UpdateFunc: func(e event.UpdateEvent) bool {
+					return e.ObjectOld != nil && e.ObjectNew != nil &&
+						e.ObjectOld.GetDeletionTimestamp().IsZero() &&
+						!e.ObjectNew.GetDeletionTimestamp().IsZero()
+				},
+			},
+		))).
 		Complete(r)
 }

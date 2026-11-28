@@ -2,26 +2,25 @@ package cfcollections_test
 
 import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	cloudflare "github.com/cloudflare/cloudflare-go"
 )
 
 var _ = Describe("AccessApp", Label("AccessApp"), func() {
 	Context("AccessApp test", func() {
 		It("Empty Apps should be equal", func() {
-			first := cloudflare.AccessApplication{}
-			second := cloudflare.AccessApplication{}
+			first := cftypes.AccessApplication{}
+			second := cftypes.AccessApplication{}
 
 			Expect(cfcollections.AccessAppEqual(first, second)).To(BeTrue())
 		})
 
 		It("Differences should no be equal", func() {
-			first := cloudflare.AccessApplication{
+			first := cftypes.AccessApplication{
 				Name: "first",
 			}
-			second := cloudflare.AccessApplication{
+			second := cftypes.AccessApplication{
 				Name: "second",
 			}
 

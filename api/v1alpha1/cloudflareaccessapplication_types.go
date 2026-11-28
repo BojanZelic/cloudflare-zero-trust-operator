@@ -18,12 +18,15 @@ package v1alpha1
 
 import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfcollections"
-	cloudflare "github.com/cloudflare/cloudflare-go"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
+// AccessApplicationType represents the Cloudflare Access application type.
+type AccessApplicationType string
 
 // CloudflareAccessApplicationSpec defines the desired state of CloudflareAccessApplication.
 type CloudflareAccessApplicationSpec struct {
@@ -37,7 +40,7 @@ type CloudflareAccessApplicationSpec struct {
 	// The application type. defaults to "self_hosted"
 	// +optional
 	// +kubebuilder:default=self_hosted
-	Type cloudflare.AccessApplicationType `json:"type,omitempty"`
+	Type AccessApplicationType `json:"type,omitempty"`
 
 	// Displays the application in the App Launcher.
 	// +optional
@@ -98,11 +101,6 @@ type CloudflareAccessPolicy struct {
 	// Rules evaluated with a NOT logical operator. To match the policy, a user cannot meet any of the Exclude rules.
 	// +optional
 	Exclude []CloudFlareAccessGroupRule `json:"exclude,omitempty"`
-
-	// PurposeJustificationRequired *bool                 `json:"purpose_justification_required,omitempty"`
-	// PurposeJustificationPrompt   *string               `json:"purpose_justification_prompt,omitempty"`
-	// ApprovalRequired             *bool                 `json:"approval_required,omitempty"`
-	// ApprovalGroups               []cloudflare.AccessApprovalGroup `json:"approval_groups"`
 }
 
 func (c CloudflareAccessPolicy) GetInclude() []CloudFlareAccessGroupRule {
@@ -123,7 +121,7 @@ func (aps CloudflareAccessPolicyList) ToCloudflare() cfcollections.AccessPolicyC
 	ret := cfcollections.AccessPolicyCollection{}
 
 	for i, policy := range aps {
-		transformed := cloudflare.AccessPolicy{
+		transformed := cftypes.AccessPolicy{
 			Name:       policy.Name,
 			Precedence: i + 1,
 			Decision:   policy.Decision,
@@ -187,19 +185,24 @@ func (c *CloudflareAccessApplication) UnderDeletion() bool {
 	return !c.ObjectMeta.DeletionTimestamp.IsZero()
 }
 
-func (c *CloudflareAccessApplication) ToCloudflare() cloudflare.AccessApplication {
+func (c *CloudflareAccessApplication) ToCloudflare() cftypes.AccessApplication {
 	allowedIdps := []string{}
 	if c.Spec.AllowedIdps != nil {
 		allowedIdps = c.Spec.AllowedIdps
 	}
 
-	app := cloudflare.AccessApplication{
+	appType := cftypes.AccessApplicationType(c.Spec.Type)
+	if appType == "" {
+		appType = cftypes.AccessApplicationTypeSelfHosted
+	}
+
+	app := cftypes.AccessApplication{
 		Name:                    c.Spec.Name,
 		ID:                      c.Status.AccessApplicationID,
 		CreatedAt:               &c.Status.CreatedAt.Time,
 		UpdatedAt:               &c.Status.UpdatedAt.Time,
 		Domain:                  c.Spec.Domain,
-		Type:                    c.Spec.Type,
+		Type:                    appType,
 		AppLauncherVisible:      c.Spec.AppLauncherVisible,
 		AllowedIdps:             allowedIdps,
 		AutoRedirectToIdentity:  c.Spec.AutoRedirectToIdentity,

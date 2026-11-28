@@ -16,6 +16,10 @@ issues:
       linters:
         - dupl
         - lll
+    - path: "test/*"
+      linters:
+        - dupl
+        - lll
 linters:
   disable-all: true
   enable:

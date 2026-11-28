@@ -18,7 +18,7 @@ package v1alpha1
 
 import (
 	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cfapi"
-	cloudflare "github.com/cloudflare/cloudflare-go"
+	"github.com/bojanzelic/cloudflare-zero-trust-operator/internal/cftypes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -136,8 +136,8 @@ func (c *CloudflareAccessGroup) UnderDeletion() bool {
 	return !c.ObjectMeta.DeletionTimestamp.IsZero()
 }
 
-func (c *CloudflareAccessGroup) ToCloudflare() cloudflare.AccessGroup {
-	accessGroup := cloudflare.AccessGroup{
+func (c *CloudflareAccessGroup) ToCloudflare() cftypes.AccessGroup {
+	accessGroup := cftypes.AccessGroup{
 		Name:      c.Spec.Name,
 		ID:        c.Status.AccessGroupID,
 		CreatedAt: &c.Status.CreatedAt.Time,
@@ -166,7 +166,7 @@ func (c *CloudflareAccessGroup) ToCloudflare() cloudflare.AccessGroup {
 
 type CloudFlareAccessGroupRuleGroups [][]CloudFlareAccessGroupRule
 
-// nolint: gocognit,cyclop
+// nolint: gocognit,cyclop,gocyclo
 func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCFFields []*[]interface{}) {
 	for i, managedField := range c {
 		for _, field := range managedField {
@@ -189,6 +189,9 @@ func (c CloudFlareAccessGroupRuleGroups) TransformCloudflareRuleFields(managedCF
 			}
 			if field.Everyone != nil && *field.Everyone {
 				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupEveryone())
+			}
+			for _, cn := range field.CommonName {
+				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupCommonName(cn))
 			}
 			if field.ValidCertificate != nil && *field.ValidCertificate {
 				*managedCFFields[i] = append(*managedCFFields[i], cfapi.NewAccessGroupCertificate())

@@ -73,16 +73,16 @@ integration-test: manifests generate fmt vet envtest ## Run integration tests.
 # - PROMETHEUS_INSTALL_SKIP=true
 # - CERT_MANAGER_INSTALL_SKIP=true
 .PHONY: test-e2e
-test-e2e: manifests generate fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
-	@command -v kind >/dev/null 2>&1 || { \
-		echo "Kind is not installed. Please install Kind manually."; \
+test-e2e: manifests generate fmt vet ## Run the e2e tests against the current kubectl cluster.
+	@command -v $(KUBECTL) >/dev/null 2>&1 || { \
+		echo "kubectl is not installed. Please install kubectl manually."; \
 		exit 1; \
 	}
-	@kind get clusters | grep -q 'kind' || { \
-		echo "No Kind cluster is running. Please start a Kind cluster before running the e2e tests."; \
+	@$(KUBECTL) cluster-info >/dev/null 2>&1 || { \
+		echo "Cannot connect to Kubernetes cluster via kubectl."; \
 		exit 1; \
 	}
-	go test ./test/e2e/ -v -ginkgo.v
+	$(shell cat .env.integration 2>/dev/null | xargs) go test ./test/e2e/ --tags=e2e -v -ginkgo.v
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter
